@@ -1,0 +1,127 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 8] BetaCore
+[2 / 9] BetaCore
+[7 / 12] BetaCoreTests-product
+[9 / 14] CCryptoBoringSSL
+[11 / 17] BetaCore
+[15 / 18] BetaCoreTests-product
+[22 / 24] BetaCoreTests-test-runner
+[26 / 26] BetaCoreTests-test-runner
+Build complete! (6.85 secs)
+Test Suite 'All tests' started at 2026-11-28 09:46:26.106
+Test Suite 'Debug-linux-x86_64.xctest' started at 2026-11-28 09:46:26.109
+Test Suite 'HolidayServiceTests' started at 2026-11-28 09:46:26.109
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' started at 2026-11-28 09:46:26.109
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' passed (0.006 seconds)
+Test Case 'HolidayServiceTests.testAustrianGroupedResponseUsesOnlyCanonicalISOScope' started at 2026-11-28 09:46:26.115
+<EXPR>:0: error: HolidayServiceTests.testAustrianGroupedResponseUsesOnlyCanonicalISOScope : threw error "BetaError(errorDescription: Optional("The holiday service returned invalid regional scope."))"
+Test Case 'HolidayServiceTests.testAustrianGroupedResponseUsesOnlyCanonicalISOScope' failed (0.002 seconds)
+Test Case 'HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions' started at 2026-11-28 09:46:26.117
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-1")") is not equal to ("Optional("AT-BL")") - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-1")") is not equal to ("Optional("AT-BL")") - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-2")") is not equal to ("Optional("AT-KÄ")") - AT-2
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:202: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-2
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:221: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : failed - AT-2 failed instead of normalizing its verified provider code: BetaError(errorDescription: Optional("The holiday service returned invalid regional scope."))
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:222: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("1") is not equal to ("2") - AT-2
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-3")") is not equal to ("Optional("AT-NÖ")") - AT-3
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:202: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-3
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:221: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : failed - AT-3 failed instead of normalizing its verified provider code: BetaError(errorDescription: Optional("The holiday service returned invalid regional scope."))
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:222: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("1") is not equal to ("2") - AT-3
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-4")") is not equal to ("Optional("AT-OÖ")") - AT-4
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:202: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-4
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:221: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : failed - AT-4 failed instead of normalizing its verified provider code: BetaError(errorDescription: Optional("The holiday service returned invalid regional scope."))
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:222: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("1") is not equal to ("2") - AT-4
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-5")") is not equal to ("Optional("AT-SB")") - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-5")") is not equal to ("Optional("AT-SB")") - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-5
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-6")") is not equal to ("Optional("AT-SM")") - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-6")") is not equal to ("Optional("AT-SM")") - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-6
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-7")") is not equal to ("Optional("AT-TI")") - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-7")") is not equal to ("Optional("AT-TI")") - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-7
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-8")") is not equal to ("Optional("AT-VA")") - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-8")") is not equal to ("Optional("AT-VA")") - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-8
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-9")") is not equal to ("Optional("AT-WI")") - AT-9
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:200: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("Optional("AT-9")") is not equal to ("Optional("AT-WI")") - AT-9
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:214: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("0") is not equal to ("2") - AT-9
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:215: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertEqual failed: ("[]") is not equal to ("["public-holiday", "school-holiday"]") - AT-9
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:217: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-9
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:218: error: HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions : XCTAssertTrue failed - AT-9
+Test Case 'HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions' failed (0.006 seconds)
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' started at 2026-11-28 09:46:26.122
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testGermanSwissAndCanonicalAustrianResponseScopesRemainValid' started at 2026-11-28 09:46:26.123
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:291: error: HolidayServiceTests.testGermanSwissAndCanonicalAustrianResponseScopesRemainValid : XCTAssertEqual failed: ("Optional("AT-9")") is not equal to ("Optional("AT-WI")") - 
+Test Case 'HolidayServiceTests.testGermanSwissAndCanonicalAustrianResponseScopesRemainValid' failed (0.001 seconds)
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' started at 2026-11-28 09:46:26.124
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' started at 2026-11-28 09:46:26.125
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' started at 2026-11-28 09:46:26.125
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:303: HolidayServiceTests.testLivePublicHolidayServiceWhenRequested : Test skipped - Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' skipped (0.001 seconds)
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' started at 2026-11-28 09:46:26.126
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' started at 2026-11-28 09:46:26.127
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' started at 2026-11-28 09:46:26.129
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' started at 2026-11-28 09:46:26.130
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' started at 2026-11-28 09:46:26.131
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' started at 2026-11-28 09:46:26.132
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage' started at 2026-11-28 09:46:26.134
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-UNKNOWN, nationwide=false, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-UNKNOWN, nationwide=true, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-10, nationwide=false, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-10, nationwide=true, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - WI, nationwide=false, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - WI, nationwide=true, selected=0
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-UNKNOWN, nationwide=true, selected=1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - AT-10, nationwide=true, selected=1
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:265: error: HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage : XCTAssertTrue failed - WI, nationwide=true, selected=1
+Test Case 'HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage' failed (0.006 seconds)
+Test Case 'HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP' started at 2026-11-28 09:46:26.139
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:246: error: HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP : XCTAssertThrowsError failed: did not throw error - AT-10
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:246: error: HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP : XCTAssertThrowsError failed: did not throw error - AT-UNKNOWN
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:246: error: HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP : XCTAssertThrowsError failed: did not throw error - AT-WI
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:246: error: HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP : XCTAssertThrowsError failed: did not throw error - DE-BE
+Test Case 'HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP' failed (0.0 seconds)
+Test Case 'HolidayServiceTests.testUnknownUnicodeRegionCodesKeepStrictParserFailure' started at 2026-11-28 09:46:26.140
+Test Case 'HolidayServiceTests.testUnknownUnicodeRegionCodesKeepStrictParserFailure' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' started at 2026-11-28 09:46:26.141
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' passed (0.003 seconds)
+Test Suite 'HolidayServiceTests' failed at 2026-11-28 09:46:26.144
+	 Executed 18 tests, with 1 test skipped and 63 failures (1 unexpected) in 0.035 (0.035) seconds
+Test Suite 'Debug-linux-x86_64.xctest' failed at 2026-11-28 09:46:26.144
+	 Executed 18 tests, with 1 test skipped and 63 failures (1 unexpected) in 0.035 (0.035) seconds
+Test Suite 'All tests' failed at 2026-11-28 09:46:26.144
+	 Executed 18 tests, with 1 test skipped and 63 failures (1 unexpected) in 0.035 (0.035) seconds
+◇ Test run started.
+↳ Testing Library Version: 6.4.3 (ba0861fb203553c)
+↳ Target Platform: x86_64-unknown-linux-gnu
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.
+Note: Some test targets reported failures:
+  - BetaCoreTests (XCTest)

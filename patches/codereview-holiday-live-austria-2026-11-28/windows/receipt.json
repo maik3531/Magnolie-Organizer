@@ -1,0 +1,31 @@
+{
+  "issue": 856,
+  "base": "#855 candidate result tree f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "before": {
+    "passed": 30,
+    "total": 43
+  },
+  "after": {
+    "passed": 43,
+    "total": 43
+  },
+  "runtime": "8.0.34",
+  "sdk": "8.0.428",
+  "build_warnings": 0,
+  "build_errors": 0,
+  "test_source_identical_before_after": true,
+  "case_file_sha256": "e67d9d9bd25127e4efcb59fd0c43978f9063fe296f443a2c6579c8796563e438",
+  "source_bindings": {
+    "magnolie-organizer-windows/BridgeDispatcher.cs": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+    "magnolie-organizer-windows/OpenHolidayData.cs": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+    "magnolie-organizer-windows/FirstRunSetupState.cs": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+    "case_file_sha256": "e67d9d9bd25127e4efcb59fd0c43978f9063fe296f443a2c6579c8796563e438",
+    "extracted_members_sha256": "26ced61e99dbe4fe649a888d7d7f52bc50970e5cc31e36532c8c4582fe663caa"
+  },
+  "runner_sha256": "7c306dacf3da6a2110a993fcd3649cd74e3894c0b17e9ef38a730dbe5bb4ecdb",
+  "live_subdivision_fixture_sha256": "7b209ec482d8426dcc8d3dd328d480ef0fd43b141a63f094928d3ee058aeff27",
+  "patch_sha256": "63b923f22215547b1eb292a8bc2852e466f00c1b82744496bb5492c3ad1a3e1a",
+  "patch_bytes": 16422,
+  "product_native_windows_executed": false,
+  "test_scope": "actual C# product methods/parser in Linux .NET source host; controlled HTTP/callback/gettext"
+}

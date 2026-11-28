@@ -1,0 +1,66 @@
+{
+  "README.md": {
+    "bytes": 3663,
+    "sha256": "86c2aa9302c18af71df600c113bf270953cf70e59ea17a6a11f463543afdf74b"
+  },
+  "attempt1-smoke.stderr.log": {
+    "bytes": 49,
+    "sha256": "3332648706e2c4a8f8e7243825c4792053d1ca6c00f05641535b07e7e181c5ca"
+  },
+  "attempt2-smoke.stderr.log": {
+    "bytes": 80,
+    "sha256": "31c2cb0dffdeb9049fa2269e24af62df15e4161d4f752a648faf9630259725fe"
+  },
+  "attempt3-smoke.stderr.log": {
+    "bytes": 140,
+    "sha256": "11970b238c546a7985bb5106dee60685d723fbbf759fdab06cc4ba95605a8f4f"
+  },
+  "attempt4-smoke.stderr.log": {
+    "bytes": 148,
+    "sha256": "418e18df4451947107bbdfe5d8c62cb5412585e695b9d0775eed82b29817ce29"
+  },
+  "base-signature.log": {
+    "bytes": 1615,
+    "sha256": "2bcc7e039e7936e634d777d77c8d3d4e2b1142cccb4df9922f2bf15d4bad028d"
+  },
+  "launch-webkit.py": {
+    "bytes": 3392,
+    "sha256": "b9ac888ff0d978a04130d9c18596a1dcb9eea9c8d128faf5ff9dd3a4db69ef10"
+  },
+  "namespace-recipe.json": {
+    "bytes": 565,
+    "sha256": "eb90ac719bc76c2a1f9afa214057df80cd53d4f4a7afbabc9a8775bc296aa324"
+  },
+  "package-manifest.json": {
+    "bytes": 3285,
+    "sha256": "ab4b1ee06e10c39db369d6550bd67ca85b35c6d2b215de83c1fde19c7a0d6de4"
+  },
+  "receipt.json": {
+    "bytes": 619,
+    "sha256": "2cf25061226a2256bee2e5439ede1034e3d0de7b9cabb09b35c2de0f4a7c59ad"
+  },
+  "security-signature.log": {
+    "bytes": 1078,
+    "sha256": "d4065245a03bc02110f93eca7e0c56addb3dd106dd7e482c405e2d778feda50d"
+  },
+  "smoke.py": {
+    "bytes": 768,
+    "sha256": "01320b6c534e44cd21980ebbfd32371de58c8b7933715aa219ffa94835daf34d"
+  },
+  "smoke.stderr.log": {
+    "bytes": 146,
+    "sha256": "66531c7079a74c8911599d5019e257295c319630b350f5dd966043d7a53a3c73"
+  },
+  "smoke.stdout.log": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "socket-probe-results.json": {
+    "bytes": 864,
+    "sha256": "547e57052068a94ced8b536432f17fd767e5c8ac12202060c3920c00a2455ab5"
+  },
+  "socket-probe.py": {
+    "bytes": 487,
+    "sha256": "2f77f664fb205d2648943ba1fdae404c4fa40dd310b9d7ab1b3206a78d056056"
+  }
+}

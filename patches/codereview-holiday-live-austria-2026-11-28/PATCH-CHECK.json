@@ -1,0 +1,64 @@
+{
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "after_855_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "final_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+  "delta_paths": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt",
+    "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+    "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "contracts/setup-school-holidays.md",
+    "magnolie-organizer-windows/BridgeDispatcher.cs",
+    "magnolie-organizer-windows/OpenHolidayData.cs",
+    "magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+    "magnolie-organizer/pruefungen/test_setup_holidays.py"
+  ],
+  "combined_paths": [
+    "ARBEITSSTAND.md",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt",
+    "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+    "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+    "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "contracts/setup-school-holidays.md",
+    "magnolie-organizer-windows/BridgeDispatcher.cs",
+    "magnolie-organizer-windows/OpenHolidayData.cs",
+    "magnolie-organizer-windows/app/web/anwendung.js",
+    "magnolie-organizer-windows/tests/holiday-cache-mcp.js",
+    "magnolie-organizer-windows/tests/holiday-cache.js",
+    "magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt",
+    "magnolie-organizer-windows/tests/holiday-fetch-coverage.py",
+    "magnolie-organizer-windows/tests/run.js",
+    "magnolie-organizer/bin/magnolie-organizer",
+    "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+    "magnolie-organizer/pruefungen/test_setup_holidays.py",
+    "magnolie-organizer/web/anwendung.js"
+  ],
+  "patches": [
+    {
+      "patch": "austrian-regions-856-after-855.patch",
+      "base": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "base_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "result_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+      "reverse_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "forward_exact": true,
+      "reverse_exact": true,
+      "bytes": 60165,
+      "sha256": "f03e194168a4d412672ac0cc0c128285f9e30f1b82e6c42c35012ca18b00b0c9"
+    },
+    {
+      "patch": "holiday-cache-855-plus-austria-856.patch",
+      "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+      "base_tree": "dac30a55fccc3c71cc9085c9c9d89445aa603580",
+      "result_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+      "reverse_tree": "dac30a55fccc3c71cc9085c9c9d89445aa603580",
+      "forward_exact": true,
+      "reverse_exact": true,
+      "bytes": 173824,
+      "sha256": "ee7179924bbdb0072259eb9b2f5e1bd14e10df943f458148af2b17ca4e8c5e1e"
+    }
+  ]
+}

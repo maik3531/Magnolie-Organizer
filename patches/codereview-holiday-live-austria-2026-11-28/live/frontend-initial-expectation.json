@@ -1,0 +1,71 @@
+{
+  "mode": "Full desktop scripts in JSDOM; real captured native responses, not live native GUI",
+  "source_base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "candidate_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "source_sha256": {
+    "magnolie-organizer-windows/tests/holiday-cache.js": "b5609a55a3da57dc49a726eedd680b727c59c0cf4b5c598b8c95c9f3fdfb55a9",
+    "magnolie-organizer/web/anwendung.js": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea",
+    "magnolie-organizer-windows/app/web/anwendung.js": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1"
+  },
+  "live_receipt_sha256": "b665aafea625bd2bd956254c2059af9f12009d14186d02fd5148e8e436c1a3b5",
+  "passed": 4,
+  "total": 10,
+  "results": [
+    {
+      "web": "magnolie-organizer/web",
+      "name": "DE/SN 2026 live response imports all 18 parsed rows and complete cross-year dates",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  [\n    {\n      art: 'school-holiday',\n      bis: '2026-01-02',\n      country: 'DE',\n...\n    {\n-     art: 'school-holiday',\n-     bis: '2026-02-21',\n-     country: 'DE',\n-     name: 'Winter Holidays',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-02-09'\n-   },\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-04-10',\n-     country: 'DE',\n-     name: 'Easter Holidays',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-04-03'\n-   },\n-   {\n      art: 'public-holiday',\n      bis: '2026-04-03',\n      country: 'DE',\n      name: 'Good Friday',\n      nationwide: true,\n...\n    {\n+     art: 'public-holiday',\n+     bis: '2026-05-25',\n-     art: 'school-holiday',\n-     bis: '2026-05-15',\n      country: 'DE',\n+     name: 'Pentecost Monday',\n+     nationwide: true,\n-     name: 'Day off',\n-     nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [],\n+     von: '2026-05-25'\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-05-15'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-10-03',\n-     bis: '2026-05-25',\n      country: 'DE',\n+     name: 'Day of German Unity',\n-     name: 'Pentecost Monday',\n      nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [],\n+     von: '2026-10-03'\n-     von: '2026-05-25'\n    },\n    {\n+     art: 'public-holiday',\n+     bis: '2026-10-31',\n+     country: 'DE',\n+     name: 'Reformation Day (Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Lower Saxony, Schleswig-Holstein, Saxony, Saxony-Anhalt, Thuringia)',\n+     nationwide: false,\n+     region: 'DE-BB,DE-HB,DE-HH,DE-MV,DE-NI,DE-SH,DE-SN,DE-ST,DE-TH',\n+     regionName: 'Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Lower Saxony, Schleswig-Holstein, Saxony, Saxony-Anhalt, Thuringia',\n+     regions: [\n+       'DE-BB',\n+       'DE-HB',\n+       'DE-HH',\n+       'DE-MV',\n+       'DE-NI',\n+       'DE-SH',\n+       'DE-SN',\n+       'DE-ST',\n+       'DE-TH'\n+     ],\n+     von: '2026-10-31'\n+   },\n+   {\n      art: 'school-holiday',\n+     bis: '2027-01-02',\n-     bis: '2026-08-14',\n      country: 'DE',\n+     name: 'Christmas Holidays',\n-     name: 'Summer Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-12-23'\n-     von: '2026-07-04'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-12-25',\n-     bis: '2026-10-03',\n      country: 'DE',\n+     name: 'Christmas Day',\n-     name: 'Day of German Unity',\n      nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [],\n+     von: '2026-12-25'\n-     von: '2026-10-03'\n    },\n    {\n+     art: 'public-holiday',\n+     bis: '2026-12-26',\n+     country: 'DE',\n+     name: '2nd Day of Christmas',\n+     nationwide: true,\n+     region: 'DE-SN',\n+     regionName: '',\n+     regions: [],\n+     von: '2026-12-26'\n+   },\n+   {\n      art: 'school-holiday',\n+     bis: '2026-02-21',\n-     bis: '2026-10-24',\n      country: 'DE',\n+     name: 'Winter Holidays',\n-     name: 'Autumn Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-02-09'\n-     von: '2026-10-12'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-04-10',\n-     art: 'public-holiday',\n-     bis: '2026-10-31',\n      country: 'DE',\n+     name: 'Easter Holidays',\n-     name: 'Reformation Day',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n-       'DE-BB',\n-       'DE-HB',\n-       'DE-HH',\n-       'DE-MV',\n-       'DE-NI',\n-       'DE-SH',\n        'DE-SN',\n-       'DE-ST',\n-       'DE-TH'\n      ],\n+     von: '2026-04-03'\n-     von: '2026-10-31'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-05-15',\n-     art: 'public-holiday',\n-     bis: '2026-11-18',\n      country: 'DE',\n+     name: 'Day off',\n-     name: 'Repentance Day',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-05-15'\n-     von: '2026-11-18'\n    },\n    {\n      art: 'school-holiday',\n+     bis: '2026-08-14',\n-     bis: '2027-01-02',\n      country: 'DE',\n+     name: 'Summer Holidays',\n-     name: 'Christmas Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-07-04'\n-     von: '2026-12-23'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-10-24',\n-     art: 'public-holiday',\n-     bis: '2026-12-25',\n      country: 'DE',\n+     name: 'Autumn Holidays',\n+     nationwide: false,\n-     name: 'Christmas Day',\n-     nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [\n+       'DE-SN'\n+     ],\n+     von: '2026-10-12'\n-     regions: [],\n-     von: '2026-12-25'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-11-18',\n-     bis: '2026-12-26',\n      country: 'DE',\n+     name: 'Repentance Day',\n+     nationwide: false,\n-     name: '2nd Day of Christmas',\n-     nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [\n+       'DE-SN'\n+     ],\n+     von: '2026-11-18'\n-     regions: [],\n-     von: '2026-12-26'\n    }\n  ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "DE live refresh preserves the complete AT and CH live cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "school opt-out preserves captured Saxony school periods",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Semester Holidays 2026-02-02",
+      "passed": false,
+      "error": "Provider-confirmed Vienna school period absent from actual desktop cache: 2026-02-02 to 2026-02-07"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Summer Holidays 2026-07-04",
+      "passed": false,
+      "error": "Provider-confirmed Vienna school period absent from actual desktop cache: 2026-07-04 to 2026-09-06"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "DE/SN 2026 live response imports all 18 parsed rows and complete cross-year dates",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  [\n    {\n      art: 'school-holiday',\n      bis: '2026-01-02',\n      country: 'DE',\n...\n    {\n-     art: 'school-holiday',\n-     bis: '2026-02-21',\n-     country: 'DE',\n-     name: 'Winter Holidays',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-02-09'\n-   },\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-04-10',\n-     country: 'DE',\n-     name: 'Easter Holidays',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-04-03'\n-   },\n-   {\n      art: 'public-holiday',\n      bis: '2026-04-03',\n      country: 'DE',\n      name: 'Good Friday',\n      nationwide: true,\n...\n    {\n+     art: 'public-holiday',\n+     bis: '2026-05-25',\n-     art: 'school-holiday',\n-     bis: '2026-05-15',\n      country: 'DE',\n+     name: 'Pentecost Monday',\n+     nationwide: true,\n-     name: 'Day off',\n-     nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [],\n+     von: '2026-05-25'\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-05-15'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-10-03',\n-     bis: '2026-05-25',\n      country: 'DE',\n+     name: 'Day of German Unity',\n-     name: 'Pentecost Monday',\n      nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [],\n+     von: '2026-10-03'\n-     von: '2026-05-25'\n    },\n    {\n+     art: 'public-holiday',\n+     bis: '2026-10-31',\n+     country: 'DE',\n+     name: 'Reformation Day (Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Lower Saxony, Schleswig-Holstein, Saxony, Saxony-Anhalt, Thuringia)',\n+     nationwide: false,\n+     region: 'DE-BB,DE-HB,DE-HH,DE-MV,DE-NI,DE-SH,DE-SN,DE-ST,DE-TH',\n+     regionName: 'Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Lower Saxony, Schleswig-Holstein, Saxony, Saxony-Anhalt, Thuringia',\n+     regions: [\n+       'DE-BB',\n+       'DE-HB',\n+       'DE-HH',\n+       'DE-MV',\n+       'DE-NI',\n+       'DE-SH',\n+       'DE-SN',\n+       'DE-ST',\n+       'DE-TH'\n+     ],\n+     von: '2026-10-31'\n+   },\n+   {\n      art: 'school-holiday',\n+     bis: '2027-01-02',\n-     bis: '2026-08-14',\n      country: 'DE',\n+     name: 'Christmas Holidays',\n-     name: 'Summer Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-12-23'\n-     von: '2026-07-04'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-12-25',\n-     bis: '2026-10-03',\n      country: 'DE',\n+     name: 'Christmas Day',\n-     name: 'Day of German Unity',\n      nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [],\n+     von: '2026-12-25'\n-     von: '2026-10-03'\n    },\n    {\n+     art: 'public-holiday',\n+     bis: '2026-12-26',\n+     country: 'DE',\n+     name: '2nd Day of Christmas',\n+     nationwide: true,\n+     region: 'DE-SN',\n+     regionName: '',\n+     regions: [],\n+     von: '2026-12-26'\n+   },\n+   {\n      art: 'school-holiday',\n+     bis: '2026-02-21',\n-     bis: '2026-10-24',\n      country: 'DE',\n+     name: 'Winter Holidays',\n-     name: 'Autumn Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-02-09'\n-     von: '2026-10-12'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-04-10',\n-     art: 'public-holiday',\n-     bis: '2026-10-31',\n      country: 'DE',\n+     name: 'Easter Holidays',\n-     name: 'Reformation Day',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n-       'DE-BB',\n-       'DE-HB',\n-       'DE-HH',\n-       'DE-MV',\n-       'DE-NI',\n-       'DE-SH',\n        'DE-SN',\n-       'DE-ST',\n-       'DE-TH'\n      ],\n+     von: '2026-04-03'\n-     von: '2026-10-31'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-05-15',\n-     art: 'public-holiday',\n-     bis: '2026-11-18',\n      country: 'DE',\n+     name: 'Day off',\n-     name: 'Repentance Day',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-05-15'\n-     von: '2026-11-18'\n    },\n    {\n      art: 'school-holiday',\n+     bis: '2026-08-14',\n-     bis: '2027-01-02',\n      country: 'DE',\n+     name: 'Summer Holidays',\n-     name: 'Christmas Holidays',\n      nationwide: false,\n      region: 'DE-SN',\n      regionName: '',\n      regions: [\n        'DE-SN'\n      ],\n+     von: '2026-07-04'\n-     von: '2026-12-23'\n    },\n    {\n+     art: 'school-holiday',\n+     bis: '2026-10-24',\n-     art: 'public-holiday',\n-     bis: '2026-12-25',\n      country: 'DE',\n+     name: 'Autumn Holidays',\n+     nationwide: false,\n-     name: 'Christmas Day',\n-     nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [\n+       'DE-SN'\n+     ],\n+     von: '2026-10-12'\n-     regions: [],\n-     von: '2026-12-25'\n    },\n    {\n      art: 'public-holiday',\n+     bis: '2026-11-18',\n-     bis: '2026-12-26',\n      country: 'DE',\n+     name: 'Repentance Day',\n+     nationwide: false,\n-     name: '2nd Day of Christmas',\n-     nationwide: true,\n      region: 'DE-SN',\n      regionName: '',\n+     regions: [\n+       'DE-SN'\n+     ],\n+     von: '2026-11-18'\n-     regions: [],\n-     von: '2026-12-26'\n    }\n  ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "DE live refresh preserves the complete AT and CH live cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "school opt-out preserves captured Saxony school periods",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Semester Holidays 2026-02-02",
+      "passed": false,
+      "error": "Provider-confirmed Vienna school period absent from actual desktop cache: 2026-02-02 to 2026-02-07"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Summer Holidays 2026-07-04",
+      "passed": false,
+      "error": "Provider-confirmed Vienna school period absent from actual desktop cache: 2026-07-04 to 2026-09-06"
+    }
+  ]
+}

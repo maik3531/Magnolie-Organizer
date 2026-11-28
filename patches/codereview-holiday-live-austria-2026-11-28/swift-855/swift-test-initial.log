@@ -1,0 +1,287 @@
+Fetching https://github.com/apple/swift-asn1.git
+[1/2088] Fetching swift-asn1
+Fetched https://github.com/apple/swift-asn1.git (5.72s)
+Computing version for https://github.com/apple/swift-asn1.git
+Computed https://github.com/apple/swift-asn1.git at 1.7.5 (6.23s)
+Creating working copy for https://github.com/apple/swift-asn1.git
+Working copy of https://github.com/apple/swift-asn1.git resolved at 1.7.5
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 273]
+[Planning deferred tasks]
+[Starting]
+[36 / 468] CCryptoBoringSSL
+[55 / 478] CryptoBoringWrapper
+[57 / 478] CryptoBoringWrapper
+[63 / 478] CryptoBoringWrapper
+[65 / 478] CryptoBoringWrapper
+[67 / 478] CryptoBoringWrapper
+[70 / 478] CryptoBoringWrapper
+[76 / 480] Crypto
+[78 / 490] Crypto
+[79 / 490] CCryptoBoringSSL
+[80 / 490] CCryptoBoringSSL
+[81 / 490] CCryptoBoringSSL
+[82 / 490] CCryptoBoringSSL
+[82 / 490] Crypto
+[83 / 490] CCryptoBoringSSL
+[86 / 490] Crypto
+[90 / 490] CCryptoBoringSSL
+[92 / 490] CCryptoBoringSSL
+[93 / 490] CCryptoBoringSSL
+[94 / 490] CCryptoBoringSSL
+[95 / 490] CCryptoBoringSSL
+[98 / 490] CCryptoBoringSSL
+[101 / 490] CCryptoBoringSSL
+[102 / 490] CCryptoBoringSSL
+[104 / 490] CCryptoBoringSSL
+[105 / 490] CCryptoBoringSSL
+[107 / 490] CCryptoBoringSSL
+[108 / 490] CCryptoBoringSSL
+[110 / 490] CCryptoBoringSSL
+[112 / 490] CCryptoBoringSSL
+[113 / 490] CCryptoBoringSSL
+[114 / 490] CCryptoBoringSSL
+[115 / 490] CCryptoBoringSSL
+[116 / 490] CCryptoBoringSSL
+[118 / 490] CCryptoBoringSSL
+[119 / 490] CCryptoBoringSSL
+[120 / 490] CCryptoBoringSSL
+[122 / 490] CCryptoBoringSSL
+[129 / 490] CCryptoBoringSSL
+[132 / 490] CCryptoBoringSSL
+[134 / 490] CCryptoBoringSSL
+[135 / 490] CCryptoBoringSSL
+[136 / 490] CCryptoBoringSSL
+[137 / 490] CCryptoBoringSSL
+[138 / 490] CCryptoBoringSSL
+[140 / 490] CCryptoBoringSSL
+[141 / 490] CCryptoBoringSSL
+[142 / 490] CCryptoBoringSSL
+[145 / 490] CCryptoBoringSSL
+[147 / 490] CCryptoBoringSSL
+[148 / 490] CCryptoBoringSSL
+[149 / 490] CCryptoBoringSSL
+[150 / 490] CCryptoBoringSSL
+[151 / 490] CCryptoBoringSSL
+[152 / 490] CCryptoBoringSSL
+[153 / 490] CCryptoBoringSSL
+[155 / 490] CCryptoBoringSSL
+[157 / 490] CCryptoBoringSSL
+[159 / 490] CCryptoBoringSSL
+[161 / 490] CCryptoBoringSSL
+[163 / 490] CCryptoBoringSSL
+[165 / 490] CCryptoBoringSSL
+[167 / 490] CCryptoBoringSSL
+[169 / 490] CCryptoBoringSSL
+[171 / 490] CCryptoBoringSSL
+[172 / 490] CCryptoBoringSSL
+[174 / 490] CCryptoBoringSSL
+[175 / 490] CCryptoBoringSSL
+[177 / 490] CCryptoBoringSSL
+[178 / 490] CCryptoBoringSSL
+[180 / 490] CCryptoBoringSSL
+[181 / 490] CCryptoBoringSSL
+[184 / 490] CCryptoBoringSSL
+[191 / 490] CCryptoBoringSSL
+[194 / 490] CCryptoBoringSSL
+[200 / 490] CCryptoBoringSSL
+[204 / 490] CCryptoBoringSSL
+[210 / 490] CCryptoBoringSSL
+[211 / 490] CCryptoBoringSSL
+[212 / 490] CCryptoBoringSSL
+[214 / 490] CCryptoBoringSSL
+[215 / 490] CCryptoBoringSSL
+[216 / 490] CCryptoBoringSSL
+[219 / 490] CCryptoBoringSSL
+[220 / 490] CCryptoBoringSSL
+[222 / 490] CCryptoBoringSSL
+[223 / 490] CCryptoBoringSSL
+[224 / 490] CCryptoBoringSSL
+[226 / 490] CCryptoBoringSSL
+[228 / 490] CCryptoBoringSSL
+[229 / 490] CCryptoBoringSSL
+[230 / 490] CCryptoBoringSSL
+[231 / 490] CCryptoBoringSSL
+[233 / 490] CCryptoBoringSSL
+[235 / 490] CCryptoBoringSSL
+[236 / 490] CCryptoBoringSSL
+[237 / 490] CCryptoBoringSSL
+[238 / 490] CCryptoBoringSSL
+[240 / 490] CCryptoBoringSSL
+[241 / 490] CCryptoBoringSSL
+[242 / 490] CCryptoBoringSSL
+[243 / 490] CCryptoBoringSSL
+[244 / 490] CCryptoBoringSSL
+[246 / 490] CCryptoBoringSSL
+[247 / 490] CCryptoBoringSSL
+[248 / 490] CCryptoBoringSSL
+[249 / 490] CCryptoBoringSSL
+[251 / 490] CCryptoBoringSSL
+[252 / 490] CCryptoBoringSSL
+[253 / 490] CCryptoBoringSSL
+[254 / 490] CCryptoBoringSSL
+[255 / 490] CCryptoBoringSSL
+[256 / 490] CCryptoBoringSSL
+[257 / 490] CCryptoBoringSSL
+[258 / 490] CCryptoBoringSSL
+[260 / 490] CCryptoBoringSSL
+[263 / 490] CCryptoBoringSSL
+[269 / 490] CCryptoBoringSSL
+[272 / 490] CCryptoBoringSSL
+[273 / 490] CCryptoBoringSSL
+[274 / 490] CCryptoBoringSSL
+[276 / 490] CCryptoBoringSSL
+[279 / 490] CCryptoBoringSSL
+[282 / 490] CCryptoBoringSSL
+[283 / 490] CCryptoBoringSSL
+[285 / 490] CCryptoBoringSSL
+[287 / 490] CCryptoBoringSSL
+[288 / 490] CCryptoBoringSSL
+[289 / 490] CCryptoBoringSSL
+[290 / 490] CCryptoBoringSSL
+[294 / 490] CCryptoBoringSSL
+[300 / 490] CCryptoBoringSSL
+[308 / 490] CCryptoBoringSSL
+[310 / 490] CCryptoBoringSSL
+[313 / 490] CCryptoBoringSSL
+[317 / 490] CCryptoBoringSSL
+[319 / 490] CCryptoBoringSSL
+[321 / 490] CCryptoBoringSSL
+[323 / 490] CCryptoBoringSSL
+[324 / 490] CCryptoBoringSSL
+[325 / 490] CCryptoBoringSSL
+[327 / 490] CCryptoBoringSSL
+[329 / 490] CCryptoBoringSSL
+[331 / 490] CCryptoBoringSSL
+[333 / 490] CCryptoBoringSSL
+[334 / 490] CCryptoBoringSSL
+[335 / 490] CCryptoBoringSSL
+[337 / 490] CCryptoBoringSSL
+[338 / 490] CCryptoBoringSSL
+[339 / 490] CCryptoBoringSSL
+[341 / 490] CCryptoBoringSSL
+[342 / 490] CCryptoBoringSSL
+[343 / 490] CCryptoBoringSSL
+[345 / 490] CCryptoBoringSSL
+[347 / 490] CCryptoBoringSSL
+[348 / 490] CCryptoBoringSSL
+[349 / 490] CCryptoBoringSSL
+[351 / 490] CCryptoBoringSSL
+[353 / 490] CCryptoBoringSSL
+[356 / 490] CCryptoBoringSSL
+[358 / 490] CCryptoBoringSSL
+[360 / 490] CCryptoBoringSSL
+[362 / 490] CCryptoBoringSSL
+[364 / 490] CCryptoBoringSSL
+[365 / 490] CCryptoBoringSSL
+[368 / 490] CCryptoBoringSSL
+[370 / 490] CCryptoBoringSSL
+[373 / 490] CCryptoBoringSSL
+[374 / 490] CCryptoBoringSSL
+[375 / 490] CCryptoBoringSSL
+[382 / 490] CCryptoBoringSSL
+[384 / 490] CCryptoBoringSSL
+[385 / 490] CCryptoBoringSSL
+[386 / 490] CCryptoBoringSSL
+[389 / 490] CCryptoBoringSSL
+[393 / 490] CCryptoBoringSSL
+[396 / 490] CCryptoBoringSSL
+[398 / 490] CCryptoBoringSSL
+[400 / 490] CCryptoBoringSSL
+[401 / 490] CCryptoBoringSSL
+[402 / 490] CCryptoBoringSSL
+[403 / 490] CCryptoBoringSSL
+[404 / 490] CCryptoBoringSSL
+[405 / 490] CCryptoBoringSSL
+[408 / 490] CCryptoBoringSSL
+[410 / 490] CCryptoBoringSSL
+[414 / 490] CCryptoBoringSSL
+[418 / 490] CCryptoBoringSSL
+[421 / 490] CCryptoBoringSSL
+[425 / 490] CCryptoBoringSSL
+[426 / 490] CCryptoBoringSSL
+[430 / 490] CCryptoBoringSSL
+[431 / 490] CCryptoBoringSSL
+[432 / 490] CCryptoBoringSSL
+[433 / 490] CCryptoBoringSSL
+[434 / 490] CCryptoBoringSSL
+[435 / 490] CCryptoBoringSSL
+[436 / 490] CCryptoBoringSSL
+[437 / 490] CCryptoBoringSSL
+[438 / 490] CCryptoBoringSSL
+[439 / 490] CCryptoBoringSSL
+[440 / 490] CCryptoBoringSSL
+[441 / 490] CCryptoBoringSSL
+[442 / 490] CCryptoBoringSSL
+[443 / 490] CCryptoBoringSSL
+[444 / 490] CCryptoBoringSSL
+[446 / 490] CCryptoBoringSSL
+[447 / 490] CCryptoBoringSSL
+[448 / 490] Crypto
+[449 / 490] Crypto
+[450 / 490] CCryptoBoringSSL
+[451 / 490] Crypto
+[452 / 490] Crypto
+[453 / 490] Crypto
+[454 / 490] Crypto-product
+[455 / 490] Crypto-product
+[456 / 490] CryptoKit
+[457 / 490] CryptoKit
+[460 / 493] CryptoKit
+[461 / 494] Crypto
+[470 / 495] CryptoBoringWrapper
+[473 / 504] CryptoKit
+[480 / 504] BetaCore
+[482 / 504] BetaCoreTests-product
+[485 / 504] BetaCore
+[485 / 504]
+[488 / 508] BetaCore
+[489 / 509] Crypto
+[491 / 509] BetaCoreTests-product
+[498 / 509] BetaCore
+[498 / 509] BetaCoreTests-product
+[502 / 510] BetaCoreTests-product
+[506 / 513] BetaCoreTests-test-runner
+[510 / 513] BetaCoreTests-test-runner
+[514 / 514] BetaCoreTests-test-runner
+Build complete! (70.62 secs)
+Test Suite 'All tests' started at 2026-11-28 09:42:00.208
+Test Suite 'Debug-linux-x86_64.xctest' started at 2026-11-28 09:42:00.209
+Test Suite 'HolidayServiceTests' started at 2026-11-28 09:42:00.209
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' started at 2026-11-28 09:42:00.209
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' passed (0.006 seconds)
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' started at 2026-11-28 09:42:00.215
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' started at 2026-11-28 09:42:00.216
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' started at 2026-11-28 09:42:00.217
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' started at 2026-11-28 09:42:00.217
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:193: HolidayServiceTests.testLivePublicHolidayServiceWhenRequested : Test skipped - Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' skipped (0.0 seconds)
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' started at 2026-11-28 09:42:00.217
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' started at 2026-11-28 09:42:00.218
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' started at 2026-11-28 09:42:00.219
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' started at 2026-11-28 09:42:00.220
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' started at 2026-11-28 09:42:00.220
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' started at 2026-11-28 09:42:00.221
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' started at 2026-11-28 09:42:00.222
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' passed (0.001 seconds)
+Test Suite 'HolidayServiceTests' passed at 2026-11-28 09:42:00.223
+	 Executed 12 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.013 (0.013) seconds
+Test Suite 'Debug-linux-x86_64.xctest' passed at 2026-11-28 09:42:00.223
+	 Executed 12 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.013 (0.013) seconds
+Test Suite 'All tests' passed at 2026-11-28 09:42:00.223
+	 Executed 12 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.013 (0.013) seconds
+◇ Test run started.
+↳ Testing Library Version: 6.4.3 (ba0861fb203553c)
+↳ Target Platform: x86_64-unknown-linux-gnu
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

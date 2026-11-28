@@ -1,0 +1,11 @@
+{
+  "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=AT&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=AT-N%C3%96",
+  "retrieved_at_utc": "2026-11-28T08:42:48.447272+00:00",
+  "status": 200,
+  "bytes": 2085,
+  "sha256": "c385ad141003964e72cc73db7c6005ba1d6d96657e1ba157e984cedd156f1995",
+  "headers": {
+    "date": "Sat, 28 Nov 2026 08:42:53 GMT",
+    "content-type": "application/json; charset=utf-8"
+  }
+}

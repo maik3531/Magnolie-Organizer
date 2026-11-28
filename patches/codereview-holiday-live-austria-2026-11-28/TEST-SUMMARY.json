@@ -1,0 +1,123 @@
+{
+  "issues": [
+    855,
+    856
+  ],
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "after_855_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "final_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+  "setup": {
+    "passed": 88,
+    "total": 88,
+    "languages": 20,
+    "frontends": 2,
+    "language_dependent_cases": 40,
+    "other_cases": 48,
+    "generated_catalogues": 38,
+    "unchanged_test": true,
+    "also_passed_with_regenerated_native_catalogue": true
+  },
+  "swift_855": {
+    "passed": 11,
+    "failed": 0,
+    "skipped_live_mac": 1,
+    "new_855_methods_passed": 5,
+    "compiler": "6.4.3",
+    "host": "Linux, controlled transport"
+  },
+  "python_856": {
+    "before_passed": 27,
+    "before_total": 35,
+    "after_passed": 35,
+    "after_total": 35
+  },
+  "csharp_856": {
+    "before_passed": 30,
+    "before_total": 43,
+    "after_passed": 43,
+    "after_total": 43,
+    "sdk": "8.0.428",
+    "runtime": "8.0.34",
+    "host": "Linux, controlled HTTP and callbacks"
+  },
+  "kotlin_856": {
+    "before_passed": 20,
+    "before_total": 26,
+    "after_passed": 26,
+    "after_total": 26,
+    "compiler": "2.4.21",
+    "jvm_target": 17,
+    "runtime": "OpenJDK 21.0.13.1"
+  },
+  "swift_856": {
+    "before_passed": 12,
+    "before_executable": 17,
+    "after_passed": 17,
+    "after_executable": 17,
+    "skipped_live_mac_each": 1,
+    "compiler": "6.4.3",
+    "mac_default_transport_compiled": false,
+    "full_mac_app_compiled": false
+  },
+  "desktop_live_replay": {
+    "before_passed": 6,
+    "before_total": 12,
+    "after_passed": 12,
+    "after_total": 12,
+    "mode": "complete desktop UI source and actual recorded native HTTP responses, JSDOM 26.1.0"
+  },
+  "setup_provider_cases": {
+    "passed": 3,
+    "total": 3
+  },
+  "independent_counterprobe": {
+    "passed": 36,
+    "negative": 32,
+    "positive": 4,
+    "scope": "actual final Python functions; no replay represented as new live network"
+  },
+  "final_live_product_requests": {
+    "count": 4,
+    "status_each": 200,
+    "vienna": {
+      "public": 13,
+      "school": 8
+    },
+    "carinthia": {
+      "public": 13,
+      "school": 9
+    },
+    "source_sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63"
+  },
+  "native_webkit": {
+    "product_cases_executed": 0,
+    "blocked_by": "AF_UNIX SOCK_STREAM creation EPERM outside and inside bwrap; D-Bus cannot start",
+    "sandbox_disabled": false
+  },
+  "product_main_merged": false,
+  "package_acceptance": false,
+  "patches": [
+    {
+      "patch": "austrian-regions-856-after-855.patch",
+      "base": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "base_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "result_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+      "reverse_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+      "forward_exact": true,
+      "reverse_exact": true,
+      "bytes": 60165,
+      "sha256": "f03e194168a4d412672ac0cc0c128285f9e30f1b82e6c42c35012ca18b00b0c9"
+    },
+    {
+      "patch": "holiday-cache-855-plus-austria-856.patch",
+      "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+      "base_tree": "dac30a55fccc3c71cc9085c9c9d89445aa603580",
+      "result_tree": "e02b1150060a66d9289cfd910356b44029cb270b",
+      "reverse_tree": "dac30a55fccc3c71cc9085c9c9d89445aa603580",
+      "forward_exact": true,
+      "reverse_exact": true,
+      "bytes": 173824,
+      "sha256": "ee7179924bbdb0072259eb9b2f5e1bd14e10df943f458148af2b17ca4e8c5e1e"
+    }
+  ]
+}

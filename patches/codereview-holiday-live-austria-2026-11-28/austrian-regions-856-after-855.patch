@@ -1,0 +1,876 @@
+diff --git a/ARBEITSSTAND.md b/ARBEITSSTAND.md
+index 3994c023ff0f90fad636e35b893402e878e4ec5f..2d2319895c942c525a02717e2ccbbcf914195b16 100644
+--- a/ARBEITSSTAND.md
++++ b/ARBEITSSTAND.md
+@@ -7,6 +7,28 @@ aufgeführt.
+ 
+ ## Weitere Abnahme für den Gesamtrelease
+ 
++- [#856](https://github.com/maik3531/Magnolie-Organizer/issues/856),
++  vorbereiteter Folgepatch zu #855: Die neun österreichischen ISO-Regionen
++  werden an der OpenHolidays-Grenze in die tatsächlich erwarteten Kennungen
++  übersetzt. Rückantworten einschließlich Umlautkennungen werden vor der
++  Regionsprüfung wieder auf ISO abgebildet; Auswahl und gespeicherte Daten
++  behalten ihre Identität. Ein echter Wien-Abruf bestätigte zuvor HTTP 200,
++  ließ mit AT-9 aber Semester- und Sommerferien aus; AT-WI liefert beide.
++  Unbekannte oder gemischte österreichische Kennungen dürfen keine vollständige
++  Cache-Ersetzung bestätigen. Gleiche Vorher-/Nachher-Prüfer: Python
++  27/35 -> 35/35, C# 30/43 -> 43/43, Kotlin 20/26 -> 26/26 und Swift
++  12/17 -> 17/17 ausführbare Methoden; ein zusätzlicher Live-Mac-Test bleibt
++  ausdrücklich übersprungen. Beide vollständigen Desktopoberflächen mit
++  aufgezeichneten echten Providerantworten: 6/12 -> 12/12. Neue tatsächliche
++  Linux-HTTP-Abrufe bestätigen Wien (13 Feiertage, 8 Ferien) und Kärnten
++  (13 Feiertage, 9 Ferien). Eine unabhängige Gegenprüfung fand und schloss
++  einen Linux-Grenzfall bei unqualifizierten AT-Kennungen; 36 gezielte
++  Gegenproben bestanden. Die native Linux-WebKit-Prüfung blieb vor dem
++  Produktlauf an EPERM beim lokalen AF_UNIX-Socket hängen; keine Sandbox
++  abgeschaltet und keine native GUI-Abnahme behauptet. Vollständiger
++  Folgepatch, echte Nachweise und Grenzen liegen im Fachissue. Kein
++  Produkt-main-Merge und keine Paketfreigabe durch diesen Review.
++
+ - [#855](https://github.com/maik3531/Magnolie-Organizer/issues/855),
+   vorbereiteter Reviewpatch: Feiertags-/Ferienabrufe ersetzen gespeicherte
+   Bereiche nur anhand vollständig ausgewerteter nativer Abrufnachweise.
+@@ -14,12 +36,19 @@ aufgeführt.
+   bleiben erhalten. Gemeinsame Regionszeilen werden ohne wachsende Dubletten
+   aufgeteilt beziehungsweise zusammengeführt. Vollständige Desktopskripte:
+   80 gezielte JSDOM-Fälle und sechs MCP-/SaveACK-Fälle bestanden; bestehender
+-  Einrichtungsablauf: 50 Fälle mit englischem Quellkatalog bestanden.
++  Einrichtungsablauf: Nachprüfung mit allen 20 Sprachkatalogen, unveränderter
++  vollständiger Prüfer mit 88 bestandenen Fällen. Die 38 Webkataloge wurden
++  mit den regulären Generatoren und GNU msgfmt erzeugt.
+   Python- und C#-Providerquellen: jeweils 26 kontrollierte Hostfälle bestanden,
+   C# unter Linux mit .NET 8.0.428. Tablet-Dienst: 20 tatsächliche Kotlin/JUnit-
+-  Prüfungen bestanden, keine Android-Geräteabnahme. Mac-Antwortparität und fünf
+-  Swift-Testmethoden vorbereitet, hier mangels Compiler nicht ausgeführt.
+-  Native GUI-/Live-Provider-/Paketabnahme und übrige Sprachläufe bleiben offen.
++  Prüfungen bestanden, keine Android-Geräteabnahme. Der unveränderte
++  Mac-Feiertagsdienst und seine vollständige XCTest-Klasse wurden nachträglich
++  unter Swift 6.4.3 auf Linux kompiliert: elf Methoden bestanden, ein vorhandener
++  Live-Mac-Test ausdrücklich übersprungen. Alle fünf neuen #855-Methoden
++  bestanden. Das ersetzt keine vollständige Mac-App-/native Transportabnahme.
++  Die Live-Nachprüfung belegte einen eigenen österreichischen Regionsfehler
++  (#856); beide Patches vor Übernahme zusammen prüfen. Native Plattform- und
++  Paketabnahmen bleiben getrennte Restarbeit.
+   Unvollständig abgedeckte nationale beziehungsweise jahresübergreifende
+   Altzeilen werden konservativ erhalten; keine vollständige Aktualitätszusage
+   für diese Restbestände. Keine Paketfreigabe durch diese Quellprüfung.
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
+index ed9f92e15f09ce7f3ce631d73cc5b55c78062c71..093ccc9423c8f47f5b9c09ccd661e8d8ae56d321 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt
+@@ -41,6 +41,7 @@ class HolidayService(
+             this.regions = regions.map {
+                 val code = it.code.trim().uppercase(Locale.ROOT)
+                 if (it.code.length > 128 || !REGION.matches(code) || it.name.length > 256 || it.name.any { c -> c < ' ' }) invalidQuery()
++                if (this.country == "AT" && code !in AUSTRIAN_PROVIDER_REGIONS) invalidQuery()
+                 Region(code, it.name.trim())
+             }.distinctBy { it.code }.toList()
+             this.years = years.distinct().sorted()
+@@ -157,7 +158,8 @@ class HolidayService(
+             val remaining = remainingMillis()
+             val fields = linkedMapOf("countryIsoCode" to query.country, "languageIsoCode" to query.language,
+                 "validFrom" to "%04d-01-01".format(Locale.ROOT, year), "validTo" to "%04d-12-31".format(Locale.ROOT, year))
+-            if (region != null) fields["subdivisionCode"] = region.code
++            if (region != null) fields["subdivisionCode"] = if (query.country == "AT")
++                AUSTRIAN_PROVIDER_REGIONS.getValue(region.code) else region.code
+             val uri = URI("https://openholidaysapi.org/$endpoint?" + fields.entries.joinToString("&") {
+                 URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8")
+             })
+@@ -210,8 +212,10 @@ class HolidayService(
+                         for (i in 0 until subdivisions.length()) {
+                             remainingMillis()
+                             val raw = subdivisions.opt(i) as? JSONObject ?: invalidResponse()
+-                            val code = (raw.opt("code") as? String ?: invalidResponse()).trim().uppercase(Locale.ROOT)
++                            val providerCode = (raw.opt("code") as? String ?: invalidResponse()).trim().uppercase(Locale.ROOT)
++                            val code = if (query.country == "AT") AUSTRIAN_ISO_REGIONS[providerCode] ?: providerCode else providerCode
+                             if (!REGION.matches(code)) invalidResponse()
++                            if (query.country == "AT" && code !in AUSTRIAN_PROVIDER_REGIONS) complete = false
+                             scopes.add(code)
+                         }
+                     }
+@@ -257,6 +261,12 @@ class HolidayService(
+     companion object {
+         private val COUNTRY = Regex("^[A-Z]{2}$")
+         private val REGION = Regex("^[A-Z0-9-]{1,64}$")
++        // Refs #856: official OpenHolidays /Subdivisions (AT), verified 2026-11-28.
++        // Only the HTTP boundary uses provider codes; settings and cache stay ISO.
++        private val AUSTRIAN_PROVIDER_REGIONS = mapOf("AT-1" to "AT-BL", "AT-2" to "AT-KÄ",
++            "AT-3" to "AT-NÖ", "AT-4" to "AT-OÖ", "AT-5" to "AT-SB", "AT-6" to "AT-SM",
++            "AT-7" to "AT-TI", "AT-8" to "AT-VA", "AT-9" to "AT-WI")
++        private val AUSTRIAN_ISO_REGIONS = AUSTRIAN_PROVIDER_REGIONS.entries.associate { (iso, provider) -> provider to iso }
+         private val DATE = Regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+         private const val RESPONSE_BYTES = 2 * 1024 * 1024
+         private const val TOTAL_BYTES = 16 * 1024 * 1024
+diff --git a/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt b/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt
+index 06f7ae888ec443186269cd899fa7a69450b78bcb..248766b8a9626cfe71b79df5616bd3426fe41f74 100644
+--- a/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt
++++ b/Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt
+@@ -97,6 +97,96 @@ class HolidayServiceTest {
+         assertFalse(fields(transport.requests.single()).containsKey("subdivisionCode"))
+     }
+ 
++    // Refs #856: OpenHolidays /Subdivisions AT fixture, retrieved 2026-11-28.
++    // Provider codes are not ISO 3166-2; settings/cache identities remain ISO.
++    private val austrianProviders = linkedMapOf("AT-1" to "AT-BL", "AT-2" to "AT-KÄ",
++        "AT-3" to "AT-NÖ", "AT-4" to "AT-OÖ", "AT-5" to "AT-SB", "AT-6" to "AT-SM",
++        "AT-7" to "AT-TI", "AT-8" to "AT-VA", "AT-9" to "AT-WI")
++
++    @Test fun austrianQueriesTranslateAllNineIsoCodesAndEncodeProviderUnicode() {
++        for ((iso, provider) in austrianProviders) {
++            val transport = Transport { _, _ -> response(row().put("nationwide", true)) }
++            val q = HolidayService.Query("AT", listOf(HolidayService.Region(iso, "Fixture region")),
++                listOf(2028), true)
++            val result = HolidayService(transport).fetch(q)
++            assertEquals(listOf(iso), q.regions.map { it.code })
++            assertEquals(2, transport.requests.size)
++            for (request in transport.requests) {
++                assertEquals(provider, fields(request).getValue("subdivisionCode"))
++                assertTrue(request.uri.rawQuery.contains("subdivisionCode=" + java.net.URLEncoder.encode(provider, "UTF-8")))
++                assertTrue(request.uri.toASCIIString().all { it.code < 128 })
++            }
++            assertEquals(listOf(iso, iso), result.coverage.map { it.region })
++            assertTrue(result.entries.all { it.selectedRegions == listOf(iso) })
++        }
++    }
++
++    @Test fun austrianProviderRepliesBecomeCanonicalIsoBeforeCoverageChecks() {
++        for ((iso, provider) in austrianProviders) for (returned in listOf(provider, iso)) {
++            val transport = Transport { _, _ -> response(row().put("subdivisions",
++                JSONArray().put(JSONObject().put("code", returned)))) }
++            val result = HolidayService(transport).fetch(HolidayService.Query("AT",
++                listOf(HolidayService.Region(iso, "Fixture region")), listOf(2028), false))
++            assertEquals(listOf(iso), result.entries.single().regions)
++            assertEquals(listOf(iso), result.entries.single().selectedRegions)
++            assertEquals(iso, result.coverage.single().region)
++            assertEquals(iso, result.callbackValue().getJSONArray("feiertage").getJSONObject(0)
++                .getJSONArray("regions").getString(0))
++        }
++    }
++
++    @Test fun austrianSharedPeriodsKeepAllCanonicalRegionsAndDeduplicateSelections() {
++        val transport = Transport { _, _ -> response(row().put("subdivisions", JSONArray()
++            .put(JSONObject().put("code", "AT-NÖ")).put(JSONObject().put("code", "AT-WI")))) }
++        val q = HolidayService.Query("AT", listOf(HolidayService.Region("AT-3", "Lower Austria"),
++            HolidayService.Region("AT-9", "Vienna")), listOf(2028), true)
++        val result = HolidayService(transport).fetch(q)
++        assertEquals(2, result.entries.size)
++        assertTrue(result.entries.all { it.regions == listOf("AT-3", "AT-9") &&
++            it.selectedRegions == listOf("AT-3", "AT-9") })
++        assertEquals(listOf("AT-3", "AT-9", "AT-3", "AT-9"), result.coverage.map { it.region })
++    }
++
++    @Test fun unknownAustrianQueryNeverStartsHttp() {
++        for (code in listOf("AT-0", "AT-10", "AT-UNKNOWN", "AT-WI", "DE-SN")) {
++            val transport = Transport { _, _ -> response() }
++            expect("holiday_invalid_query") {
++                HolidayService(transport).fetch(HolidayService.Query("AT",
++                    listOf(HolidayService.Region(code, "Unknown")), listOf(2028), true))
++            }
++            assertTrue(transport.requests.isEmpty())
++        }
++    }
++
++    @Test fun unknownAndForeignAustrianReplyCodesNeverCertifyCacheReplacement() {
++        for (code in listOf("AT-UNKNOWN", "AT-10", "AT-9-UNKNOWN", "DE-SN", "UNKNOWN")) {
++            val result = HolidayService(Transport { _, _ -> response(row().put("subdivisions",
++                JSONArray().put(JSONObject().put("code", "AT-9")).put(JSONObject().put("code", code)))) }).fetch(HolidayService.Query("AT",
++                listOf(HolidayService.Region("AT-9", "Vienna")), listOf(2028), false))
++            assertTrue(result.coverage.isEmpty())
++        }
++        expect("holiday_invalid_response") {
++            HolidayService(Transport { _, _ -> response(row().put("subdivisions",
++                JSONArray().put(JSONObject().put("code", "AT-ÄUNKNOWN")))) }).fetch(HolidayService.Query("AT",
++                listOf(HolidayService.Region("AT-9", "Vienna")), listOf(2028), false))
++        }
++    }
++
++    @Test fun austrianEmptyOptOutCountryAndSwissQueriesKeepTheirCoverageBoundaries() {
++        for ((country, selected) in listOf("AT" to "AT-2", "AT" to "", "CH" to "CH-ZH")) {
++            val transport = Transport { _, _ -> response() }
++            val result = HolidayService(transport).fetch(HolidayService.Query(country,
++                if (selected.isEmpty()) emptyList() else listOf(HolidayService.Region(selected, "Fixture")),
++                listOf(2028), false))
++            assertEquals(1, transport.requests.size)
++            assertEquals("/PublicHolidays", transport.requests.single().uri.path)
++            assertEquals(selected, result.coverage.single().region)
++            assertEquals("public-holiday", result.coverage.single().kind)
++            assertEquals(when (selected) { "" -> null; "AT-2" -> "AT-KÄ"; else -> selected },
++                fields(transport.requests.single())["subdivisionCode"])
++        }
++    }
++
+     @Test fun successfulEmptyResponsesCertifyOnlyTheirActualRequestedScopes() {
+         val transport = Transport { _, _ -> response() }
+         val q = HolidayService.Query("DE", listOf(HolidayService.Region("DE-BE", "Berlin"),
+diff --git a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift
+index 6a53694ceee9775d74daab5922c94df0703407df..a3ae8d4e038571d4dd0448e03a3002e5b85f9624 100644
+--- a/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift
++++ b/Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift
+@@ -4,6 +4,14 @@ import CoreFoundation
+ /// Public holiday data only. The server and endpoints are fixed; no account
+ /// credentials or user-provided URLs are sent to this service.
+ public struct HolidayService {
++    // Refs #856: OpenHolidays uses its own AT subdivision codes, not ISO 3166-2.
++    // Keep the selected/cache identity in ISO form; translate only at this boundary.
++    private static let austrianProviderRegions = [
++        "AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ", "AT-4": "AT-OÖ",
++        "AT-5": "AT-SB", "AT-6": "AT-SM", "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI"
++    ]
++    private static let austrianISORegions = Dictionary(uniqueKeysWithValues:
++        austrianProviderRegions.map { ($0.value, $0.key) })
+     public struct Region: Hashable, Sendable {
+         public let code: String
+         public let name: String
+@@ -28,7 +36,8 @@ public struct HolidayService {
+             for region in regions {
+                 guard region.code.utf8.count <= 128 else { throw BetaError("Invalid holiday region.") }
+                 let code = region.code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+-                guard HolidayService.matches(code, "^[A-Z0-9-]{1,64}$"), region.name.count <= 256 else {
++                guard HolidayService.matches(code, "^[A-Z0-9-]{1,64}$"), region.name.count <= 256,
++                      country != "AT" || HolidayService.austrianProviderRegions[code] != nil else {
+                     throw BetaError("The selected holiday region is invalid.")
+                 }
+                 if seen.insert(code).inserted { selected.append(Region(code: code, name: region.name)) }
+@@ -120,7 +129,11 @@ public struct HolidayService {
+                         URLQueryItem(name: "languageIsoCode", value: query.language),
+                         URLQueryItem(name: "validFrom", value: String(format: "%04d-01-01", year)),
+                         URLQueryItem(name: "validTo", value: String(format: "%04d-12-31", year))]
+-                    if let region { url.queryItems!.append(URLQueryItem(name: "subdivisionCode", value: region.code)) }
++                    if let region {
++                        let providerCode = query.country == "AT" ? Self.austrianProviderRegions[region.code] : region.code
++                        guard let providerCode else { throw BetaError("The selected holiday region is invalid.") }
++                        url.queryItems!.append(URLQueryItem(name: "subdivisionCode", value: providerCode))
++                    }
+                     let response = try await transport.send(BoundedHTTPRequest(url: url.url!,
+                         headers: ["Accept": "application/json", "User-Agent": "Magnolie-Organizer-macOS/2.0.30"],
+                         timeout: min(20, remaining), maximumResponseBytes: 2 * 1024 * 1024))
+@@ -164,9 +177,14 @@ public struct HolidayService {
+                         var rowRegions = Set<String>()
+                         if let subdivisions = row["subdivisions"] as? [[String: Any]] {
+                             for subdivision in subdivisions {
+-                                guard let code = subdivision["code"] as? String, Self.matches(code, "^[A-Z0-9-]{1,64}$") else {
++                                guard let rawCode = subdivision["code"] as? String else {
++                                    throw BetaError("The holiday service returned invalid regional scope.")
++                                }
++                                let code = query.country == "AT" ? (Self.austrianISORegions[rawCode] ?? rawCode) : rawCode
++                                guard Self.matches(code, "^[A-Z0-9-]{1,64}$") else {
+                                     throw BetaError("The holiday service returned invalid regional scope.")
+                                 }
++                                if query.country == "AT" && Self.austrianProviderRegions[code] == nil { complete = false }
+                                 rowRegions.insert(code)
+                             }
+                         }
+diff --git a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift
+index 145909075fbabaa13df7deecaf9f22cc720e853b..fad204a5be694f2c2aa6e5818ea217b5bda5669e 100644
+--- a/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift
++++ b/Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift
+@@ -188,6 +188,116 @@ final class HolidayServiceTests: XCTestCase {
+             } catch { /* Native caller reports failure; no partial Entry array exists. */ }
+         }
+     }
++    func testAustrianProviderIdentifiersRoundTripAllNineRegions() async throws {
++        // Refs #856: pairs from the actual OpenHolidays AT Subdivisions response.
++        let pairs = [("AT-1", "AT-BL"), ("AT-2", "AT-KÄ"), ("AT-3", "AT-NÖ"),
++                     ("AT-4", "AT-OÖ"), ("AT-5", "AT-SB"), ("AT-6", "AT-SM"),
++                     ("AT-7", "AT-TI"), ("AT-8", "AT-VA"), ("AT-9", "AT-WI")]
++        let encoded = ["AT-KÄ": "AT-K%C3%84", "AT-NÖ": "AT-N%C3%96", "AT-OÖ": "AT-O%C3%96"]
++        for (iso, provider) in pairs {
++            let transport = Transport { request in
++                let fields = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!.queryItems!
++                XCTAssertEqual(fields.first(where: { $0.name == "subdivisionCode" })?.value, provider, iso)
++                if let escaped = encoded[provider] {
++                    XCTAssertTrue(request.url.absoluteString.contains("subdivisionCode=" + escaped), iso)
++                }
++                return BoundedHTTPResponse(status: 200, body: try self.body([
++                    ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Regional period",
++                     "nationwide": false, "subdivisions": [["code": provider]]]
++                ]))
++            }
++            let query = try HolidayService.Query(country: "AT", regions: [.init(code: iso, name: iso)],
++                years: [2026], includeSchool: true, regionRequired: true)
++            do {
++                let result = try await HolidayService(transport: transport).fetchResult(query)
++                XCTAssertEqual(result.entries.count, 2, iso)
++                XCTAssertEqual(result.coverage.count, 2, iso)
++                XCTAssertEqual(Set(result.coverage.map { $0.kind }), ["public-holiday", "school-holiday"], iso)
++                XCTAssertTrue(result.coverage.allSatisfy { $0.country == "AT" && $0.region == iso }, iso)
++                XCTAssertTrue(result.entries.allSatisfy { $0.regions == [iso] && $0.selectedRegions == [iso] }, iso)
++                XCTAssertTrue(result.entries.allSatisfy {
++                    $0.organizerValue["regions"] as? [String] == [iso] && $0.organizerValue["region"] as? String == iso
++                }, iso)
++            } catch { XCTFail("\(iso) failed instead of normalizing its verified provider code: \(error)") }
++            XCTAssertEqual(transport.requests.count, 2, iso)
++        }
++    }
++    func testAustrianGroupedResponseUsesOnlyCanonicalISOScope() async throws {
++        let transport = Transport { _ in
++            BoundedHTTPResponse(status: 200, body: try self.body([
++                ["startDate": "2026-07-04", "endDate": "2026-09-06", "name": "Shared period",
++                 "nationwide": false, "subdivisions": [["code": "AT-KÄ"], ["code": "AT-NÖ"],
++                    ["code": "AT-OÖ"], ["code": "AT-3"]]]
++            ]))
++        }
++        let query = try HolidayService.Query(country: "AT", regions: [.init(code: "AT-2", name: "Kärnten"),
++            .init(code: "AT-3", name: "Niederösterreich"), .init(code: "AT-4", name: "Oberösterreich")],
++            years: [2026], includeSchool: false, language: "DE")
++        let result = try await HolidayService(transport: transport).fetchResult(query)
++        XCTAssertEqual(result.entries.count, 1)
++        XCTAssertEqual(result.entries[0].regions, ["AT-2", "AT-3", "AT-4"])
++        XCTAssertEqual(result.entries[0].selectedRegions, ["AT-2", "AT-3", "AT-4"])
++        XCTAssertEqual(result.entries[0].organizerValue["region"] as? String, "AT-2,AT-3,AT-4")
++        XCTAssertEqual(result.entries[0].regionLabel, "alle Bundesländer")
++        XCTAssertEqual(result.coverage.map { $0.region }, ["AT-2", "AT-3", "AT-4"])
++    }
++    func testUnknownAustrianSelectionRejectsBeforeHTTP() throws {
++        for code in ["AT-10", "AT-UNKNOWN", "AT-WI", "DE-BE"] {
++            XCTAssertThrowsError(try HolidayService.Query(country: "AT", regions: [.init(code: code, name: code)],
++                years: [2026], includeSchool: true), code)
++        }
++        XCTAssertNoThrow(try HolidayService.Query(country: "at", regions: [.init(code: " at-9 ", name: "Wien")],
++            years: [2026], includeSchool: true))
++    }
++    func testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage() async throws {
++        for selected in [[], [HolidayService.Region(code: "AT-9", name: "Wien")]] {
++            for code in ["AT-UNKNOWN", "AT-10", "WI", "DE-BE"] {
++                for nationwide in [false, true] {
++                    let query = try HolidayService.Query(country: "AT", regions: selected,
++                        years: [2026], includeSchool: false)
++                    let result = try await HolidayService(transport: Transport { _ in
++                        BoundedHTTPResponse(status: 200, body: try self.body([
++                            ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Unknown regional period",
++                             "nationwide": nationwide, "subdivisions": [["code": code]]]
++                        ]))
++                    }).fetchResult(query)
++                    XCTAssertEqual(result.entries.count, 1, code)
++                    XCTAssertTrue(result.coverage.isEmpty, "\(code), nationwide=\(nationwide), selected=\(selected.count)")
++                }
++            }
++        }
++    }
++    func testUnknownUnicodeRegionCodesKeepStrictParserFailure() async throws {
++        for code in ["AT-ÜNBEKANNT", "AT-WI/../", "DE-Ä"] {
++            let query = try HolidayService.Query(country: "AT", regions: [.init(code: "AT-9", name: "Wien")],
++                years: [2026], includeSchool: false)
++            do {
++                _ = try await HolidayService(transport: Transport { _ in
++                    BoundedHTTPResponse(status: 200, body: try self.body([
++                        ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Invalid scope",
++                         "nationwide": false, "subdivisions": [["code": code]]]
++                    ]))
++                }).fetchResult(query)
++                XCTFail("An unverified malformed code must still reject: \(code)")
++            } catch { }
++        }
++    }
++    func testGermanSwissAndCanonicalAustrianResponseScopesRemainValid() async throws {
++        for (country, iso, provider) in [("DE", "DE-BE", "DE-BE"), ("CH", "CH-ZH", "CH-ZH"), ("AT", "AT-9", "AT-WI")] {
++            let query = try HolidayService.Query(country: country, regions: [.init(code: iso, name: iso)],
++                years: [2026], includeSchool: false)
++            let result = try await HolidayService(transport: Transport { request in
++                let fields = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!.queryItems!
++                XCTAssertEqual(fields.first(where: { $0.name == "subdivisionCode" })?.value, provider)
++                return BoundedHTTPResponse(status: 200, body: try self.body([
++                    ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Canonical period",
++                     "nationwide": false, "subdivisions": [["code": iso]]]
++                ]))
++            }).fetchResult(query)
++            XCTAssertEqual(result.entries.first?.regions, [iso])
++            XCTAssertEqual(result.coverage.map { $0.region }, [iso])
++        }
++    }
+     func testLivePublicHolidayServiceWhenRequested() async throws {
+         guard ProcessInfo.processInfo.environment["MACOS_BETA_LIVE_HOLIDAYS"] == "1" else {
+             throw XCTSkip("Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.")
+diff --git a/contracts/setup-school-holidays.md b/contracts/setup-school-holidays.md
+index 9c7271826b8865a13a65a4396cf80f9084bbcd4d..2f793fef4b9f264da59bed5436ff604aa7b3f1d8 100644
+--- a/contracts/setup-school-holidays.md
++++ b/contracts/setup-school-holidays.md
+@@ -72,11 +72,50 @@ country; a foreign subdivision is rejected. The existing provider can return no
+ records for a requested region/year, which keeps the existing availability message.
+ The native setup explains the OpenHolidays internet request alongside the checkbox.
+ 
+-Provider verification is offline: actual Python and C# provider functions receive
++The original setup-host verification is offline: actual Python and C# provider functions receive
+ recording HTTP adapters. It verifies DE-SN, AT-9, CH-ZH request paths, opt-out,
+ empty responses, and mismatched-country rejection. It does not claim a live service
+ availability check or a Windows GUI run on Linux.
+ 
++## Austrian provider identifiers (Refs #856)
++
++Settings, bridge requests, cached `region`/`regions` and `abrufbereiche` use the
++existing ISO 3166-2 identifiers. OpenHolidays uses different identifiers at its
++HTTP boundary. The official `/Subdivisions?countryIsoCode=AT` response, verified
++on 2026-11-28, defines these nine pairs:
++
++| Internal ISO identifier | OpenHolidays `code` |
++| --- | --- |
++| AT-1 | AT-BL |
++| AT-2 | AT-KÄ |
++| AT-3 | AT-NÖ |
++| AT-4 | AT-OÖ |
++| AT-5 | AT-SB |
++| AT-6 | AT-SM |
++| AT-7 | AT-TI |
++| AT-8 | AT-VA |
++| AT-9 | AT-WI |
++
++All four providers translate the selected ISO identifier before URL encoding and
++translate known response aliases back to ISO before existing character/scope
++validation. The Unicode provider aliases are encoded as UTF-8 in the URL; the
++general region grammar is not loosened. Known ISO response codes remain compatible.
++Unknown Austrian selections cannot start a falsely qualified request. Unknown,
++foreign, prefixless or mixed response scopes never certify complete Austrian
++coverage, including nationwide rows and whole-country requests. Existing strict
++handling of other malformed Unicode codes remains intact.
++
++HTTP 200 alone does not establish that a supplied region is recognized. In the
++recorded live Vienna/2026 comparison, `AT-9` returned only six nationwide school
++periods while the correct `AT-WI` returned eight, including semester and summer
++holidays. The confirmed response fixture, provider attribution, exact source
++hashes and compiler/live follow-up proofs are delivered with #856. This fixes an
++existing supported region; country/provider expansion remains a separate task.
++
++No persisted selection or book format changes, new permission, additional setup
++step or generated holiday date is introduced. The #855 conservative handling of
++partially covered national/cross-year cache periods still applies.
++
+ ## Localization
+ 
+ The new question and availability message are manually translated in both sets of
+diff --git a/magnolie-organizer-windows/BridgeDispatcher.cs b/magnolie-organizer-windows/BridgeDispatcher.cs
+index 17d8da1ac215be8db7c6768a6288bf0167c63656..f61ccaa3c0e4b0fe517a448bd829d82b35223820 100644
+--- a/magnolie-organizer-windows/BridgeDispatcher.cs
++++ b/magnolie-organizer-windows/BridgeDispatcher.cs
+@@ -2439,7 +2439,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
+         var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "DE" : "EN";
+         var query = $"countryIsoCode={Uri.EscapeDataString(country)}&languageIsoCode={language}" +
+                     $"&validFrom={year}-01-01&validTo={year}-12-31" +
+-                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(region.Code)}" : "");
++                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(OpenHolidayData.ProviderSubdivisionCode(country, region.Code))}" : "");
+         using var response = await http.GetAsync($"https://openholidaysapi.org/{path}?{query}", HttpCompletionOption.ResponseHeadersRead);
+         response.EnsureSuccessStatusCode();
+         if (response.Content.Headers.ContentLength > remainingBytes)
+diff --git a/magnolie-organizer-windows/OpenHolidayData.cs b/magnolie-organizer-windows/OpenHolidayData.cs
+index 0f1276e9c6ddc6cd2b1f368a6bff0f7c13cdc502..217476e0b67c8d37897e08fda696fd7d88640b6d 100644
+--- a/magnolie-organizer-windows/OpenHolidayData.cs
++++ b/magnolie-organizer-windows/OpenHolidayData.cs
+@@ -11,6 +11,41 @@ internal sealed record HolidayFetchScope(string country, string region, string a
+ 
+ internal static class OpenHolidayData
+ {
++    // Refs #856: OpenHolidays /Subdivisions distinguishes provider "code"
++    // from "isoCode". Keep the existing ISO codes in settings and caches.
++    private static readonly (string Iso, string Provider)[] AustrianSubdivisions = [
++        ("AT-1", "AT-BL"), ("AT-2", "AT-KÄ"), ("AT-3", "AT-NÖ"),
++        ("AT-4", "AT-OÖ"), ("AT-5", "AT-SB"), ("AT-6", "AT-SM"),
++        ("AT-7", "AT-TI"), ("AT-8", "AT-VA"), ("AT-9", "AT-WI")
++    ];
++
++    internal static string ProviderSubdivisionCode(string country, string isoCode)
++    {
++        if (country == "AT")
++            foreach (var subdivision in AustrianSubdivisions)
++                if (subdivision.Iso == isoCode) return subdivision.Provider;
++        return isoCode;
++    }
++
++    private static string CanonicalSubdivisionCode(string country, string code)
++    {
++        code = code.Trim().ToUpperInvariant();
++        if (country == "AT")
++            foreach (var subdivision in AustrianSubdivisions)
++                if (subdivision.Provider == code) return subdivision.Iso;
++        return code;
++    }
++
++    private static bool KnownAustrianSubdivision(string code) =>
++        AustrianSubdivisions.Any(subdivision => subdivision.Iso == code);
++
++    private static bool ValidSubdivisionShape(string country, string code)
++    {
++        code = CanonicalSubdivisionCode(country, code);
++        return Regex.IsMatch(code, "^[A-Z0-9-]{1,64}$") &&
++            (country != "AT" || KnownAustrianSubdivision(code));
++    }
++
+     internal static IReadOnlyList<HolidayEntry> Parse(JsonElement data, string kind, string country,
+         string region, string regionName, string language) => Parse(data, kind, country,
+             region, regionName, language, out _);
+@@ -24,7 +59,7 @@ internal static class OpenHolidayData
+         if (data.ValueKind != JsonValueKind.Array) return result;
+         foreach (var item in data.EnumerateArray())
+         {
+-            complete &= CompleteShape(item);
++            complete &= CompleteShape(item, country);
+             var fromText = Text(item, "startDate");
+             var from = fromText[..Math.Min(10, fromText.Length)];
+             var toText = Text(item, "endDate"); var to = toText.Length >= 10 ? toText[..10] : from;
+@@ -35,7 +70,7 @@ internal static class OpenHolidayData
+             { complete = false; to = from; }
+             var nationwide = item.TryGetProperty("nationwide", out var whole) && whole.ValueKind == JsonValueKind.True;
+             var regions = item.TryGetProperty("subdivisions", out var subdivisions) && subdivisions.ValueKind == JsonValueKind.Array
+-                ? subdivisions.EnumerateArray().Select(value => Text(value, "code").Trim().ToUpperInvariant())
++                ? subdivisions.EnumerateArray().Select(value => CanonicalSubdivisionCode(country, Text(value, "code")))
+                     .Where(value => Regex.IsMatch(value, "^[A-Z0-9-]{1,64}$")).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
+                 : Array.Empty<string>();
+             if (!nationwide && regions.Length == 0 && region.Length > 0) regions = [region];
+@@ -50,6 +85,7 @@ internal static class OpenHolidayData
+         string Canonical(string code) => code.Contains('-') || code == country ? code : country + "-" + code;
+         return entries.All(item => StringComparer.Ordinal.Compare(item.von, to) <= 0 &&
+             StringComparer.Ordinal.Compare(item.bis, from) >= 0 &&
++            (country != "AT" || item.regions.All(KnownAustrianSubdivision)) &&
+             !item.regions.Any(code => code.Contains('-') && !code.StartsWith(country + "-", StringComparison.Ordinal)) &&
+             (region.Length > 0 || item.nationwide || item.regions.Length > 0) &&
+             (region.Length == 0 || item.nationwide || item.regions.Length == 0 || item.regions.Select(Canonical).Any(code =>
+@@ -58,7 +94,7 @@ internal static class OpenHolidayData
+ 
+     // A tolerated partial/malformed response can contribute valid rows, but
+     // cannot authorize removal of previously cached records (Refs #855).
+-    private static bool CompleteShape(JsonElement item)
++    private static bool CompleteShape(JsonElement item, string country)
+     {
+         if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("startDate", out var start) ||
+             start.ValueKind != JsonValueKind.String || !item.TryGetProperty("name", out var names)) return false;
+@@ -73,8 +109,7 @@ internal static class OpenHolidayData
+         if (item.TryGetProperty("subdivisions", out var regions) &&
+             (regions.ValueKind != JsonValueKind.Array || regions.EnumerateArray().Any(value =>
+                 value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("code", out var code) ||
+-                code.ValueKind != JsonValueKind.String || !Regex.IsMatch(
+-                    (code.GetString() ?? "").Trim().ToUpperInvariant(), "^[A-Z0-9-]{1,64}$")))) return false;
++                code.ValueKind != JsonValueKind.String || !ValidSubdivisionShape(country, code.GetString() ?? "")))) return false;
+         return true;
+     }
+ 
+diff --git a/magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt b/magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt
+index b15fcc12e4e267af345d95342718723358c4d583..ba241fb68e3f1fb803d9ea75ca5127be51035ec0 100644
+--- a/magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt
++++ b/magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt
+@@ -21,7 +21,7 @@ public sealed partial class HolidayFetchCoverageHost
+             return Task.CompletedTask;
+         }
+     }
+-    private sealed record Request(string Path, Dictionary<string, string> Fields);
++    private sealed record Request(string Path, Dictionary<string, string> Fields, string EscapedQuery);
+     private sealed record Result(JsonElement Value, List<Request> Requests);
+     private sealed class OfflineHttp(Func<Request, HttpResponseMessage> responder) : HttpMessageHandler
+     {
+@@ -32,7 +32,7 @@ public sealed partial class HolidayFetchCoverageHost
+             if (uri.Scheme != "https" || uri.Host != "openholidaysapi.org") throw new InvalidOperationException("Unexpected HTTP origin");
+             var fields = uri.Query.TrimStart('?').Split('&').Select(part => part.Split('=', 2))
+                 .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
+-            var recorded = new Request(uri.AbsolutePath, fields); Requests.Add(recorded);
++            var recorded = new Request(uri.AbsolutePath, fields, uri.Query); Requests.Add(recorded);
+             return Task.FromResult(responder(recorded));
+         }
+     }
+@@ -40,6 +40,20 @@ public sealed partial class HolidayFetchCoverageHost
+         new(status) { Content = new StringContent(data, Encoding.UTF8, "application/json") };
+     private static HttpResponseMessage Data(object? data) => Raw(JsonSerializer.Serialize(data));
+     private static Dictionary<string, object?> Row() => new() { ["startDate"] = "2026-06-01", ["endDate"] = "2026-06-02", ["name"] = "Synthetic holiday", ["nationwide"] = false };
++    // Refs #856: frozen from /Subdivisions?countryIsoCode=AT, 2026-11-28.
++    // The public API's provider code is distinct from its isoCode.
++    private static readonly (string Iso, string Provider, string Escaped)[] AustrianRegions = [
++        ("AT-1", "AT-BL", "AT-BL"), ("AT-2", "AT-KÄ", "AT-K%C3%84"),
++        ("AT-3", "AT-NÖ", "AT-N%C3%96"), ("AT-4", "AT-OÖ", "AT-O%C3%96"),
++        ("AT-5", "AT-SB", "AT-SB"), ("AT-6", "AT-SM", "AT-SM"),
++        ("AT-7", "AT-TI", "AT-TI"), ("AT-8", "AT-VA", "AT-VA"),
++        ("AT-9", "AT-WI", "AT-WI")
++    ];
++    private static Dictionary<string, object?> AustrianRow(params string[] codes)
++    {
++        var row = Row(); row["subdivisions"] = codes.Select(code => new { code }).ToArray();
++        return row;
++    }
+     private static async Task<Result> Fetch(Func<Request, HttpResponseMessage>? reply = null, string country = "DE", string region = "DE-SN",
+         int[]? years = null, bool school = true, string[][]? regions = null, bool regionRequired = false)
+     {
+@@ -206,6 +220,71 @@ public sealed partial class HolidayFetchCoverageHost
+                 return Task.CompletedTask;
+             })
+         };
++        foreach (var mapping in AustrianRegions)
++        {
++            cases.Add(($"Austrian ISO {mapping.Iso} queries {mapping.Provider} and preserves ISO coverage", async () => {
++                var result = await Fetch(_ => Data(new[] { AustrianRow(mapping.Provider) }), country: "AT", region: mapping.Iso);
++                Check(result.Requests.Count == 2, "Expected both public and school endpoints");
++                Check(result.Requests.All(request => request.Fields["subdivisionCode"] == mapping.Provider), "ISO code sent as provider subdivision");
++                Check(result.Requests.All(request => request.EscapedQuery.Contains("subdivisionCode=" + mapping.Escaped, StringComparison.Ordinal)), "Provider subdivision was not UTF-8 URL encoded");
++                EqualScopes(result, Scope(country: "AT", region: mapping.Iso), Scope("school-holiday", country: "AT", region: mapping.Iso));
++                Check(Count(result) == 2 && result.Value.GetProperty("feiertage").EnumerateArray().All(entry =>
++                    entry.GetProperty("region").GetString() == mapping.Iso && entry.GetProperty("country").GetString() == "AT" &&
++                    entry.GetProperty("regions").EnumerateArray().Select(code => code.GetString()).SequenceEqual(new[] { mapping.Iso })),
++                    "Provider codes leaked into the canonical cache geography");
++            }));
++        }
++        cases.Add(("country response normalizes all nine Austrian provider aliases", async () => {
++            var rows = AustrianRegions.Select(mapping => { var row = AustrianRow(mapping.Provider); row["name"] = mapping.Iso; return row; }).ToArray();
++            var result = await Fetch(_ => Data(rows), country: "AT", region: "", school: false);
++            EqualScopes(result, Scope(country: "AT", region: ""));
++            Check(Count(result) == 9 && result.Value.GetProperty("feiertage").EnumerateArray().SelectMany(entry =>
++                entry.GetProperty("regions").EnumerateArray().Select(code => code.GetString())).Order(StringComparer.Ordinal)
++                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Austrian result subdivision mapping is incomplete");
++        }));
++        cases.Add(("known Austrian ISO response codes remain accepted", async () => {
++            var result = await Fetch(_ => Data(new[] { AustrianRow(AustrianRegions.Select(mapping => mapping.Iso).ToArray()) }), country: "AT", region: "", school: false);
++            EqualScopes(result, Scope(country: "AT", region: ""));
++            Check(result.Value.GetProperty("feiertage")[0].GetProperty("regions").EnumerateArray().Select(code => code.GetString())
++                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Canonical ISO codes changed");
++        }));
++        cases.Add(("unknown Austrian response codes never certify coverage", async () => {
++            foreach (var code in new[] { "AT-X", "AT-2-UNKNOWN", "AT-KÄ-UNKNOWN", "AT-Ä", "DE-SN", "CH-ZH", "WI" })
++                EqualScopes(await Fetch(_ => Data(new[] { AustrianRow(code) }), country: "AT", region: "AT-2", school: false));
++        }));
++        cases.Add(("known plus unknown Austrian response cannot certify partial geography", async () => {
++            foreach (var code in new[] { "AT-X", "AT-2-UNKNOWN", "AT-Ä", "DE-SN" })
++                EqualScopes(await Fetch(_ => Data(new[] { AustrianRow("AT-2", code) }), country: "AT", region: "AT-2", school: false));
++        }));
++        cases.Add(("unknown Austrian request is rejected before HTTP", async () => {
++            foreach (var code in new[] { "AT-0", "AT-10", "AT-WI", "AT-KÄ", "AT-2-UNKNOWN", "DE-SN" }) {
++                var result = await Fetch(country: "AT", region: code);
++                Check(result.Value.TryGetProperty("fehler", out _) && result.Requests.Count == 0 && Scopes(result).Count == 0, "Unknown AT selection reached provider");
++            }
++        }));
++        cases.Add(("German and Swiss subdivision wire and coverage are unchanged", async () => {
++            foreach (var pair in new[] { (Country: "DE", Region: "DE-SN"), (Country: "CH", Region: "CH-ZH") }) {
++                var result = await Fetch(_ => Data(new[] { AustrianRow(pair.Region) }), country: pair.Country, region: pair.Region);
++                Check(result.Requests.All(request => request.Fields["subdivisionCode"] == pair.Region), "Unrelated provider query changed");
++                EqualScopes(result, Scope(country: pair.Country, region: pair.Region), Scope("school-holiday", country: pair.Country, region: pair.Region));
++            }
++        }));
++        cases.Add(("Austrian aliases are not normalized inside a foreign country response", async () => {
++            foreach (var pair in new[] { (Country: "DE", Region: "DE-SN"), (Country: "CH", Region: "CH-ZH") }) {
++                var result = await Fetch(_ => Data(new[] { AustrianRow("AT-WI") }), country: pair.Country, region: pair.Region, school: false);
++                EqualScopes(result);
++                Check(result.Value.GetProperty("feiertage")[0].GetProperty("regions")[0].GetString() == "AT-WI", "Country boundary was ignored during normalization");
++            }
++        }));
++        cases.Add(("all-state Austrian retrieval keeps ISO aggregate and per-region coverage", async () => {
++            var result = await Fetch(request => Data(new[] { AustrianRow(request.Fields["subdivisionCode"]) }), country: "AT", region: "", school: false,
++                regions: AustrianRegions.Select(mapping => new[] { mapping.Iso, mapping.Iso }).ToArray());
++            Check(result.Requests.Select(request => request.Fields["subdivisionCode"]).Order(StringComparer.Ordinal)
++                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Provider).Order(StringComparer.Ordinal)), "All-state query used ISO provider codes");
++            EqualScopes(result, AustrianRegions.Select(mapping => Scope(country: "AT", region: mapping.Iso)).ToArray());
++            Check(Count(result) == 1 && result.Value.GetProperty("feiertage")[0].GetProperty("regions").EnumerateArray()
++                .Select(code => code.GetString()).SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Aggregate returned provider aliases or duplicate scopes");
++        }));
+         var failed = 0;
+         foreach (var test in cases) {
+             try { await test.Run(); Console.WriteLine("PASS " + test.Name); }
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index a7a95ecee763f0a8dc956c0d6cf96244de2926c5..5314124d5bbe4444edf783b136b1ad3ac218cde5 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -18517,6 +18517,26 @@ def _name_waehlen(namen, sprache=None):
+     return bester
+ 
+ 
++def _openholidays_region_code(code, zum_dienst=False):
++    """Map Austrian ISO state identities at the provider boundary (Refs #856)."""
++    import unicodedata
++    code = unicodedata.normalize("NFC", str(code or "")).strip().upper()
++    austria = {
++        "AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ",
++        "AT-4": "AT-OÖ", "AT-5": "AT-SB", "AT-6": "AT-SM",
++        "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI",
++    }
++    if not code.startswith("AT-"):
++        return code
++    if zum_dienst:
++        return austria.get(code)
++    if code in austria:
++        return code
++    # Unknown Austrian codes, including apparent ISO children, cannot certify
++    # complete coverage merely by passing the generic parent/child matcher.
++    return next((iso for iso, provider in austria.items() if provider == code), None)
++
++
+ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+     """Wertet die Antwort des Feiertagsdienstes aus und liefert Einträge
+     der Form {von, bis, name, art}."""
+@@ -18540,10 +18560,13 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+             and ("language" not in wert or isinstance(wert["language"], str))
+             for wert in namen))
+         unterregionen = satz.get("subdivisions", [])
++        region_codes = [
++            _openholidays_region_code(wert["code"])
++            if isinstance(wert, dict) and isinstance(wert.get("code"), str) else None
++            for wert in unterregionen] if isinstance(unterregionen, list) else []
+         regionenform = isinstance(unterregionen, list) and all(
+-            isinstance(wert, dict) and isinstance(wert.get("code"), str)
+-            and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())
+-            for wert in unterregionen)
++            isinstance(code, str) and re.fullmatch(r"[A-Z0-9-]{1,64}", code)
++            for code in region_codes)
+         if (not isinstance(satz.get("startDate"), str) or not namenform
+                 or not regionenform
+                 or not isinstance(satz.get("nationwide"), bool)
+@@ -18561,10 +18584,8 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+         if not _ist_iso(bis) or bis < von:
+             vollstaendig = False
+             bis = von
+-        regionen = sorted({wert["code"].strip().upper()
+-                           for wert in satz.get("subdivisions", []) if isinstance(wert, dict)
+-                           and isinstance(wert.get("code"), str)
+-                           and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())}) if isinstance(satz.get("subdivisions", []), list) else []
++        regionen = sorted({code for code in region_codes if isinstance(code, str)
++                           and re.fullmatch(r"[A-Z0-9-]{1,64}", code)})
+         eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
+                           "nationwide": satz.get("nationwide") is True, "regions": regionen})
+     return (eintraege, vollstaendig) if mit_vollstaendigkeit else eintraege
+@@ -18625,7 +18646,11 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
+                     ("validFrom", "%d-01-01" % jahr),
+                     ("validTo", "%d-12-31" % jahr)]
+                 if region_code:
+-                    felder.append(("subdivisionCode", region_code))
++                    provider_region = (_openholidays_region_code(region_code, zum_dienst=True)
++                                       if land == "AT" else region_code)
++                    if not provider_region:
++                        raise RuntimeError(_("School holidays are not available for this region."))
++                    felder.append(("subdivisionCode", provider_region))
+                 url = "%s/%s?%s" % (
+                     FEIERTAG_DIENST, pfad, urlencode(felder))
+                 try:
+@@ -18647,6 +18672,10 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
+                     if eintrag["von"] > ende or eintrag["bis"] < anfang:
+                         return False
+                     codes = eintrag["regions"]
++                    if land == "AT" and any(not code.startswith("AT-") or
++                            _openholidays_region_code(code, zum_dienst=True) is None
++                            for code in codes):
++                        return False
+                     if any("-" in code and not code.startswith(land + "-") for code in codes):
+                         return False
+                     if not region_code and not eintrag["nationwide"] and not codes:
+diff --git a/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py b/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
+index 1b97c61c41050403af80814b83037666538936e7..4c7b2eb0b7666e34bdd9352994e01ab074fe8210 100644
+--- a/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
++++ b/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
+@@ -1,4 +1,4 @@
+-"""Refs #855: actual provider functions, bounded offline HTTP, no GTK/app startup.
++"""Refs #855/#856: actual provider functions, bounded offline HTTP, no GTK/app startup.
+ 
+ Run with Python's standard-library unittest. MAGNOLIE_HOLIDAY_SOURCE can name
+ an immutable baseline copy to reproduce the missing-coverage assertions.
+@@ -23,8 +23,10 @@ def product_functions():
+     source = ast.parse(SOURCE.read_text())
+     names = {"_ist_iso", "kanonischer_text", "_feiertag_sprache", "_name_waehlen",
+              "_openholidays_auswerten", "feiertage_abrufen"}
+-    nodes = [node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names]
+-    assert {node.name for node in nodes} == names
++    optional_helpers = {"_openholidays_region_code"}  # Absent on the immutable #855 baseline.
++    nodes = [node for node in source.body if isinstance(node, ast.FunctionDef)
++             and node.name in names | optional_helpers]
++    assert names <= {node.name for node in nodes}
+     scope = dict(json=json, re=re, datetime=datetime, unicodedata=unicodedata,
+                  _ISO_DATUM=re.compile(r"^\d{4}-\d{2}-\d{2}$"),
+                  _=lambda text: text, ngettext=lambda one, many, count: one if count == 1 else many,
+@@ -229,6 +231,84 @@ class HolidayCoverageTests(unittest.TestCase):
+         self.assertIsInstance(result, list)
+         self.assertEqual((result[0]["von"], result[0]["bis"]), ("2026-06-01", "2026-06-02"))
+ 
++    # Official /Subdivisions?countryIsoCode=AT response, captured 28.11.2026.
++    # Keep ISO identities in stored data; API `code` differs from `isoCode`.
++    AUSTRIAN_CODES = {"AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ",
++                      "AT-4": "AT-OÖ", "AT-5": "AT-SB", "AT-6": "AT-SM",
++                      "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI"}
++
++    def test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage(self):
++        for iso, provider in self.AUSTRIAN_CODES.items():
++            with self.subTest(iso=iso):
++                self.requests.clear()
++                result = self.fetch(land="AT", region=iso)
++                self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
++                    expected_scope("school-holiday", country="AT", region=iso)})
++
++    def test_all_nine_austrian_response_aliases_return_to_iso_identity(self):
++        for iso, provider in self.AUSTRIAN_CODES.items():
++            with self.subTest(iso=iso):
++                result = self.fetch(lambda *_: [row(subdivisions=[{"code": provider}])], land="AT", region=iso)
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
++                    expected_scope("school-holiday", country="AT", region=iso)})
++                for actual in result["feiertage"]:
++                    self.assertEqual(actual["region"], iso)
++                    self.assertEqual(actual["regions"], [iso])
++                    self.assertEqual(actual["country"], "AT")
++
++    def test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes(self):
++        value = row(subdivisions=[{"code": "AT-BL"}, {"code": "AT-NÖ"}, {"code": "AT-WI"}])
++        result = self.fetch(lambda *_: [value], land="AT", region="AT-9")
++        self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-9"),
++            expected_scope("school-holiday", country="AT", region="AT-9")})
++        self.assertEqual(result["feiertage"][0]["regions"], ["AT-1", "AT-3", "AT-9"])
++
++    def test_known_austrian_iso_responses_and_unicode_normalization_remain_valid(self):
++        for code in ("AT-3", "AT-NÖ", "AT-NO\u0308"):
++            with self.subTest(code=code):
++                result = self.fetch(lambda *_: [row(subdivisions=[{"code": code}])], land="AT", region="AT-3", ferien=False)
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-3")})
++                self.assertEqual(result["feiertage"][0]["regions"], ["AT-3"])
++
++    def test_unknown_austrian_response_codes_never_confirm_region_or_country(self):
++        for region in ("AT-9", ""):
++            for code in ("AT-UNKNOWN", "AT-9-UNKNOWN", "AT-Ü", "AT-99"):
++                with self.subTest(region=region, code=code):
++                    result = self.fetch(lambda *_: [row(subdivisions=[{"code": code}])], land="AT", region=region, ferien=False)
++                    self.assertEqual(self.scopes(result), set())
++
++    def test_mixed_known_and_unknown_austrian_response_is_not_complete(self):
++        result = self.fetch(lambda *_: [row(subdivisions=[{"code": "AT-WI"}, {"code": "AT-9-UNKNOWN"}])],
++                            land="AT", region="AT-9", ferien=False)
++        self.assertEqual(self.scopes(result), set())
++        self.assertEqual(result["feiertage"][0]["regions"], ["AT-9"])
++
++    def test_every_austrian_response_scope_must_be_known_even_if_nationwide(self):
++        for region in ("", "AT-9"):
++            for nationwide in (False, True):
++                for codes in (["WI"], ["9"], ["AT"], ["DE-SN"], ["AT-WI", "WI"]):
++                    with self.subTest(region=region, nationwide=nationwide, codes=codes):
++                        value = row(nationwide=nationwide, subdivisions=[{"code": code} for code in codes])
++                        result = self.fetch(lambda *_: [value], land="AT", region=region, ferien=False)
++                        self.assertEqual(self.scopes(result), set())
++
++    def test_unknown_austrian_request_fails_before_network(self):
++        for code in ("AT-99", "AT-WI", "AT-9-UNKNOWN"):
++            with self.subTest(code=code):
++                self.requests.clear()
++                with self.assertRaisesRegex(RuntimeError, "not available"):
++                    self.fetch(land="AT", region=code)
++                self.assertEqual(self.requests, [])
++
++    def test_austrian_all_regions_and_opt_out_keep_original_scope_contract(self):
++        result = self.fetch(land="AT", region="", ferien=False,
++                            regionen=[("AT-2", "Carinthia"), ("AT-9", "Vienna")])
++        self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], ["AT-KÄ", "AT-WI"])
++        self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-2"),
++            expected_scope(country="AT", region="AT-9")})
++        self.assertTrue(all(path == "/PublicHolidays" for path, _ in self.requests))
++
+ 
+ if __name__ == "__main__":
+     unittest.main(verbosity=2)
+diff --git a/magnolie-organizer/pruefungen/test_setup_holidays.py b/magnolie-organizer/pruefungen/test_setup_holidays.py
+index c5e7bcae3ee92aacfb63a45c363bd00fdcc683c0..256d35bab74ed87e87ce9f236e5063fa385d943d 100644
+--- a/magnolie-organizer/pruefungen/test_setup_holidays.py
++++ b/magnolie-organizer/pruefungen/test_setup_holidays.py
+@@ -161,7 +161,8 @@ def test_all_catalog_artifacts_and_placeholders():
+ def test_actual_provider_url_and_empty_availability(country, region):
+     # Compile actual provider functions only: importing the application would initialize host services.
+     source = ast.parse((ROOT / "bin/magnolie-organizer").read_text())
+-    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache"}
++    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache",
++             "_openholidays_region_code"}
+     code = ast.Module(body=[node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names], type_ignores=[])
+     scope = dict(json=json, _=lambda x: x, ngettext=lambda one, many, n: one if n == 1 else many,
+                  _REGIONAL={"language": "en"}, _ist_iso=lambda x: bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", x)),
+@@ -176,7 +177,8 @@ def test_actual_provider_url_and_empty_availability(country, region):
+     assert result["feiertage"] == []
+     assert result["bericht"] == "The service returned no entries for this selection."
+     assert len(urls) == 2 and "/SchoolHolidays?" in urls[1]
+-    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + region in url for url in urls)
++    provider_region = "AT-WI" if region == "AT-9" else region
++    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + provider_region in url for url in urls)
+     urls.clear()
+     scope["feiertage_abrufen"](country, region, [2026], False, fetch)
+     assert len(urls) == 1 and "SchoolHolidays" not in urls[0]

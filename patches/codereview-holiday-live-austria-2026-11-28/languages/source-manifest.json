@@ -1,0 +1,800 @@
+{
+  "tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "paths": [
+    {
+      "path": "magnolie-organizer/po/LINGUAS",
+      "bytes": 61,
+      "sha256": "ab33cc587b38a95dedf190cce57c6f0e609b513d00f13b7985cdb86a6e33433c"
+    },
+    {
+      "path": "magnolie-organizer/po/POTFILES.in",
+      "bytes": 113,
+      "sha256": "63e9709de54270bfdfa559e223710bc0b63c76d204f9238dde929e6d08876f8f"
+    },
+    {
+      "path": "magnolie-organizer/po/ar.po",
+      "bytes": 363805,
+      "sha256": "b79ee6c34a609aeea8b6cf053b241fbdd9839c6460ccfb827a0a3f3cc896dce0"
+    },
+    {
+      "path": "magnolie-organizer/po/be.po",
+      "bytes": 383602,
+      "sha256": "3f63087e76391cc709b058dd9a3378ad3114f49f0904aa75da73c4c00dd2f285"
+    },
+    {
+      "path": "magnolie-organizer/po/cs.po",
+      "bytes": 300103,
+      "sha256": "145db066da54957820d7bfc57e7c3eb6edfe54be9a6d65bdd135b69ee3b5c82e"
+    },
+    {
+      "path": "magnolie-organizer/po/da.po",
+      "bytes": 290503,
+      "sha256": "00526b9e36030de6caef39896f100ff78a8a5ab5cc2011e8f8d3f42ac576982b"
+    },
+    {
+      "path": "magnolie-organizer/po/de.po",
+      "bytes": 304205,
+      "sha256": "d62c5cf584a596ba2b90a48e6483dee95cb0bcd03bac6cbdb1916878cfb6e989"
+    },
+    {
+      "path": "magnolie-organizer/po/es.po",
+      "bytes": 307928,
+      "sha256": "3da33cf6310fd64db31c77a8e12cd6e150e3d4e05db7c12b0f216e70d03aae5b"
+    },
+    {
+      "path": "magnolie-organizer/po/fr.po",
+      "bytes": 317557,
+      "sha256": "4538dc16d15b58f69989760f61c1ab043dc60d9972511aecb807109ce45255e1"
+    },
+    {
+      "path": "magnolie-organizer/po/hi.po",
+      "bytes": 445162,
+      "sha256": "1f98e9e445e217d5f9ea74218acf5edebc5637cb486e43348b7e84c2b2a73df0"
+    },
+    {
+      "path": "magnolie-organizer/po/hsb.po",
+      "bytes": 307957,
+      "sha256": "41986329ee72154a5600ef23da17777df032c622a261693c9d687a623043452d"
+    },
+    {
+      "path": "magnolie-organizer/po/it.po",
+      "bytes": 306438,
+      "sha256": "9417806e6656cac98c2b301ade0cf9a2f9307fd29077529e135eb9488eb617b2"
+    },
+    {
+      "path": "magnolie-organizer/po/ja.po",
+      "bytes": 326448,
+      "sha256": "50ded3966264346092ace8bf1e079333884139de91e8b1522085738868de3e7c"
+    },
+    {
+      "path": "magnolie-organizer/po/magnolie-organizer.pot",
+      "bytes": 162141,
+      "sha256": "b18c41efc98a28c060b2cdc6334264f51c1a350e3757eeab933b3029c30b296f"
+    },
+    {
+      "path": "magnolie-organizer/po/nb.po",
+      "bytes": 290171,
+      "sha256": "5a6d5581b117ac52e6521421fa27465426658687486c47c7757034282e10f1da"
+    },
+    {
+      "path": "magnolie-organizer/po/nl.po",
+      "bytes": 299819,
+      "sha256": "b9479b9eedfb4b955395c50030129f00befff7f9d032e728a3d1e0fdabac742e"
+    },
+    {
+      "path": "magnolie-organizer/po/pl.po",
+      "bytes": 303397,
+      "sha256": "e0825b29c36c5a6c50520f9e02fdb196dbee3271e6ec8f9657fa1371a59ccf82"
+    },
+    {
+      "path": "magnolie-organizer/po/pt.po",
+      "bytes": 308913,
+      "sha256": "5a9ec0597a67161ed4cb48b498eed82397b7bc2ab88a6fcf91fa8ecc482202bb"
+    },
+    {
+      "path": "magnolie-organizer/po/ru.po",
+      "bytes": 391692,
+      "sha256": "088d67bd7d2da1cbbc162065a4e3fe32b5f4a980021136bedd70a969c2d6f319"
+    },
+    {
+      "path": "magnolie-organizer/po/tr.po",
+      "bytes": 296409,
+      "sha256": "e69747ccdb706813bac0f3052e18d49c2a7ccdd5d3e58680d478aee33ef48d16"
+    },
+    {
+      "path": "magnolie-organizer/po/uk.po",
+      "bytes": 384071,
+      "sha256": "e1968b9809249e817cb5c89b6eef88eb4f190a3222d6a7659944b7bd9046f5c0"
+    },
+    {
+      "path": "magnolie-organizer/po/zh_CN.po",
+      "bytes": 271632,
+      "sha256": "55209bc12deb1a3f3aa0585c7a5096c1a710cc8792a1bb57b7b1cf16de3eaf03"
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "bytes": 2904188,
+      "sha256": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea"
+    },
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "bytes": 19579,
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26"
+    },
+    {
+      "path": "magnolie-organizer/web/contact-group-aliases.js",
+      "bytes": 3454,
+      "sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5"
+    },
+    {
+      "path": "magnolie-organizer/web/country-flags-LICENSE.txt",
+      "bytes": 1281,
+      "sha256": "ce5053bd75486d4ab9689b943e9853d4dc6e07a4b4c204567d959419b662e7a2"
+    },
+    {
+      "path": "magnolie-organizer/web/country-flags.png",
+      "bytes": 282872,
+      "sha256": "fd07f978ab0092e7dbe708f98d9505bf6a563f01bf8bca4cc667413379fb77e9"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n-en.js",
+      "bytes": 74,
+      "sha256": "ad84f1d51f4630c1d957b0825fe67e18cd7723c91ea47b91d3f8afac9b8a393f"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n-markers.js",
+      "bytes": 3277,
+      "sha256": "b131e754a7ef1c48ed7c5a4653257e3d92f267649ec85716704fff41c83c5b48"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n-start.js",
+      "bytes": 87,
+      "sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n.js",
+      "bytes": 8326,
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593"
+    },
+    {
+      "path": "magnolie-organizer/web/index.html",
+      "bytes": 7311,
+      "sha256": "24e3806b8a057693e289ac94ebb879f851c317a27064b0bc307db10da0829ea0"
+    },
+    {
+      "path": "magnolie-organizer/web/kaffee-qr.mga",
+      "bytes": 7828,
+      "sha256": "64cd1c64d5b9e981b802c72ec06acc3e6148161029b8e34f201ec457cc736c83"
+    },
+    {
+      "path": "magnolie-organizer/web/mcp-protocol.js",
+      "bytes": 10232,
+      "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1"
+    },
+    {
+      "path": "magnolie-organizer/web/phone-metadata-LICENSE.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "magnolie-organizer/web/phone-metadata-NOTICE.txt",
+      "bytes": 851,
+      "sha256": "8f84b1e30a1cece0af9d98664b78b145bd9df1f1aad0a80f7a7a2eb2dbe75424"
+    },
+    {
+      "path": "magnolie-organizer/web/qr-decoder-LICENSE.txt",
+      "bytes": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "magnolie-organizer/web/qr-decoder.js",
+      "bytes": 256885,
+      "sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859"
+    },
+    {
+      "path": "magnolie-organizer/web/qr-dialog.css",
+      "bytes": 1198,
+      "sha256": "bf51e253a1c0a31ce2c88884aeaf69baa759c45d593097739ce2e11c1b7083f1"
+    },
+    {
+      "path": "magnolie-organizer/web/qr-dialog.js",
+      "bytes": 5893,
+      "sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628"
+    },
+    {
+      "path": "magnolie-organizer/web/schriften/Z003-LIZENZ.txt",
+      "bytes": 52517,
+      "sha256": "1315a62758a603a3e6e87a79b8389563789c59c1740b9db8bc2b20e2e2145458"
+    },
+    {
+      "path": "magnolie-organizer/web/schriften/Z003-MediumItalic.otf",
+      "bytes": 114052,
+      "sha256": "a04947e59fc9339ea3c4b34c31fd46764f22af7512afc2c074ce190e79ed7a09"
+    },
+    {
+      "path": "magnolie-organizer/web/stil.css",
+      "bytes": 186855,
+      "sha256": "bacdf9cbcf5d62bdb993da063f1b647f55b4a76555a6f6b5fa257eea0bc9df7c"
+    },
+    {
+      "path": "magnolie-organizer/web/zeichenblatt.js",
+      "bytes": 43898,
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b"
+    },
+    {
+      "path": "magnolie-organizer/werkzeuge/po_zu_js.py",
+      "bytes": 3030,
+      "sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/native-i18n.json",
+      "bytes": 3795801,
+      "sha256": "7ccaced092607cf49b3e319b1d5a10694f1ba6d3bffbba31defee89eee50f01d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/LINGUAS",
+      "bytes": 61,
+      "sha256": "ab33cc587b38a95dedf190cce57c6f0e609b513d00f13b7985cdb86a6e33433c"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/POTFILES.in",
+      "bytes": 37,
+      "sha256": "bac80f4f731a81a79ae47ce1d248eb00016a345766340601fbfa502b2feba42e"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ar.po",
+      "bytes": 303033,
+      "sha256": "64660838462e1d3f51c9604a8ca4950aa75999414e5d89cc53e58f1a752cfcd2"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/be.po",
+      "bytes": 320854,
+      "sha256": "588522c0a43b947f44b8cc9a9452879127fff7ae28b4ea748af9284faee10936"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/cs.po",
+      "bytes": 250559,
+      "sha256": "c2494e52900ab87942509e4a4f564cbbd7ddd8c247b39eeb1b0535dc16faae45"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/da.po",
+      "bytes": 242386,
+      "sha256": "fc65f35d802217e578d2f47430e612a7be6d1870990143d0dfeb5c1382be4f4b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/de.po",
+      "bytes": 253724,
+      "sha256": "f18d52b48da61c4e201867b7e975ec57ef0a40f777e6b1ae2dd91b4ea67a25ea"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/es.po",
+      "bytes": 256292,
+      "sha256": "c09352f70b1a83af69bcbec77cc6f4a880e0991c47dd52bc4c76a73dbf0f194b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/fr.po",
+      "bytes": 264496,
+      "sha256": "4615ea25d080d441c671df3bd231327ff067509e3dbac20d379988a476ca537a"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/hi.po",
+      "bytes": 372424,
+      "sha256": "ee69af71e5f172cd518299e1b90843ca0f7bf4d36ad44fec6b0f3d92018d66b8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/hsb.po",
+      "bytes": 257082,
+      "sha256": "7c66fd33da31cc3765be4c6f2915d1802033047aa331b6941e39efbf1877d92f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/it.po",
+      "bytes": 255467,
+      "sha256": "dbde2d4c95f40d1aff39ffe6257e4d6f5d4e11e4464ca4de116d02c1ad39ec6c"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ja.po",
+      "bytes": 270581,
+      "sha256": "c074cc4f13fd40a63e87a26f33e1552564c04632b54ba58f27a826de201de4d5"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/magnolie-organizer.pot",
+      "bytes": 133601,
+      "sha256": "98cefa339aaa66fcae8835679997303556778fa4ae3382e9694acea88679a503"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/nb.po",
+      "bytes": 242328,
+      "sha256": "0a22c2b32cf0cb21753ef967527a158574971c5c2746f4c49397eb9d6be13d94"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/nl.po",
+      "bytes": 250242,
+      "sha256": "b16d3836efdf8bf79a106e648db4e87a5764bc728a4e74c23789fd1a1286f44d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/pl.po",
+      "bytes": 253415,
+      "sha256": "31cbdc3cd40ea0cdb328d823bcf12e21e128b1bc1fecf7eaf38520c6ea925369"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/pt.po",
+      "bytes": 256854,
+      "sha256": "f178d55b46a8c798c7508dc5245299c92c727107153c6b15702de9fabf65ef82"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ru.po",
+      "bytes": 327065,
+      "sha256": "b56e1157034e3d3db1ca82b840c6a1ac3cc791fcb92aec7e4fd83c6f43275e6b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/tr.po",
+      "bytes": 248034,
+      "sha256": "c661aa5a3469cbd82eca3314e354a935c7fde20e58c5653c612fe8c91b174ec0"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/uk.po",
+      "bytes": 321480,
+      "sha256": "44159ca5b0f2ebf9503787af30334978bd78f47d9e895feb293cd0721544b0e5"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/zh_CN.po",
+      "bytes": 227118,
+      "sha256": "791e546c96dfc9ea9f7dfa1bcdee14547ee14922ef0a82bb9bd7e54830f3a37b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "bytes": 2833541,
+      "sha256": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "bytes": 19579,
+      "sha256": "fdc1d661b3f00b5ef6f773905b3ed0ff16283c4a820a2a1705d427005ce05b26"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/contact-group-aliases.js",
+      "bytes": 3454,
+      "sha256": "5705c6530819766533e3ad92b7cbb9b75253068023a6259c511ba03f8a4202a5"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/country-flags-LICENSE.txt",
+      "bytes": 1281,
+      "sha256": "ce5053bd75486d4ab9689b943e9853d4dc6e07a4b4c204567d959419b662e7a2"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/country-flags.png",
+      "bytes": 282872,
+      "sha256": "fd07f978ab0092e7dbe708f98d9505bf6a563f01bf8bca4cc667413379fb77e9"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ar.js",
+      "bytes": 234364,
+      "sha256": "a02f29164729e91914a22b3da35ce3a69bc1184915c195253d95d78ea7aec402"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/be.js",
+      "bytes": 251527,
+      "sha256": "5f8051a22441426f80eb23ba72454d0fc221795cc3a8cefb87f11bd6eae65ca7"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/cs.js",
+      "bytes": 186737,
+      "sha256": "7b5c1d85efa3ad23a75e1a2ceef2925c7f8229af4408ad10b2476fd26924f3ad"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/da.js",
+      "bytes": 179759,
+      "sha256": "7a7adc16ed46763da244db4d99a00e53984e6ed02e56d3632a6a1ba7ef478a38"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+      "bytes": 189216,
+      "sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/es.js",
+      "bytes": 192228,
+      "sha256": "371a47ad1427be8091f066fcafa8df40c8e4eb4d7f42d36920f0f3153466e0e1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/fr.js",
+      "bytes": 199546,
+      "sha256": "91d1ce9114152631c26be1e221397d7e9503be8c4504b3e3e50dfdebeb5a248d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/hi.js",
+      "bytes": 300555,
+      "sha256": "19f083bf1e790c776676ad90ee013d7e76a871f45ee991d21f58b015587ea781"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/hsb.js",
+      "bytes": 192154,
+      "sha256": "20602834e488de8cf0228afca9b19ddd53dae0fc51a8293dc2f803d6d6f84004"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/it.js",
+      "bytes": 191330,
+      "sha256": "d1a79862767e9d9e2105d7fefc355fe970c43babe66041816840b09f96203ba0"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ja.js",
+      "bytes": 206378,
+      "sha256": "3bbd10cecb27d513f8e1f0817b013fcadc0984ae3c703d5b4444eb2e146d60c9"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/nb.js",
+      "bytes": 179564,
+      "sha256": "dd8ab602ed684bed4d73edc51a5a7b70c8cd2bdb8ff5ed7a3d5e252fe1dae5c4"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/nl.js",
+      "bytes": 186510,
+      "sha256": "3f809c567556b10f4f38ded7a5a46f142b3b805bf7cecd54cd0d16b17d00102f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/pl.js",
+      "bytes": 189034,
+      "sha256": "14b0910e737df56f321148fd442a81220265c121b5ad02ae1386bdc63281ef13"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/pt.js",
+      "bytes": 192803,
+      "sha256": "174df570bdef68eafec1e4ec70c333f3864669e0bc2f457dfbb2cbd29f45abc1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ru.js",
+      "bytes": 256997,
+      "sha256": "4a9b92b7c608a9bd2b27e567b05c3e00fc88224b7d8f16c64e7bcc90fa84566f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/tr.js",
+      "bytes": 184704,
+      "sha256": "23994c6ab475c934b86195260c9ea30ce081760a0547b6a681bb20c91ccf7a52"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/uk.js",
+      "bytes": 252009,
+      "sha256": "a1d3b33945ae2d1a0369cd7c98c6fad354478ad209af1ccc573a2434a3faa596"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/zh_CN.js",
+      "bytes": 167119,
+      "sha256": "b90701bec3792a547d71303b13d4c2151e6f97dbff63a69271f5ee310aa2d869"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n-markers.js",
+      "bytes": 6491,
+      "sha256": "e895b832101d97a2c2a729fdb2516a9dd0cae7a2045f218aad1837aaf4e0392d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n-start.js",
+      "bytes": 87,
+      "sha256": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n.js",
+      "bytes": 8326,
+      "sha256": "3337cf3bd52f5c7b15440385f81929662c5b403e83b1268cb448fc7db7b59593"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/index.html",
+      "bytes": 8009,
+      "sha256": "044e2e227eb1feb1f0fde090611de03e1fadaa7e9480736e141726ccbf70363c"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/kaffee-qr.mga",
+      "bytes": 7828,
+      "sha256": "64cd1c64d5b9e981b802c72ec06acc3e6148161029b8e34f201ec457cc736c83"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/mcp-protocol.js",
+      "bytes": 10232,
+      "sha256": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/phone-media.js",
+      "bytes": 52777,
+      "sha256": "24647883bf02ad985fa171f0cd5b6594ec9fdf2b2fac1d42a6888c0bb951979d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/phone-metadata-LICENSE.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/phone-metadata-NOTICE.txt",
+      "bytes": 851,
+      "sha256": "8f84b1e30a1cece0af9d98664b78b145bd9df1f1aad0a80f7a7a2eb2dbe75424"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/qr-decoder-LICENSE.txt",
+      "bytes": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/qr-decoder.js",
+      "bytes": 256885,
+      "sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/qr-dialog.css",
+      "bytes": 1198,
+      "sha256": "bf51e253a1c0a31ce2c88884aeaf69baa759c45d593097739ce2e11c1b7083f1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/qr-dialog.js",
+      "bytes": 5893,
+      "sha256": "b885d1238bb01989bf35f16f19f35ebc0b968b6c707d525b11e02a24cc267628"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVu-LIZENZ.txt",
+      "bytes": 3859,
+      "sha256": "63d3ba759d12804c5b31a9d5940d855c1820d1f5999e6b0872eb1c7ff045fbc9"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSans-Bold.ttf",
+      "bytes": 708920,
+      "sha256": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSans-BoldOblique.ttf",
+      "bytes": 645600,
+      "sha256": "58d78a24ddff9ab30427550d68f0b9b7dd28d6690f9f4b3e4ebac7105252e9b2"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSans-Oblique.ttf",
+      "bytes": 637648,
+      "sha256": "2d7b524ce7d51db78591b4e19c8185b89f3af0aa6534c5e524cf0c6f4ea673de"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSans.ttf",
+      "bytes": 759720,
+      "sha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSansMono-Bold.ttf",
+      "bytes": 334268,
+      "sha256": "3a3c502eeff669a231549e80df9f7c49de109bafe303170409e905d0b31a38fe"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/DejaVuSansMono.ttf",
+      "bytes": 343140,
+      "sha256": "c805f9436dbc268644c1d9584f01a601a653e028e08fd74b9b949f6cf8304d88"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/Noto-LIZENZ.txt",
+      "bytes": 5208,
+      "sha256": "075f91382875da1c4b491f1facf2586f55448705133264d98ce15cab6211b125"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/NotoSans-Regular.ttf",
+      "bytes": 512672,
+      "sha256": "89c3c497f618fdaa0b2d1e98fef93582f28c71debd2c4a8cdf41f190ced2909d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/NotoSerif-Bold.ttf",
+      "bytes": 611904,
+      "sha256": "0af0ff2be8f84910fb21ec5fe1b6b7395e3073250502a334baf6ca2f860c88fe"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/NotoSerif-BoldItalic.ttf",
+      "bytes": 656716,
+      "sha256": "78a6d685e5690b7dcda0f336b689193afc03b6bab5cf18fc1a9ecc3aa0600059"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/NotoSerif-Italic.ttf",
+      "bytes": 637472,
+      "sha256": "bc25600aa27cd409e1e5b3d86340df3a329bb860fcfbe57a03a95070b229e1b0"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/NotoSerif-Regular.ttf",
+      "bytes": 588876,
+      "sha256": "9d7583b7dc9e812afd32a14280c5cac3160012efe50c8d08938f4fea266ff67f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/Z003-LIZENZ.txt",
+      "bytes": 52517,
+      "sha256": "1315a62758a603a3e6e87a79b8389563789c59c1740b9db8bc2b20e2e2145458"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/schriften/Z003-MediumItalic.otf",
+      "bytes": 114052,
+      "sha256": "a04947e59fc9339ea3c4b34c31fd46764f22af7512afc2c074ce190e79ed7a09"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/stil.css",
+      "bytes": 187975,
+      "sha256": "e5edb7cd787a6c3f6e79d0fdb9e62c27a436c1481e7e758a40db9451998bd40b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/zeichenblatt.js",
+      "bytes": 43898,
+      "sha256": "34f34085925a2b55d451e8ae35e7d70c585c3ea6e9276166e9ed5f44623ec19b"
+    },
+    {
+      "path": "magnolie-organizer-windows/build/Build.ps1",
+      "bytes": 25699,
+      "sha256": "aa628c8a43b30fab9d12a3bb71c02d5505d738306e384b95ad5c10debf046f9c"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/setup-holidays.js",
+      "bytes": 10623,
+      "sha256": "401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a"
+    },
+    {
+      "path": "magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "bytes": 3065,
+      "sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/werkzeuge/po_zu_native.py",
+      "bytes": 1440,
+      "sha256": "215b9db153ff9b525346818c2506967bd53f1e7a2bf6db903586e31d0123b30f"
+    },
+    {
+      "path": "port-adapters/timezones/.gitattributes",
+      "bytes": 288,
+      "sha256": "d8e7c50de1ceff09376413763bd90aefda4cc684e4e8ea12d55cdd6a4fdd023c"
+    },
+    {
+      "path": "port-adapters/timezones/LICENSE-tzdb.txt",
+      "bytes": 252,
+      "sha256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf"
+    },
+    {
+      "path": "port-adapters/timezones/README.md",
+      "bytes": 5709,
+      "sha256": "129abf8a1c78f4b185f0a1b3317dffd4a95b00a552917a7eed9f1e1fa8a7c1d0"
+    },
+    {
+      "path": "port-adapters/timezones/TRANSFER.md",
+      "bytes": 4617,
+      "sha256": "e79b551389391b072f4f456f93ce10a6f22df984bd1f21dc269d953b35a554bf"
+    },
+    {
+      "path": "port-adapters/timezones/app-hook-host.test.cjs",
+      "bytes": 13532,
+      "sha256": "a8e0e31dead07e78ec1ddf75571d9fe000e40efff518a2461fad9ca68ce5451b"
+    },
+    {
+      "path": "port-adapters/timezones/app-hooks.snippets",
+      "bytes": 11855,
+      "sha256": "764f92f567178dbe05dca0beda85335b9a8fab1c37d4f338ad2d549230a96242"
+    },
+    {
+      "path": "port-adapters/timezones/bootstrap.template.js",
+      "bytes": 640,
+      "sha256": "8600c43c7007aa701545c1145a30e54ac8da9bcf7805b47378abe5ad37131554"
+    },
+    {
+      "path": "port-adapters/timezones/build-tzif.py",
+      "bytes": 6997,
+      "sha256": "fb18577d563b14fa75508928fd19e18204bfcce66b83db6db850af5e4cec0f9b"
+    },
+    {
+      "path": "port-adapters/timezones/build-tzif.test.py",
+      "bytes": 4849,
+      "sha256": "f26d9039e841ff55987995fc95537a3e92bb24af99bb205045f5352eea4b845b"
+    },
+    {
+      "path": "port-adapters/timezones/check-independent.py",
+      "bytes": 8380,
+      "sha256": "8535e65a68813d8a7806b5eb821c363c5c7b1219898f3b79f6b59ce278a6b550"
+    },
+    {
+      "path": "port-adapters/timezones/check-projected-inputs.py",
+      "bytes": 7971,
+      "sha256": "1b9405958dcd620b4ae69b42ef67e94432f8ee2eb46c29f2a9d675b302db2bea"
+    },
+    {
+      "path": "port-adapters/timezones/checkout-inputs.test.py",
+      "bytes": 3466,
+      "sha256": "e018c6c7c267b3a17faa0c51ee9a4a7964ba1d0dbe2b2100e8df897ff93a00bb"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/BP-PROVIDER-BLOCKER.md",
+      "bytes": 4811,
+      "sha256": "8d284fff377a5e544c9000160519b55837cbff0944665d03464020ab013d1d4d"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/BPReferenceWorker.kt",
+      "bytes": 2176,
+      "sha256": "ce14b9bb399ca9edf75e0009a568a825af8464af0ee53a1d5e92e55ba1871598"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/GeneratePayload.kt",
+      "bytes": 2096,
+      "sha256": "d66b43ba71025dff4039a1f64e2f81f313f9c1629b48541b4822f9e576641c25"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/ProbeThreeTenGaza.kt",
+      "bytes": 2543,
+      "sha256": "abf79efa8ceac754a7891e7e6f4b4f501e72b2955135442f6961fed4db8ee4be"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/bp-direct-independent-report.json",
+      "bytes": 8016,
+      "sha256": "dc57fb22c7084d0dfb5f972da16a99f5b4db376a2ce128a855b77c4a48343bbb"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/bp-independent-report.json",
+      "bytes": 8212,
+      "sha256": "4ea0dfbd6a8232018a9d8e44c9fa52ed748341ab8aed81b1a187e470432485a4"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/bp-production-codec-report.json",
+      "bytes": 1255,
+      "sha256": "7d1dc6fafb319c412838f3deeda5e9cf5424f93e36fe3c91a5a94a379b01aced"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/bp-provenance.json",
+      "bytes": 1492,
+      "sha256": "9cab85ce35b393b749bab21ec69982cf6ee049fb5b24c4a6456a50a0626a34f3"
+    },
+    {
+      "path": "port-adapters/timezones/diagnostics/extract-bp.py",
+      "bytes": 2396,
+      "sha256": "95ca6efdc24d7c948f2646728388dee3505346aa9b9261cf19f9de34b76e69f3"
+    },
+    {
+      "path": "port-adapters/timezones/independent-validation.json",
+      "bytes": 990,
+      "sha256": "e83de3e2b9b9aaf977755f2f108502ee62794ad5220a503259937fff13ba75a0"
+    },
+    {
+      "path": "port-adapters/timezones/oracle-worker.cjs",
+      "bytes": 1750,
+      "sha256": "006725fceca87f2532ef41083c4be428b25f04290b7a50588d71261c045d214b"
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.js",
+      "bytes": 6970,
+      "sha256": "7fe5e5f5c44c0c601579fff1e91038402ff1cd7866b5963cb84372df74bd7ac6"
+    },
+    {
+      "path": "port-adapters/timezones/port-runtime.test.cjs",
+      "bytes": 8303,
+      "sha256": "1ee03d924bc5e599f4098eacfc0f1f4b4640d825c40ed6a728325290cd22cf66"
+    },
+    {
+      "path": "port-adapters/timezones/projection-assets.cjs",
+      "bytes": 1321,
+      "sha256": "43af5b9ef3b8cfd1b2e12825fef2f9709d3f09f6c52aca6fe95adf0921a19a4f"
+    },
+    {
+      "path": "port-adapters/timezones/projection-patches.cjs",
+      "bytes": 3058,
+      "sha256": "c8a8c7559e5c488ed8b76bc32c4246904859a50b7f7f6cb1f0c4542213955e36"
+    },
+    {
+      "path": "port-adapters/timezones/projection-patches.json",
+      "bytes": 17368,
+      "sha256": "c4f53c184b583cdb4a088f98457ea7c4952110a959314b8260c2d52a8c60e0ca"
+    },
+    {
+      "path": "port-adapters/timezones/promoted-hooks.test.cjs",
+      "bytes": 3047,
+      "sha256": "45ab1ae8c188c26165db1e04fd17320223d36a9a3889680581833ee97920c2de"
+    },
+    {
+      "path": "port-adapters/timezones/provenance.json",
+      "bytes": 1585,
+      "sha256": "b6b926b73620b3ab9ba477195041e52925ee6b12376791e647f70beba6bcc2a0"
+    },
+    {
+      "path": "port-adapters/timezones/resolver.js",
+      "bytes": 14105,
+      "sha256": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da"
+    },
+    {
+      "path": "port-adapters/timezones/resolver.test.cjs",
+      "bytes": 8243,
+      "sha256": "b0f365e2e4d9dad6e1e64b28fd6341a69fb954efe4f7164fec914f8d9ecbc747"
+    },
+    {
+      "path": "port-adapters/timezones/tzdb-2026egtz.json",
+      "bytes": 428473,
+      "sha256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c"
+    }
+  ]
+}

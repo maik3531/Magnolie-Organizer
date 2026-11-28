@@ -1,0 +1,51 @@
+[
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+    "host_path": "Sources/BetaCore/HolidayService.swift",
+    "projection": "whole unchanged file",
+    "sha256": "18a77bdcd3d5f909820f150e1015c2e20655204207d94e927d98df24537969c1",
+    "bytes": 14474
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/Contract.swift",
+    "host_path": "Sources/BetaCore/Contract.swift",
+    "projection": "whole unchanged file",
+    "sha256": "12111926abeab8ef19eba102222ddd0268513283c590d984fdb9b1e3d363cd8b",
+    "bytes": 16489
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/OpaqueUTF8Identity.swift",
+    "host_path": "Sources/BetaCore/OpaqueUTF8Identity.swift",
+    "projection": "whole unchanged file",
+    "sha256": "c9e9ba22e7388eb4e1ae0b110101c51198500b1f00a97cae796d01ee8ba06c03",
+    "bytes": 1693
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/SystemSourcePolicy.swift",
+    "host_path": "Sources/BetaCore/SystemSourcePolicy.swift",
+    "projection": "whole unchanged file",
+    "sha256": "c1a921794619da25edc1649c0cc33d06e7455f356fa6ae3e452c9f80c9fcbfe8",
+    "bytes": 3239
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/FileImportProtocol.swift",
+    "host_path": "Sources/BetaCore/FileImportProtocol.swift",
+    "projection": "whole unchanged file",
+    "sha256": "3b85b0424bd88435ba08e76dc6dd49ceb7996c3c88fe80b48d172a3fadbdfd15",
+    "bytes": 5285
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "host_path": "Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "projection": "whole unchanged file",
+    "sha256": "df333fc8a260adda45b7952e31e41cd2c4179df8593d14caeb15c2240d5a7c4d",
+    "bytes": 13833
+  },
+  {
+    "source": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/DAV.swift",
+    "host_path": "Sources/BetaCore/BoundedHTTPTypes.swift",
+    "projection": "Exact BoundedHTTPRequest, BoundedHTTPResponse and BoundedHTTPTransport declarations; Foundation import added",
+    "source_sha256": "27a9800d58225af0685a33742e7088a564fc71b55075ba093a4c244f7f937613",
+    "projection_sha256": "92e2791e7d63b208caf52e02901bf1241042d9240a1a8dcfe4153a212dd0e66c"
+  }
+]

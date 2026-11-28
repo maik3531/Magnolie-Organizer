@@ -1,0 +1,79 @@
+{
+  "issue": 856,
+  "review_date": "2026-11-28",
+  "product_base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "precondition": "Published #855 candidate plus final #856 changes",
+  "reviewed_product_sources": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63"
+    },
+    {
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d"
+    },
+    {
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f"
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_ui.py",
+      "sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867"
+    },
+    {
+      "path": "magnolie-organizer-windows/FirstRunSetupState.cs",
+      "sha256": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+      "sha256": "40f3a7b1b1f6151eac055ae1fc51dee85b1580e023622bdc5fe4639e679f66be"
+    }
+  ],
+  "probe_inputs": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+      "sha256": "636fda2011d0fad66696f23a9da64e4186b69311631549155195a555ffa5559e"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_ui.py",
+      "sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867"
+    }
+  ],
+  "official_fixture": {
+    "file": "at-subdivisions.json",
+    "sha256": "7b209ec482d8426dcc8d3dd328d480ef0fd43b141a63f094928d3ee058aeff27",
+    "bytes": 1536,
+    "iso_to_provider": {
+      "AT-1": "AT-BL",
+      "AT-2": "AT-KÄ",
+      "AT-3": "AT-NÖ",
+      "AT-4": "AT-OÖ",
+      "AT-5": "AT-SB",
+      "AT-6": "AT-SM",
+      "AT-7": "AT-TI",
+      "AT-8": "AT-VA",
+      "AT-9": "AT-WI"
+    }
+  },
+  "all_four_mapping_tables_match_official_fixture": true
+}

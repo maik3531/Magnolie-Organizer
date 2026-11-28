@@ -1,0 +1,62 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 8] BetaCore
+[2 / 9] BetaCore
+[8 / 13] BetaCoreTests-product
+[11 / 17] BetaCore
+[15 / 18] BetaCoreTests-product
+[21 / 23] BetaCoreTests-test-runner
+[22 / 24] BetaCoreTests-test-runner
+[24 / 24] BetaCoreTests-test-runner
+Build complete! (4.34 secs)
+Test Suite 'All tests' started at 2026-11-28 09:46:55.455
+Test Suite 'Debug-linux-x86_64.xctest' started at 2026-11-28 09:46:55.456
+Test Suite 'HolidayServiceTests' started at 2026-11-28 09:46:55.456
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' started at 2026-11-28 09:46:55.456
+Test Case 'HolidayServiceTests.testAllRegionDuplicatesMergeWithoutLosingScopes' passed (0.019 seconds)
+Test Case 'HolidayServiceTests.testAustrianGroupedResponseUsesOnlyCanonicalISOScope' started at 2026-11-28 09:46:55.476
+Test Case 'HolidayServiceTests.testAustrianGroupedResponseUsesOnlyCanonicalISOScope' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions' started at 2026-11-28 09:46:55.477
+Test Case 'HolidayServiceTests.testAustrianProviderIdentifiersRoundTripAllNineRegions' passed (0.004 seconds)
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' started at 2026-11-28 09:46:55.481
+Test Case 'HolidayServiceTests.testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testGermanSwissAndCanonicalAustrianResponseScopesRemainValid' started at 2026-11-28 09:46:55.481
+Test Case 'HolidayServiceTests.testGermanSwissAndCanonicalAustrianResponseScopesRemainValid' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' started at 2026-11-28 09:46:55.483
+Test Case 'HolidayServiceTests.testInvalidSelectionAndMalformedResponsesReject' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' started at 2026-11-28 09:46:55.484
+Test Case 'HolidayServiceTests.testLaterFailedRequestPublishesNoPartialCoverage' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' started at 2026-11-28 09:46:55.484
+/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host/Tests/BetaCoreTests/HolidayServiceTests.swift:303: HolidayServiceTests.testLivePublicHolidayServiceWhenRequested : Test skipped - Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.
+Test Case 'HolidayServiceTests.testLivePublicHolidayServiceWhenRequested' skipped (0.003 seconds)
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' started at 2026-11-28 09:46:55.487
+Test Case 'HolidayServiceTests.testNativeHolidayCommandContract' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' started at 2026-11-28 09:46:55.489
+Test Case 'HolidayServiceTests.testPublicAndSchoolScopeLanguageAndInclusiveDates' passed (0.004 seconds)
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' started at 2026-11-28 09:46:55.493
+Test Case 'HolidayServiceTests.testRegionFallbackAppliesToEveryGroupedResponse' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' started at 2026-11-28 09:46:55.494
+Test Case 'HolidayServiceTests.testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' started at 2026-11-28 09:46:55.496
+Test Case 'HolidayServiceTests.testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' started at 2026-11-28 09:46:55.498
+Test Case 'HolidayServiceTests.testToleratedMalformedMetadataNeverCertifiesReplacement' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage' started at 2026-11-28 09:46:55.500
+Test Case 'HolidayServiceTests.testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage' passed (0.002 seconds)
+Test Case 'HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP' started at 2026-11-28 09:46:55.502
+Test Case 'HolidayServiceTests.testUnknownAustrianSelectionRejectsBeforeHTTP' passed (0.0 seconds)
+Test Case 'HolidayServiceTests.testUnknownUnicodeRegionCodesKeepStrictParserFailure' started at 2026-11-28 09:46:55.502
+Test Case 'HolidayServiceTests.testUnknownUnicodeRegionCodesKeepStrictParserFailure' passed (0.001 seconds)
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' started at 2026-11-28 09:46:55.503
+Test Case 'HolidayServiceTests.testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope' passed (0.002 seconds)
+Test Suite 'HolidayServiceTests' passed at 2026-11-28 09:46:55.504
+	 Executed 18 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.048 (0.048) seconds
+Test Suite 'Debug-linux-x86_64.xctest' passed at 2026-11-28 09:46:55.504
+	 Executed 18 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.048 (0.048) seconds
+Test Suite 'All tests' passed at 2026-11-28 09:46:55.504
+	 Executed 18 tests, with 1 test skipped and 0 failures (0 unexpected) in 0.048 (0.048) seconds
+◇ Test run started.
+↳ Testing Library Version: 6.4.3 (ba0861fb203553c)
+↳ Target Platform: x86_64-unknown-linux-gnu
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

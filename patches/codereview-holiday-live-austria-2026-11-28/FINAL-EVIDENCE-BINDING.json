@@ -1,0 +1,120 @@
+{
+  "all_checked_inputs_exact": true,
+  "checks": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha256": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha256": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie_setup_ui.py",
+      "sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer-windows/FirstRunSetupState.cs",
+      "sha256": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+      "sha256": "40f3a7b1b1f6151eac055ae1fc51dee85b1580e023622bdc5fe4639e679f66be",
+      "evidence": "independent-review"
+    },
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+      "evidence": "final-python-live"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+      "sha256": "636fda2011d0fad66696f23a9da64e4186b69311631549155195a555ffa5559e",
+      "evidence": "final-python-live"
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_setup_holidays.py",
+      "sha256": "1487b0c75f282e735925b9e39cedcddea971cde311f853064655282aa3656065",
+      "evidence": "final-python-live"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f",
+      "evidence": "swift-after"
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+      "sha256": "0a3d53e7b84360297f2a446f55420841bd7767fe08dd23c974154176442f4317",
+      "evidence": "swift-after"
+    },
+    {
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+      "evidence": "csharp-after"
+    },
+    {
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+      "evidence": "csharp-after"
+    },
+    {
+      "path": "magnolie-organizer-windows/FirstRunSetupState.cs",
+      "sha256": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+      "evidence": "csharp-after"
+    },
+    {
+      "path": "magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt",
+      "sha256": "e67d9d9bd25127e4efcb59fd0c43978f9063fe296f443a2c6579c8796563e438",
+      "evidence": "csharp-test"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50",
+      "evidence": "kotlin-after"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/DAV.kt",
+      "sha256": "6ba73b3361e36684fd5949cfba05c712fe349d299a93248167cfad3d52b4a753",
+      "evidence": "kotlin-after"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/StandardBase64.kt",
+      "sha256": "782141a3693546cbaddf03248ae35ff226f4635b8f61967a05397596933ac4b5",
+      "evidence": "kotlin-after"
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt",
+      "sha256": "281a03b17b9da3ec656fe71581335e00e988b8fbd9bfb1f6bfd54052585d8ad8",
+      "evidence": "kotlin-after"
+    }
+  ]
+}

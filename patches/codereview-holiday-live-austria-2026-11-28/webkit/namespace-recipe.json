@@ -1,0 +1,11 @@
+{
+  "host_system_modified": false,
+  "webkit_sandbox_disabled": false,
+  "original_library_directory_preserved_via_readonly_alias": true,
+  "reconstructed_directory_entries": 74,
+  "added_libexec_mount": "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+  "network_namespace": "host; optional outer unshare-net unavailable, WebKit sandbox unchanged",
+  "probe": "/workspace/scratch/69a9d769e56f/holiday-855-followup/webkit/smoke.py",
+  "writeable_owned_directory": "/workspace/scratch/69a9d769e56f/holiday-855-followup/webkit",
+  "temporary_directory": "private tmpfs"
+}

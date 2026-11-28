@@ -1,0 +1,17 @@
+{
+  "status": "blocked_by_environment",
+  "product_webkit_testcases_executed": 0,
+  "native_package_accepted": false,
+  "host_system_files_modified": false,
+  "product_source_files_modified": false,
+  "webkit_sandbox_disabled": false,
+  "blocker": {
+    "operation": "socket(AF_UNIX, SOCK_STREAM)",
+    "errno": 1,
+    "error": "Operation not permitted",
+    "observed_outside_bwrap": true,
+    "observed_inside_bwrap": true,
+    "bind_or_connect_attempted": false
+  },
+  "next_step": "Run the bound targeted HTML/JavaScript regression in a regular Linux GUI environment with local IPC and WebKit sandbox available."
+}

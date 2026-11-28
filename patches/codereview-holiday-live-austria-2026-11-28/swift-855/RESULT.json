@@ -1,0 +1,69 @@
+{
+  "issue": 855,
+  "swift_compiled": true,
+  "test_cases_discovered": 12,
+  "passed": 11,
+  "skipped": 1,
+  "failed": 0,
+  "new_855_methods_passed": 5,
+  "warnings": 0,
+  "errors": 0,
+  "swift_version": "6.4.3",
+  "runtime": "x86_64-unknown-linux-gnu",
+  "whole_HolidayService_and_XCTest_class": true,
+  "native_default_transport_compiled": false,
+  "macos_appkit_compiled": false,
+  "product_changes_required": false,
+  "source_manifest_verified_against_current_product": true,
+  "skip": "testLivePublicHolidayServiceWhenRequested: MACOS_BETA_LIVE_HOLIDAYS not enabled; native default transport outside this host",
+  "test_methods": [
+    {
+      "name": "testAllRegionDuplicatesMergeWithoutLosingScopes",
+      "result": "passed"
+    },
+    {
+      "name": "testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays",
+      "result": "passed"
+    },
+    {
+      "name": "testInvalidSelectionAndMalformedResponsesReject",
+      "result": "passed"
+    },
+    {
+      "name": "testLaterFailedRequestPublishesNoPartialCoverage",
+      "result": "passed"
+    },
+    {
+      "name": "testLivePublicHolidayServiceWhenRequested",
+      "result": "skipped"
+    },
+    {
+      "name": "testNativeHolidayCommandContract",
+      "result": "passed"
+    },
+    {
+      "name": "testPublicAndSchoolScopeLanguageAndInclusiveDates",
+      "result": "passed"
+    },
+    {
+      "name": "testRegionFallbackAppliesToEveryGroupedResponse",
+      "result": "passed"
+    },
+    {
+      "name": "testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes",
+      "result": "passed"
+    },
+    {
+      "name": "testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes",
+      "result": "passed"
+    },
+    {
+      "name": "testToleratedMalformedMetadataNeverCertifiesReplacement",
+      "result": "passed"
+    },
+    {
+      "name": "testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope",
+      "result": "passed"
+    }
+  ]
+}

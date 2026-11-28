@@ -1,0 +1,10 @@
+[
+  {
+    "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+    "sha256": "18a77bdcd3d5f909820f150e1015c2e20655204207d94e927d98df24537969c1"
+  },
+  {
+    "path": "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "sha256": "0a3d53e7b84360297f2a446f55420841bd7767fe08dd23c974154176442f4317"
+  }
+]

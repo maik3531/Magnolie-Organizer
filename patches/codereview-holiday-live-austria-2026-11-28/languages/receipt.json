@@ -1,0 +1,434 @@
+{
+  "issue": 855,
+  "source_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "test": "magnolie-organizer-windows/tests/setup-holidays.js",
+  "test_sha256_before_and_after": "401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a",
+  "test_source_modified": false,
+  "assertions_or_language_matrix_reduced": false,
+  "passed": 88,
+  "total": 88,
+  "languages": [
+    "en",
+    "ar",
+    "be",
+    "cs",
+    "da",
+    "de",
+    "es",
+    "fr",
+    "hi",
+    "hsb",
+    "it",
+    "ja",
+    "nb",
+    "nl",
+    "pl",
+    "pt",
+    "ru",
+    "tr",
+    "uk",
+    "zh_CN"
+  ],
+  "language_specific_cases": 40,
+  "additional_shared_flow_cases": 48,
+  "stdout": "Setup holidays: 88 cross-desktop cases passed; 20 languages.",
+  "versions": {
+    "msgfmt": "msgfmt (GNU gettext-tools) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "node": "v24.22.3\n",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "jsdom": "26.1.0\n"
+  },
+  "native_catalogue_regenerated_semantic_match": false,
+  "native_catalogue_tracked_sha256": "7ccaced092607cf49b3e319b1d5a10694f1ba6d3bffbba31defee89eee50f01d",
+  "native_catalogue_regenerated_sha256": "3bb802b350968fb55bf1abbfade8b79bb4a47761774748ce3f0ddfc62842b19e",
+  "regenerated_native_regression_stdout": "Setup holidays: 88 cross-desktop cases passed; 20 languages.\n",
+  "catalogue_sources": [
+    {
+      "path": "magnolie-organizer/po/de.po",
+      "sha256": "d62c5cf584a596ba2b90a48e6483dee95cb0bcd03bac6cbdb1916878cfb6e989"
+    },
+    {
+      "path": "magnolie-organizer/po/fr.po",
+      "sha256": "4538dc16d15b58f69989760f61c1ab043dc60d9972511aecb807109ce45255e1"
+    },
+    {
+      "path": "magnolie-organizer/po/es.po",
+      "sha256": "3da33cf6310fd64db31c77a8e12cd6e150e3d4e05db7c12b0f216e70d03aae5b"
+    },
+    {
+      "path": "magnolie-organizer/po/it.po",
+      "sha256": "9417806e6656cac98c2b301ade0cf9a2f9307fd29077529e135eb9488eb617b2"
+    },
+    {
+      "path": "magnolie-organizer/po/nl.po",
+      "sha256": "b9479b9eedfb4b955395c50030129f00befff7f9d032e728a3d1e0fdabac742e"
+    },
+    {
+      "path": "magnolie-organizer/po/pt.po",
+      "sha256": "5a9ec0597a67161ed4cb48b498eed82397b7bc2ab88a6fcf91fa8ecc482202bb"
+    },
+    {
+      "path": "magnolie-organizer/po/ru.po",
+      "sha256": "088d67bd7d2da1cbbc162065a4e3fe32b5f4a980021136bedd70a969c2d6f319"
+    },
+    {
+      "path": "magnolie-organizer/po/cs.po",
+      "sha256": "145db066da54957820d7bfc57e7c3eb6edfe54be9a6d65bdd135b69ee3b5c82e"
+    },
+    {
+      "path": "magnolie-organizer/po/pl.po",
+      "sha256": "e0825b29c36c5a6c50520f9e02fdb196dbee3271e6ec8f9657fa1371a59ccf82"
+    },
+    {
+      "path": "magnolie-organizer/po/hsb.po",
+      "sha256": "41986329ee72154a5600ef23da17777df032c622a261693c9d687a623043452d"
+    },
+    {
+      "path": "magnolie-organizer/po/da.po",
+      "sha256": "00526b9e36030de6caef39896f100ff78a8a5ab5cc2011e8f8d3f42ac576982b"
+    },
+    {
+      "path": "magnolie-organizer/po/nb.po",
+      "sha256": "5a6d5581b117ac52e6521421fa27465426658687486c47c7757034282e10f1da"
+    },
+    {
+      "path": "magnolie-organizer/po/hi.po",
+      "sha256": "1f98e9e445e217d5f9ea74218acf5edebc5637cb486e43348b7e84c2b2a73df0"
+    },
+    {
+      "path": "magnolie-organizer/po/zh_CN.po",
+      "sha256": "55209bc12deb1a3f3aa0585c7a5096c1a710cc8792a1bb57b7b1cf16de3eaf03"
+    },
+    {
+      "path": "magnolie-organizer/po/ja.po",
+      "sha256": "50ded3966264346092ace8bf1e079333884139de91e8b1522085738868de3e7c"
+    },
+    {
+      "path": "magnolie-organizer/po/ar.po",
+      "sha256": "b79ee6c34a609aeea8b6cf053b241fbdd9839c6460ccfb827a0a3f3cc896dce0"
+    },
+    {
+      "path": "magnolie-organizer/po/uk.po",
+      "sha256": "e1968b9809249e817cb5c89b6eef88eb4f190a3222d6a7659944b7bd9046f5c0"
+    },
+    {
+      "path": "magnolie-organizer/po/be.po",
+      "sha256": "3f63087e76391cc709b058dd9a3378ad3114f49f0904aa75da73c4c00dd2f285"
+    },
+    {
+      "path": "magnolie-organizer/po/tr.po",
+      "sha256": "e69747ccdb706813bac0f3052e18d49c2a7ccdd5d3e58680d478aee33ef48d16"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/de.po",
+      "sha256": "f18d52b48da61c4e201867b7e975ec57ef0a40f777e6b1ae2dd91b4ea67a25ea"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/fr.po",
+      "sha256": "4615ea25d080d441c671df3bd231327ff067509e3dbac20d379988a476ca537a"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/es.po",
+      "sha256": "c09352f70b1a83af69bcbec77cc6f4a880e0991c47dd52bc4c76a73dbf0f194b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/it.po",
+      "sha256": "dbde2d4c95f40d1aff39ffe6257e4d6f5d4e11e4464ca4de116d02c1ad39ec6c"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/nl.po",
+      "sha256": "b16d3836efdf8bf79a106e648db4e87a5764bc728a4e74c23789fd1a1286f44d"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/pt.po",
+      "sha256": "f178d55b46a8c798c7508dc5245299c92c727107153c6b15702de9fabf65ef82"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ru.po",
+      "sha256": "b56e1157034e3d3db1ca82b840c6a1ac3cc791fcb92aec7e4fd83c6f43275e6b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/cs.po",
+      "sha256": "c2494e52900ab87942509e4a4f564cbbd7ddd8c247b39eeb1b0535dc16faae45"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/pl.po",
+      "sha256": "31cbdc3cd40ea0cdb328d823bcf12e21e128b1bc1fecf7eaf38520c6ea925369"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/hsb.po",
+      "sha256": "7c66fd33da31cc3765be4c6f2915d1802033047aa331b6941e39efbf1877d92f"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/da.po",
+      "sha256": "fc65f35d802217e578d2f47430e612a7be6d1870990143d0dfeb5c1382be4f4b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/nb.po",
+      "sha256": "0a22c2b32cf0cb21753ef967527a158574971c5c2746f4c49397eb9d6be13d94"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/hi.po",
+      "sha256": "ee69af71e5f172cd518299e1b90843ca0f7bf4d36ad44fec6b0f3d92018d66b8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/zh_CN.po",
+      "sha256": "791e546c96dfc9ea9f7dfa1bcdee14547ee14922ef0a82bb9bd7e54830f3a37b"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ja.po",
+      "sha256": "c074cc4f13fd40a63e87a26f33e1552564c04632b54ba58f27a826de201de4d5"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/ar.po",
+      "sha256": "64660838462e1d3f51c9604a8ca4950aa75999414e5d89cc53e58f1a752cfcd2"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/uk.po",
+      "sha256": "44159ca5b0f2ebf9503787af30334978bd78f47d9e895feb293cd0721544b0e5"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/be.po",
+      "sha256": "588522c0a43b947f44b8cc9a9452879127fff7ae28b4ea748af9284faee10936"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/po/tr.po",
+      "sha256": "c661aa5a3469cbd82eca3314e354a935c7fde20e58c5653c612fe8c91b174ec0"
+    }
+  ],
+  "generated_web_catalogues": [
+    {
+      "path": "magnolie-organizer/web/i18n/de.js",
+      "bytes": 229255,
+      "sha256": "70f211416138621996f73f26bff0a00620120038d5cf95f65ac22db1ddbf96f9",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/fr.js",
+      "bytes": 242266,
+      "sha256": "bc1abba766d504877c9e9c9f758a19f5bda74a2cb2c506551f0005fa946fd5bf",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/es.js",
+      "bytes": 233552,
+      "sha256": "2c74296a63fff16c7f3850a54c4433f62904362f9f1930ac8bbb51788fec35d3",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/it.js",
+      "bytes": 232186,
+      "sha256": "83488920ebe758356ebcfbdc3ef0940ee9b3e2cf8eef6dc70aaab881d66926c0",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/nl.js",
+      "bytes": 226040,
+      "sha256": "2ba47250fa22488cc289707b6c5327fcb948698eb0e2b60f20994160f8beb4e9",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/pt.js",
+      "bytes": 234644,
+      "sha256": "8fe6456c0321a278a769d25496551bda462cb5d30eafe9e35a5fce2f655340fe",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/ru.js",
+      "bytes": 310767,
+      "sha256": "ba1e29bf609dc312bd2fb8afdeb0584134989c7e4f56492612263d064eed1e49",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/cs.js",
+      "bytes": 226418,
+      "sha256": "510e18f3585cbdd6d739ae4faff58b5fd2ed002b1082a43aa0554d2554a0670c",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/pl.js",
+      "bytes": 228961,
+      "sha256": "0c9ad4ac6d0a998969969cbaed7b6dd6718bc776125c6d7741588799be78f788",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/hsb.js",
+      "bytes": 232789,
+      "sha256": "c785831c0a7811c25bc92b254f9d7e0c6d6674ae9fd5f55e06cc78e58473c757",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/da.js",
+      "bytes": 217787,
+      "sha256": "295ab5be74fb2197065d2a6545cea4513f978f6dd037022fa1064e9b6bee5f02",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/nb.js",
+      "bytes": 217381,
+      "sha256": "f6959544848fdc5f8db217f4ba389fbe4e7680bb76ec8d5350f1d274728a954e",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/hi.js",
+      "bytes": 362307,
+      "sha256": "6ebc349dac6d5ea7ffe11ba1a67e2a0cc3d7bbbe2750de09cba51f10f7ab7684",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/zh_CN.js",
+      "bytes": 202236,
+      "sha256": "5f338141819563bfceb6816e6ceaea2b6c509ad05711fa8daa4c458d235c8daa",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/ja.js",
+      "bytes": 251922,
+      "sha256": "29b39175dc672cae942c6ed71c938d0a50398a5964e46fb14c9ce19da6ed757e",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/ar.js",
+      "bytes": 284625,
+      "sha256": "e2a097e176d377d3a4292b18e9891645487d379b1f5086e817fdd3b67141baec",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/uk.js",
+      "bytes": 303974,
+      "sha256": "4b5fef7fb51c9aee7ebe3168f4f4522cbddc7dda1f37503fcde53eb7536636f1",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/be.js",
+      "bytes": 303476,
+      "sha256": "e9f4ef8bfa5c9949356b5f9409854459e14aaa55c89f95dba18fc07fb9d4148a",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer/web/i18n/tr.js",
+      "bytes": 223217,
+      "sha256": "61876b69bb5e77ab4553460bc491798d80df0931f47cc90af92736e198e3fb62",
+      "generator_sha256": "0a7ed840a55f77e36eba8eb667f3c281a4331a187e401d369e22055d213287c1"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/de.js",
+      "bytes": 189216,
+      "sha256": "8e91d625884344f1a65ae3b316bb09456420c8bea505f2ea52ba70d020120535",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/fr.js",
+      "bytes": 199546,
+      "sha256": "91d1ce9114152631c26be1e221397d7e9503be8c4504b3e3e50dfdebeb5a248d",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/es.js",
+      "bytes": 192228,
+      "sha256": "371a47ad1427be8091f066fcafa8df40c8e4eb4d7f42d36920f0f3153466e0e1",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/it.js",
+      "bytes": 191330,
+      "sha256": "d1a79862767e9d9e2105d7fefc355fe970c43babe66041816840b09f96203ba0",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/nl.js",
+      "bytes": 186510,
+      "sha256": "3f809c567556b10f4f38ded7a5a46f142b3b805bf7cecd54cd0d16b17d00102f",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/pt.js",
+      "bytes": 192803,
+      "sha256": "174df570bdef68eafec1e4ec70c333f3864669e0bc2f457dfbb2cbd29f45abc1",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ru.js",
+      "bytes": 256997,
+      "sha256": "4a9b92b7c608a9bd2b27e567b05c3e00fc88224b7d8f16c64e7bcc90fa84566f",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/cs.js",
+      "bytes": 186737,
+      "sha256": "7b5c1d85efa3ad23a75e1a2ceef2925c7f8229af4408ad10b2476fd26924f3ad",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/pl.js",
+      "bytes": 189034,
+      "sha256": "14b0910e737df56f321148fd442a81220265c121b5ad02ae1386bdc63281ef13",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/hsb.js",
+      "bytes": 192154,
+      "sha256": "20602834e488de8cf0228afca9b19ddd53dae0fc51a8293dc2f803d6d6f84004",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/da.js",
+      "bytes": 179759,
+      "sha256": "7a7adc16ed46763da244db4d99a00e53984e6ed02e56d3632a6a1ba7ef478a38",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/nb.js",
+      "bytes": 179564,
+      "sha256": "dd8ab602ed684bed4d73edc51a5a7b70c8cd2bdb8ff5ed7a3d5e252fe1dae5c4",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/hi.js",
+      "bytes": 300555,
+      "sha256": "19f083bf1e790c776676ad90ee013d7e76a871f45ee991d21f58b015587ea781",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/zh_CN.js",
+      "bytes": 167119,
+      "sha256": "b90701bec3792a547d71303b13d4c2151e6f97dbff63a69271f5ee310aa2d869",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ja.js",
+      "bytes": 206378,
+      "sha256": "3bbd10cecb27d513f8e1f0817b013fcadc0984ae3c703d5b4444eb2e146d60c9",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/ar.js",
+      "bytes": 234364,
+      "sha256": "a02f29164729e91914a22b3da35ce3a69bc1184915c195253d95d78ea7aec402",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/uk.js",
+      "bytes": 252009,
+      "sha256": "a1d3b33945ae2d1a0369cd7c98c6fad354478ad209af1ccc573a2434a3faa596",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/be.js",
+      "bytes": 251527,
+      "sha256": "5f8051a22441426f80eb23ba72454d0fc221795cc3a8cefb87f11bd6eae65ca7",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/i18n/tr.js",
+      "bytes": 184704,
+      "sha256": "23994c6ab475c934b86195260c9ea30ce081760a0547b6a681bb20c91ccf7a52",
+      "generator_sha256": "e2e9d62c9763c0a089442ea9e703d539427dd358b3f8a71e3cd954ac87a47ad8"
+    }
+  ],
+  "limits": [
+    "JSDOM with controlled native bridge; no native GUI acceptance",
+    "Existing setup-flow regression; not a semantic audit of every translation",
+    "No installable package built, installed or released"
+  ]
+}

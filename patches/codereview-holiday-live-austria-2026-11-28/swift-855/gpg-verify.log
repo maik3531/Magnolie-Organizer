@@ -1,0 +1,12 @@
+[GNUPG:] NEWSIG
+gpg: Signature made Fri Nov 20 01:36:47 2026 CET
+gpg:                using RSA key EF80A866B47A981F
+[GNUPG:] KEY_CONSIDERED 52BB7E3DE28A71BE22EC05FFEF80A866B47A981F 0
+[GNUPG:] SIG_ID CprDnVg3lKJ/8+V56P51NncwOUg 2026-11-20 1795135007
+[GNUPG:] GOODSIG EF80A866B47A981F Swift 6.x Release Signing Key <swift-infrastructure@forums.swift.org>
+gpg: Good signature from "Swift 6.x Release Signing Key <swift-infrastructure@forums.swift.org>" [unknown]
+[GNUPG:] VALIDSIG 52BB7E3DE28A71BE22EC05FFEF80A866B47A981F 2026-11-20 1795135007 0 4 0 1 10 00 52BB7E3DE28A71BE22EC05FFEF80A866B47A981F
+[GNUPG:] TRUST_UNDEFINED 0 pgp
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: 52BB 7E3D E28A 71BE 22EC  05FF EF80 A866 B47A 981F

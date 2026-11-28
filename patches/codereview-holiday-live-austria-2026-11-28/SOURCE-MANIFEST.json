@@ -1,0 +1,154 @@
+[
+  {
+    "path": "ARBEITSSTAND.md",
+    "bytes": 133095,
+    "sha256": "d7ad2ae6b37b448b0f06d09c47c4d2cb5fc64067b95b633842d1507dc24a4142",
+    "base_sha256": "fd42c68cfad5dc4658b320ec5ac9db5a5c3b373e6fa3798d1a9df97646ee230f",
+    "after_855_sha256": "bea52a5c70bf7fe2a5fafee2c2b5847532aaa79fcb85c9ead8a9ec4ceb959927",
+    "changed_by_856": true
+  },
+  {
+    "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+    "bytes": 21047,
+    "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50",
+    "base_sha256": "5c0ac67ce99cefb6a733a38fadd62d63ca2cb30ff7889a38e1378b0de6d830ec",
+    "after_855_sha256": "ed084bfc81b351a783119e36452880f3efb21366f7672359577040b72e093ceb",
+    "changed_by_856": true
+  },
+  {
+    "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt",
+    "bytes": 24834,
+    "sha256": "281a03b17b9da3ec656fe71581335e00e988b8fbd9bfb1f6bfd54052585d8ad8",
+    "base_sha256": "6206faf2d6b342156eb11f3eaebcca6c2d1a7571ee4309f3ef3338a7f0a65a82",
+    "after_855_sha256": "afc9cab6a35f80c08949cbed177c7dca80a94238b747e84b4eb310545be0320d",
+    "changed_by_856": true
+  },
+  {
+    "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+    "bytes": 15819,
+    "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f",
+    "base_sha256": "9704edd1cbcce4778eae0e4f87eff1468c45ca2229bf3883a3cb79fc8190f0cc",
+    "after_855_sha256": "18a77bdcd3d5f909820f150e1015c2e20655204207d94e927d98df24537969c1",
+    "changed_by_856": true
+  },
+  {
+    "path": "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+    "bytes": 71740,
+    "sha256": "40f3a7b1b1f6151eac055ae1fc51dee85b1580e023622bdc5fe4639e679f66be",
+    "base_sha256": "700a7a72e2bdea18e4cbb708e375e25624d0e602ff512506a6723eef55e9682e",
+    "after_855_sha256": "40f3a7b1b1f6151eac055ae1fc51dee85b1580e023622bdc5fe4639e679f66be",
+    "changed_by_856": false
+  },
+  {
+    "path": "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+    "bytes": 21091,
+    "sha256": "0a3d53e7b84360297f2a446f55420841bd7767fe08dd23c974154176442f4317",
+    "base_sha256": "f106b07aabc8ea3ec168c2b0bc850a79624d1852916c9bf648e236836a38fdb8",
+    "after_855_sha256": "df333fc8a260adda45b7952e31e41cd2c4179df8593d14caeb15c2240d5a7c4d",
+    "changed_by_856": true
+  },
+  {
+    "path": "contracts/setup-school-holidays.md",
+    "bytes": 10558,
+    "sha256": "51861b70bccf6ceb601743fd449e07169d654bbb5ab78ef109f352bd03d085c8",
+    "base_sha256": "6bae7243abe2e62d3c1ba75ce27a98b6fdc077176555703daa7a188c0fff4393",
+    "after_855_sha256": "a0afd1795c5337fa43a5f529703a20736d5ffbfd88a415036a291829ce844259",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+    "bytes": 176672,
+    "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+    "base_sha256": "4f73b5f831a915440b2add66d6e401b78ab03413221519462adbfcf7176eccda",
+    "after_855_sha256": "75d310ed62cff9381f14ed0b6605392c86327ee6c7e15a1dfd4e59bf21a3a4c5",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+    "bytes": 7800,
+    "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+    "base_sha256": "3f598d0a1cf976e75487c5f029019d962a277cd11114c3428219dfbb52741953",
+    "after_855_sha256": "bf4cc4e1a20756eb22e03f15ddf030eba45f373fc9e2026f43e096d66c26c0cf",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer-windows/app/web/anwendung.js",
+    "bytes": 2833541,
+    "sha256": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1",
+    "base_sha256": "95c5fd381883fc2e7b928cfc69a31ad146f3c8a1f72c163a4e007d991bfdf77f",
+    "after_855_sha256": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1",
+    "changed_by_856": false
+  },
+  {
+    "path": "magnolie-organizer-windows/tests/holiday-cache-mcp.js",
+    "bytes": 5682,
+    "sha256": "37aa93a2da7d961a49d40c22e2c42e7e9a2335ab986411add10fd62227293bd8",
+    "base_sha256": null,
+    "after_855_sha256": "37aa93a2da7d961a49d40c22e2c42e7e9a2335ab986411add10fd62227293bd8",
+    "changed_by_856": false
+  },
+  {
+    "path": "magnolie-organizer-windows/tests/holiday-cache.js",
+    "bytes": 15993,
+    "sha256": "b5609a55a3da57dc49a726eedd680b727c59c0cf4b5c598b8c95c9f3fdfb55a9",
+    "base_sha256": null,
+    "after_855_sha256": "b5609a55a3da57dc49a726eedd680b727c59c0cf4b5c598b8c95c9f3fdfb55a9",
+    "changed_by_856": false
+  },
+  {
+    "path": "magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt",
+    "bytes": 22638,
+    "sha256": "e67d9d9bd25127e4efcb59fd0c43978f9063fe296f443a2c6579c8796563e438",
+    "base_sha256": null,
+    "after_855_sha256": "90c244211ec1c06f28dc36dbcd0b31829a91d11164319a326c686cef3882453f",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer-windows/tests/holiday-fetch-coverage.py",
+    "bytes": 4589,
+    "sha256": "7c306dacf3da6a2110a993fcd3649cd74e3894c0b17e9ef38a730dbe5bb4ecdb",
+    "base_sha256": null,
+    "after_855_sha256": "7c306dacf3da6a2110a993fcd3649cd74e3894c0b17e9ef38a730dbe5bb4ecdb",
+    "changed_by_856": false
+  },
+  {
+    "path": "magnolie-organizer-windows/tests/run.js",
+    "bytes": 6625,
+    "sha256": "6d1f55557a5e0e1831afae743b83470a423a7f049ba96e199a06dcab7a4fdadb",
+    "base_sha256": "04e720c57dfd31e715ede906718ac1805486e26039a25333e423318966d20a5d",
+    "after_855_sha256": "6d1f55557a5e0e1831afae743b83470a423a7f049ba96e199a06dcab7a4fdadb",
+    "changed_by_856": false
+  },
+  {
+    "path": "magnolie-organizer/bin/magnolie-organizer",
+    "bytes": 1616309,
+    "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+    "base_sha256": "f08f017abdc49e3e7aed4f99628c792e9daf83d87583a39724ddad0880a84163",
+    "after_855_sha256": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+    "bytes": 17064,
+    "sha256": "636fda2011d0fad66696f23a9da64e4186b69311631549155195a555ffa5559e",
+    "base_sha256": null,
+    "after_855_sha256": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer/pruefungen/test_setup_holidays.py",
+    "bytes": 10213,
+    "sha256": "1487b0c75f282e735925b9e39cedcddea971cde311f853064655282aa3656065",
+    "base_sha256": "27e9b9771f584337387717d98883e20513348af8aaecd249de137418be09fecd",
+    "after_855_sha256": "27e9b9771f584337387717d98883e20513348af8aaecd249de137418be09fecd",
+    "changed_by_856": true
+  },
+  {
+    "path": "magnolie-organizer/web/anwendung.js",
+    "bytes": 2904188,
+    "sha256": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea",
+    "base_sha256": "276d0f1f2c80c84260631c98dfe1a02942ee7131a7a31da2b3b5bc0d356af400",
+    "after_855_sha256": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea",
+    "changed_by_856": false
+  }
+]

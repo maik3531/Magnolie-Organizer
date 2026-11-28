@@ -1,0 +1,11 @@
+{
+  "url": "https://openholidaysapi.org/Subdivisions?countryIsoCode=AT&languageIsoCode=EN",
+  "retrieved_at_utc": "2026-11-28T08:39:49.481190+00:00",
+  "status": 200,
+  "bytes": 1536,
+  "sha256": "7b209ec482d8426dcc8d3dd328d480ef0fd43b141a63f094928d3ee058aeff27",
+  "headers": {
+    "date": "Sat, 28 Nov 2026 08:39:54 GMT",
+    "content-type": "application/json; charset=utf-8"
+  }
+}

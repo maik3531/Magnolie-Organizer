@@ -1,0 +1,1585 @@
+{
+  "source_base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "candidate_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "runtime": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "source_sha256": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+  "setup_source_sha256": "d0e47e8f5fb88030f8bad38fdfe719f25304d1bc922ecd36a27c7e13eb86d867",
+  "functions": [
+    "_feiertag_sprache",
+    "_ist_iso",
+    "_name_waehlen",
+    "_openholidays_auswerten",
+    "_text_dekodieren",
+    "_url_holen",
+    "antwort_begrenzt_lesen",
+    "feiertage_abrufen",
+    "kanonischer_text"
+  ],
+  "network_mode": "Live verified-TLS urllib.request through actual product _url_holen; recording wrapper only",
+  "requests": [
+    {
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=DE-SN",
+      "started_at_utc": "2026-11-28T08:38:55.660785+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=DE-SN",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:01 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-01.json",
+      "bytes": 2933,
+      "sha256": "23f99d84b238e181cbe3196f87086e875de1c67586ff68ab9652e736d7fee44f",
+      "finished_at_utc": "2026-11-28T08:39:01.729011+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=DE-SN",
+      "started_at_utc": "2026-11-28T08:39:01.729824+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=DE-SN",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:05 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-02.json",
+      "bytes": 1994,
+      "sha256": "44f2f52e6f0d4725b8e89daf5ef10c8de3be6097c45909a22983840f62284647",
+      "finished_at_utc": "2026-11-28T08:39:05.835875+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=AT&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=AT-9",
+      "started_at_utc": "2026-11-28T08:39:05.838294+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=AT&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=AT-9",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:09 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-03.json",
+      "bytes": 3014,
+      "sha256": "19785f0f195597e37c17c6efb345c25450390d0fb24631217768951720b62574",
+      "finished_at_utc": "2026-11-28T08:39:09.973354+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=AT&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=AT-9",
+      "started_at_utc": "2026-11-28T08:39:09.973813+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=AT&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=AT-9",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:15 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-04.json",
+      "bytes": 1407,
+      "sha256": "b0b7090185c4d86875da6c74c02ea45c3d8655080ec5c756440a9cad0210323a",
+      "finished_at_utc": "2026-11-28T08:39:15.461799+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=CH&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=CH-ZH",
+      "started_at_utc": "2026-11-28T08:39:15.464621+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=CH&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=CH-ZH",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:19 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-05.json",
+      "bytes": 9364,
+      "sha256": "5d9d991418c1b4d8f57e1fedf01b32cb64eab4876047855ef9b6384ca42f82e7",
+      "finished_at_utc": "2026-11-28T08:39:19.420402+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=CH&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=CH-ZH",
+      "started_at_utc": "2026-11-28T08:39:19.421805+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=CH&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&subdivisionCode=CH-ZH",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:24 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-06.json",
+      "bytes": 3500,
+      "sha256": "a171a84e7dcb511d8e3934e87fc5c8c8bea25db92ffc343d8d5d8ec0f3903d9b",
+      "finished_at_utc": "2026-11-28T08:39:24.429810+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2027-01-01&validTo=2027-12-31&subdivisionCode=DE-SN",
+      "started_at_utc": "2026-11-28T08:39:24.432650+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2027-01-01&validTo=2027-12-31&subdivisionCode=DE-SN",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:28 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-07.json",
+      "bytes": 2933,
+      "sha256": "093d0884b8c7d1bf7f5961a2154f7461fbe3f98b1f5da79d16846987987cbbb2",
+      "finished_at_utc": "2026-11-28T08:39:28.615528+00:00"
+    },
+    {
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2027-01-01&validTo=2027-12-31&subdivisionCode=DE-SN",
+      "started_at_utc": "2026-11-28T08:39:28.616578+00:00",
+      "request_headers": {
+        "User-agent": "Magnolie-Organizer/2.0.30 (+lokales Programm)",
+        "Accept": "application/json"
+      },
+      "timeout_seconds": 20,
+      "status": 200,
+      "final_url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&languageIsoCode=EN&validFrom=2027-01-01&validTo=2027-12-31&subdivisionCode=DE-SN",
+      "response_headers": {
+        "date": "Sat, 28 Nov 2026 08:39:32 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "file": "response-08.json",
+      "bytes": 2282,
+      "sha256": "b04668be1d26cd4ee2c9a8ca4072a586ce3fe05a4e3580f36b6220bd0d7f7550",
+      "finished_at_utc": "2026-11-28T08:39:32.874866+00:00"
+    }
+  ],
+  "scenes": [
+    {
+      "scene": "de-sn-2026",
+      "settings": {
+        "land": "DE",
+        "region": "DE-SN",
+        "jahre": [
+          2026
+        ],
+        "ferien": true
+      },
+      "response": {
+        "feiertage": [
+          {
+            "von": "2025-12-22",
+            "bis": "2026-01-02",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-01-01",
+            "bis": "2026-01-01",
+            "name": "New Year's Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-02-09",
+            "bis": "2026-02-21",
+            "name": "Winter Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-04-03",
+            "bis": "2026-04-10",
+            "name": "Easter Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-04-03",
+            "bis": "2026-04-03",
+            "name": "Good Friday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-04-06",
+            "bis": "2026-04-06",
+            "name": "Easter Monday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-05-01",
+            "bis": "2026-05-01",
+            "name": "Labour Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-05-14",
+            "bis": "2026-05-14",
+            "name": "Ascension Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-05-15",
+            "bis": "2026-05-15",
+            "name": "Day off",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-05-25",
+            "bis": "2026-05-25",
+            "name": "Pentecost Monday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-07-04",
+            "bis": "2026-08-14",
+            "name": "Summer Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-10-03",
+            "bis": "2026-10-03",
+            "name": "Day of German Unity",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-10-12",
+            "bis": "2026-10-24",
+            "name": "Autumn Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-10-31",
+            "bis": "2026-10-31",
+            "name": "Reformation Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-BB",
+              "DE-HB",
+              "DE-HH",
+              "DE-MV",
+              "DE-NI",
+              "DE-SH",
+              "DE-SN",
+              "DE-ST",
+              "DE-TH"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-11-18",
+            "bis": "2026-11-18",
+            "name": "Repentance Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-12-23",
+            "bis": "2027-01-02",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-12-25",
+            "bis": "2026-12-25",
+            "name": "Christmas Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2026-12-26",
+            "bis": "2026-12-26",
+            "name": "2nd Day of Christmas",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          }
+        ],
+        "bericht": "Retrieved: 11 public holidays, 7 holiday periods for 2026.",
+        "jahre": [
+          2026
+        ],
+        "abrufbereiche": [
+          {
+            "country": "DE",
+            "region": "DE-SN",
+            "art": "public-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          },
+          {
+            "country": "DE",
+            "region": "DE-SN",
+            "art": "school-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          }
+        ]
+      },
+      "checks": {
+        "exactly_two_real_http_requests": true,
+        "both_requests_http_200": true,
+        "nonempty_public_holidays": true,
+        "nonempty_school_holidays": true,
+        "returned_country_matches": true,
+        "returned_request_region_matches": true,
+        "both_successful_kinds_have_coverage": true,
+        "coverage_bound_to_requested_scope": true
+      },
+      "counts": {
+        "public-holiday": 11,
+        "school-holiday": 7
+      },
+      "full_cross_year_periods": [
+        {
+          "von": "2025-12-22",
+          "bis": "2026-01-02",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "DE",
+          "nationwide": false,
+          "regions": [
+            "DE-SN"
+          ],
+          "regionName": "",
+          "region": "DE-SN"
+        },
+        {
+          "von": "2026-12-23",
+          "bis": "2027-01-02",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "DE",
+          "nationwide": false,
+          "regions": [
+            "DE-SN"
+          ],
+          "regionName": "",
+          "region": "DE-SN"
+        }
+      ],
+      "request_indices": [
+        1,
+        2
+      ],
+      "seconds": 10.181
+    },
+    {
+      "scene": "at-9-2026",
+      "settings": {
+        "land": "AT",
+        "region": "AT-9",
+        "jahre": [
+          2026
+        ],
+        "ferien": true
+      },
+      "response": {
+        "feiertage": [
+          {
+            "von": "2025-12-24",
+            "bis": "2026-01-06",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-01-01",
+            "bis": "2026-01-01",
+            "name": "New Year's Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-01-06",
+            "bis": "2026-01-06",
+            "name": "Epiphany",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-03-28",
+            "bis": "2026-04-06",
+            "name": "Easter Holidays",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-04-06",
+            "bis": "2026-04-06",
+            "name": "Easter Monday",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-05-01",
+            "bis": "2026-05-01",
+            "name": "Labour Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-05-14",
+            "bis": "2026-05-14",
+            "name": "Ascension Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-05-23",
+            "bis": "2026-05-25",
+            "name": "Pentecost Holidays",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-05-25",
+            "bis": "2026-05-25",
+            "name": "Pentecost Monday",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-06-04",
+            "bis": "2026-06-04",
+            "name": "Corpus Christi",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-08-15",
+            "bis": "2026-08-15",
+            "name": "Assumption Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-10-26",
+            "bis": "2026-10-26",
+            "name": "National Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-10-27",
+            "bis": "2026-10-31",
+            "name": "Autumn Holidays",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-11-01",
+            "bis": "2026-11-01",
+            "name": "All Saints' Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-11-02",
+            "bis": "2026-11-02",
+            "name": "All Souls' Day",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-12-08",
+            "bis": "2026-12-08",
+            "name": "Immaculate Conception",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-12-24",
+            "bis": "2027-01-06",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-12-25",
+            "bis": "2026-12-25",
+            "name": "Christmas Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          },
+          {
+            "von": "2026-12-26",
+            "bis": "2026-12-26",
+            "name": "St Stephen's Day",
+            "art": "public-holiday",
+            "country": "AT",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "AT-9"
+          }
+        ],
+        "bericht": "Retrieved: 13 public holidays, 6 holiday periods for 2026.",
+        "jahre": [
+          2026
+        ],
+        "abrufbereiche": [
+          {
+            "country": "AT",
+            "region": "AT-9",
+            "art": "public-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          },
+          {
+            "country": "AT",
+            "region": "AT-9",
+            "art": "school-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          }
+        ]
+      },
+      "checks": {
+        "exactly_two_real_http_requests": true,
+        "both_requests_http_200": true,
+        "nonempty_public_holidays": true,
+        "nonempty_school_holidays": true,
+        "returned_country_matches": true,
+        "returned_request_region_matches": true,
+        "both_successful_kinds_have_coverage": true,
+        "coverage_bound_to_requested_scope": true
+      },
+      "counts": {
+        "public-holiday": 13,
+        "school-holiday": 6
+      },
+      "full_cross_year_periods": [
+        {
+          "von": "2025-12-24",
+          "bis": "2026-01-06",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "AT",
+          "nationwide": true,
+          "regions": [],
+          "regionName": "",
+          "region": "AT-9"
+        },
+        {
+          "von": "2026-12-24",
+          "bis": "2027-01-06",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "AT",
+          "nationwide": true,
+          "regions": [],
+          "regionName": "",
+          "region": "AT-9"
+        }
+      ],
+      "request_indices": [
+        3,
+        4
+      ],
+      "seconds": 9.626
+    },
+    {
+      "scene": "ch-zh-2026",
+      "settings": {
+        "land": "CH",
+        "region": "CH-ZH",
+        "jahre": [
+          2026
+        ],
+        "ferien": true
+      },
+      "response": {
+        "feiertage": [
+          {
+            "von": "2025-12-22",
+            "bis": "2026-01-03",
+            "name": "Christmas holidays",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-01-01",
+            "bis": "2026-01-01",
+            "name": "New Year's Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-01-02",
+            "bis": "2026-01-02",
+            "name": "Berchtold's Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-04-03",
+            "bis": "2026-04-06",
+            "name": "Easter",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-04-03",
+            "bis": "2026-04-03",
+            "name": "Good Friday",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-AG",
+              "CH-AI",
+              "CH-AR",
+              "CH-BE",
+              "CH-BL",
+              "CH-BS",
+              "CH-FR",
+              "CH-GE",
+              "CH-GL",
+              "CH-GR",
+              "CH-JU",
+              "CH-LU",
+              "CH-NE",
+              "CH-NW",
+              "CH-OW",
+              "CH-SG",
+              "CH-SH",
+              "CH-SO",
+              "CH-SZ",
+              "CH-TG",
+              "CH-UR",
+              "CH-VD",
+              "CH-ZG",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-04-06",
+            "bis": "2026-04-06",
+            "name": "Easter Monday",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-AG-AA",
+              "CH-AG-BA",
+              "CH-AG-BR",
+              "CH-AG-KU",
+              "CH-AG-LB",
+              "CH-AG-RF-KA",
+              "CH-AG-RF-MA",
+              "CH-AG-RF-MO",
+              "CH-AG-RF-OL",
+              "CH-AG-RF-RF",
+              "CH-AG-RF-WA",
+              "CH-AG-RF-ZE",
+              "CH-AG-RF-ZU",
+              "CH-AG-ZF",
+              "CH-AI",
+              "CH-AR",
+              "CH-BE",
+              "CH-BL",
+              "CH-BS",
+              "CH-FR",
+              "CH-GE",
+              "CH-GL",
+              "CH-GR",
+              "CH-JU",
+              "CH-LU",
+              "CH-NE",
+              "CH-NW",
+              "CH-OW",
+              "CH-SG",
+              "CH-SH",
+              "CH-SO",
+              "CH-SZ",
+              "CH-TG",
+              "CH-TI",
+              "CH-UR",
+              "CH-VD",
+              "CH-VS",
+              "CH-ZG",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-04-20",
+            "bis": "2026-04-20",
+            "name": "Sechseläuten",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH-ZH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-04-20",
+            "bis": "2026-05-02",
+            "name": "Spring holidays",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-05-01",
+            "bis": "2026-05-01",
+            "name": "Labour Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-AG",
+              "CH-BL",
+              "CH-BS",
+              "CH-JU",
+              "CH-NE",
+              "CH-SH",
+              "CH-SO-TH-AD",
+              "CH-TG",
+              "CH-TI",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-05-14",
+            "bis": "2026-05-16",
+            "name": "Ascension Bridge",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-05-14",
+            "bis": "2026-05-14",
+            "name": "Ascension Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-05-25",
+            "bis": "2026-05-25",
+            "name": "Pentecost Monday",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-AG-AA",
+              "CH-AG-BA",
+              "CH-AG-BR",
+              "CH-AG-KU",
+              "CH-AG-LB",
+              "CH-AG-RF-KA",
+              "CH-AG-RF-MA",
+              "CH-AG-RF-MO",
+              "CH-AG-RF-OL",
+              "CH-AG-RF-RF",
+              "CH-AG-RF-WA",
+              "CH-AG-RF-ZE",
+              "CH-AG-RF-ZU",
+              "CH-AG-ZF",
+              "CH-AI",
+              "CH-AR",
+              "CH-BE",
+              "CH-BL",
+              "CH-BS",
+              "CH-FR",
+              "CH-GE",
+              "CH-GL",
+              "CH-GR",
+              "CH-JU",
+              "CH-LU",
+              "CH-NE",
+              "CH-NW",
+              "CH-OW",
+              "CH-SG",
+              "CH-SH",
+              "CH-SO",
+              "CH-SZ",
+              "CH-TG",
+              "CH-TI",
+              "CH-UR",
+              "CH-VD",
+              "CH-VS",
+              "CH-ZG",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-07-13",
+            "bis": "2026-08-15",
+            "name": "Summer holidays",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-08-01",
+            "bis": "2026-08-01",
+            "name": "Independence Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-09-14",
+            "bis": "2026-09-14",
+            "name": "Knabenschiessen",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH-ZH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-09-20",
+            "bis": "2026-09-20",
+            "name": "Federal Day of Thanksgiving, Repentance and Prayer",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-BE",
+              "CH-BL",
+              "CH-BS",
+              "CH-GL",
+              "CH-GR",
+              "CH-LU",
+              "CH-NE",
+              "CH-NW",
+              "CH-OW",
+              "CH-SG",
+              "CH-SH",
+              "CH-SZ",
+              "CH-TG",
+              "CH-UR",
+              "CH-VS",
+              "CH-ZG",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-10-05",
+            "bis": "2026-10-17",
+            "name": "Autumn holidays",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-12-21",
+            "bis": "2027-01-02",
+            "name": "Christmas holidays",
+            "art": "school-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-12-25",
+            "bis": "2026-12-25",
+            "name": "Christmas",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "CH-ZH"
+          },
+          {
+            "von": "2026-12-26",
+            "bis": "2026-12-26",
+            "name": "St Stephen's Day",
+            "art": "public-holiday",
+            "country": "CH",
+            "nationwide": false,
+            "regions": [
+              "CH-AG-AA",
+              "CH-AG-BA",
+              "CH-AG-BG",
+              "CH-AG-BR",
+              "CH-AG-KU",
+              "CH-AG-LB",
+              "CH-AG-RF-KA",
+              "CH-AG-RF-MA",
+              "CH-AG-RF-MO",
+              "CH-AG-RF-OL",
+              "CH-AG-RF-RF",
+              "CH-AG-RF-WA",
+              "CH-AG-RF-ZE",
+              "CH-AG-RF-ZU",
+              "CH-AG-ZF",
+              "CH-AG-ZZ",
+              "CH-AR",
+              "CH-BE",
+              "CH-BL",
+              "CH-BS",
+              "CH-FR",
+              "CH-GL",
+              "CH-GR",
+              "CH-LU",
+              "CH-NW",
+              "CH-OW",
+              "CH-SG",
+              "CH-SH",
+              "CH-SO",
+              "CH-SZ",
+              "CH-TG",
+              "CH-TI",
+              "CH-UR",
+              "CH-VS",
+              "CH-ZG",
+              "CH-ZH"
+            ],
+            "regionName": "",
+            "region": "CH-ZH"
+          }
+        ],
+        "bericht": "Retrieved: 13 public holidays, 7 holiday periods for 2026.",
+        "jahre": [
+          2026
+        ],
+        "abrufbereiche": [
+          {
+            "country": "CH",
+            "region": "CH-ZH",
+            "art": "public-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          },
+          {
+            "country": "CH",
+            "region": "CH-ZH",
+            "art": "school-holiday",
+            "von": "2026-01-01",
+            "bis": "2026-12-31"
+          }
+        ]
+      },
+      "checks": {
+        "exactly_two_real_http_requests": true,
+        "both_requests_http_200": true,
+        "nonempty_public_holidays": true,
+        "nonempty_school_holidays": true,
+        "returned_country_matches": true,
+        "returned_request_region_matches": true,
+        "both_successful_kinds_have_coverage": true,
+        "coverage_bound_to_requested_scope": true
+      },
+      "counts": {
+        "public-holiday": 13,
+        "school-holiday": 7
+      },
+      "full_cross_year_periods": [
+        {
+          "von": "2025-12-22",
+          "bis": "2026-01-03",
+          "name": "Christmas holidays",
+          "art": "school-holiday",
+          "country": "CH",
+          "nationwide": false,
+          "regions": [
+            "CH-ZH"
+          ],
+          "regionName": "",
+          "region": "CH-ZH"
+        },
+        {
+          "von": "2026-12-21",
+          "bis": "2027-01-02",
+          "name": "Christmas holidays",
+          "art": "school-holiday",
+          "country": "CH",
+          "nationwide": false,
+          "regions": [
+            "CH-ZH"
+          ],
+          "regionName": "",
+          "region": "CH-ZH"
+        }
+      ],
+      "request_indices": [
+        5,
+        6
+      ],
+      "seconds": 8.968
+    },
+    {
+      "scene": "de-sn-2027",
+      "settings": {
+        "land": "DE",
+        "region": "DE-SN",
+        "jahre": [
+          2027
+        ],
+        "ferien": true
+      },
+      "response": {
+        "feiertage": [
+          {
+            "von": "2026-12-23",
+            "bis": "2027-01-02",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-01-01",
+            "bis": "2027-01-01",
+            "name": "New Year's Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-02-08",
+            "bis": "2027-02-19",
+            "name": "Winter Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-03-26",
+            "bis": "2027-04-02",
+            "name": "Easter Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-03-26",
+            "bis": "2027-03-26",
+            "name": "Good Friday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-03-29",
+            "bis": "2027-03-29",
+            "name": "Easter Monday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-05-01",
+            "bis": "2027-05-01",
+            "name": "Labour Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-05-06",
+            "bis": "2027-05-06",
+            "name": "Ascension Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-05-07",
+            "bis": "2027-05-07",
+            "name": "Day off",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-05-15",
+            "bis": "2027-05-18",
+            "name": "Pentecost Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-05-17",
+            "bis": "2027-05-17",
+            "name": "Pentecost Monday",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-07-10",
+            "bis": "2027-08-20",
+            "name": "Summer Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-10-03",
+            "bis": "2027-10-03",
+            "name": "Day of German Unity",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-10-11",
+            "bis": "2027-10-23",
+            "name": "Autumn Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-10-31",
+            "bis": "2027-10-31",
+            "name": "Reformation Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-BB",
+              "DE-HB",
+              "DE-HH",
+              "DE-MV",
+              "DE-NI",
+              "DE-SH",
+              "DE-SN",
+              "DE-ST",
+              "DE-TH"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-11-17",
+            "bis": "2027-11-17",
+            "name": "Repentance Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-12-23",
+            "bis": "2028-01-01",
+            "name": "Christmas Holidays",
+            "art": "school-holiday",
+            "country": "DE",
+            "nationwide": false,
+            "regions": [
+              "DE-SN"
+            ],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-12-25",
+            "bis": "2027-12-25",
+            "name": "Christmas Day",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          },
+          {
+            "von": "2027-12-26",
+            "bis": "2027-12-26",
+            "name": "2nd Day of Christmas",
+            "art": "public-holiday",
+            "country": "DE",
+            "nationwide": true,
+            "regions": [],
+            "regionName": "",
+            "region": "DE-SN"
+          }
+        ],
+        "bericht": "Retrieved: 11 public holidays, 8 holiday periods for 2027.",
+        "jahre": [
+          2027
+        ],
+        "abrufbereiche": [
+          {
+            "country": "DE",
+            "region": "DE-SN",
+            "art": "public-holiday",
+            "von": "2027-01-01",
+            "bis": "2027-12-31"
+          },
+          {
+            "country": "DE",
+            "region": "DE-SN",
+            "art": "school-holiday",
+            "von": "2027-01-01",
+            "bis": "2027-12-31"
+          }
+        ]
+      },
+      "checks": {
+        "exactly_two_real_http_requests": true,
+        "both_requests_http_200": true,
+        "nonempty_public_holidays": true,
+        "nonempty_school_holidays": true,
+        "returned_country_matches": true,
+        "returned_request_region_matches": true,
+        "both_successful_kinds_have_coverage": true,
+        "coverage_bound_to_requested_scope": true
+      },
+      "counts": {
+        "public-holiday": 11,
+        "school-holiday": 8
+      },
+      "full_cross_year_periods": [
+        {
+          "von": "2026-12-23",
+          "bis": "2027-01-02",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "DE",
+          "nationwide": false,
+          "regions": [
+            "DE-SN"
+          ],
+          "regionName": "",
+          "region": "DE-SN"
+        },
+        {
+          "von": "2027-12-23",
+          "bis": "2028-01-01",
+          "name": "Christmas Holidays",
+          "art": "school-holiday",
+          "country": "DE",
+          "nationwide": false,
+          "regions": [
+            "DE-SN"
+          ],
+          "regionName": "",
+          "region": "DE-SN"
+        }
+      ],
+      "request_indices": [
+        7,
+        8
+      ],
+      "seconds": 8.444
+    }
+  ],
+  "limits": [
+    "No native GUI or package acceptance",
+    "Provider content observed at capture time only",
+    "No Nager call: this product path uses OpenHolidays"
+  ]
+}

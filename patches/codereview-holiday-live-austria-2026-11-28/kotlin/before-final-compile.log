@@ -1,0 +1,3 @@
+holiday-855-followup/kotlin/before-repo/Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/DAV.kt:41:69: warning: expression is unused.
+        return { synchronized(lock) { callbacks.remove(callback) }; Unit }
+                                                                    ^^^^

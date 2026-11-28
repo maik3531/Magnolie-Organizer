@@ -1,0 +1,416 @@
+test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) ... 
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-1') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-2') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-3') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-4') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-5') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-6') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-7') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-8') ... FAIL
+  test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-9') ... FAIL
+test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) ... 
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-1') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-2') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-3') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-4') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-5') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-6') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-7') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-8') ... FAIL
+  test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-9') ... FAIL
+test_austrian_all_regions_and_opt_out_keep_original_scope_contract (__main__.HolidayCoverageTests.test_austrian_all_regions_and_opt_out_keep_original_scope_contract) ... FAIL
+test_blank_or_partly_malformed_names_do_not_certify_coverage (__main__.HolidayCoverageTests.test_blank_or_partly_malformed_names_do_not_certify_coverage) ... ok
+test_byte_limit_failure_is_not_downgraded_to_school_absence (__main__.HolidayCoverageTests.test_byte_limit_failure_is_not_downgraded_to_school_absence) ... ok
+test_country_query_remains_distinct_from_a_subdivision (__main__.HolidayCoverageTests.test_country_query_remains_distinct_from_a_subdivision) ... ok
+test_cross_year_full_dates_survive_inclusive_query (__main__.HolidayCoverageTests.test_cross_year_full_dates_survive_inclusive_query) ... ok
+test_each_year_region_and_kind_has_its_own_success_scope (__main__.HolidayCoverageTests.test_each_year_region_and_kind_has_its_own_success_scope) ... ok
+test_failed_later_school_year_preserves_successful_other_years (__main__.HolidayCoverageTests.test_failed_later_school_year_preserves_successful_other_years) ... ok
+test_invalid_end_correction_does_not_certify_coverage (__main__.HolidayCoverageTests.test_invalid_end_correction_does_not_certify_coverage) ... ok
+test_invalid_requested_subdivision_fails_before_http (__main__.HolidayCoverageTests.test_invalid_requested_subdivision_fails_before_http) ... ok
+test_known_austrian_iso_responses_and_unicode_normalization_remain_valid (__main__.HolidayCoverageTests.test_known_austrian_iso_responses_and_unicode_normalization_remain_valid) ... 
+  test_known_austrian_iso_responses_and_unicode_normalization_remain_valid (__main__.HolidayCoverageTests.test_known_austrian_iso_responses_and_unicode_normalization_remain_valid) (code='AT-NÖ') ... FAIL
+  test_known_austrian_iso_responses_and_unicode_normalization_remain_valid (__main__.HolidayCoverageTests.test_known_austrian_iso_responses_and_unicode_normalization_remain_valid) (code='AT-NÖ') ... FAIL
+test_missing_required_end_keeps_point_fallback_without_coverage (__main__.HolidayCoverageTests.test_missing_required_end_keeps_point_fallback_without_coverage) ... ok
+test_missing_required_nationwide_keeps_row_without_coverage (__main__.HolidayCoverageTests.test_missing_required_nationwide_keeps_row_without_coverage) ... ok
+test_missing_required_region_does_not_certify_school (__main__.HolidayCoverageTests.test_missing_required_region_does_not_certify_school) ... ok
+test_mixed_known_and_unknown_austrian_response_is_not_complete (__main__.HolidayCoverageTests.test_mixed_known_and_unknown_austrian_response_is_not_complete) ... FAIL
+test_nationwide_row_can_be_returned_by_subdivision_query (__main__.HolidayCoverageTests.test_nationwide_row_can_be_returned_by_subdivision_query) ... ok
+test_one_failed_school_region_does_not_certify_that_region (__main__.HolidayCoverageTests.test_one_failed_school_region_does_not_certify_that_region) ... ok
+test_opt_out_certifies_only_public_holidays (__main__.HolidayCoverageTests.test_opt_out_certifies_only_public_holidays) ... ok
+test_original_parser_list_call_remains_supported (__main__.HolidayCoverageTests.test_original_parser_list_call_remains_supported) ... ok
+test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) ... ok
+test_public_failure_keeps_existing_whole_operation_error (__main__.HolidayCoverageTests.test_public_failure_keeps_existing_whole_operation_error) ... ok
+test_rows_outside_requested_year_do_not_certify_it (__main__.HolidayCoverageTests.test_rows_outside_requested_year_do_not_certify_it) ... ok
+test_skipped_invalid_row_keeps_valid_rows_without_coverage (__main__.HolidayCoverageTests.test_skipped_invalid_row_keeps_valid_rows_without_coverage) ... ok
+test_successful_empty_pages_certify_both_requested_kinds (__main__.HolidayCoverageTests.test_successful_empty_pages_certify_both_requested_kinds) ... ok
+test_tolerated_bad_scope_metadata_does_not_certify_coverage (__main__.HolidayCoverageTests.test_tolerated_bad_scope_metadata_does_not_certify_coverage) ... ok
+test_unknown_austrian_request_fails_before_network (__main__.HolidayCoverageTests.test_unknown_austrian_request_fails_before_network) ... ok
+test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) ... 
+  test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='AT-9', code='AT-9-UNKNOWN') ... FAIL
+  test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-UNKNOWN') ... FAIL
+  test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-9-UNKNOWN') ... FAIL
+  test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-99') ... FAIL
+test_unreadable_school_payload_is_not_a_successful_empty_page (__main__.HolidayCoverageTests.test_unreadable_school_payload_is_not_a_successful_empty_page) ... ok
+test_unscoped_regional_row_cannot_certify_countrywide_response (__main__.HolidayCoverageTests.test_unscoped_regional_row_cannot_certify_countrywide_response) ... ok
+test_valid_wrapper_retains_authoritative_empty_array (__main__.HolidayCoverageTests.test_valid_wrapper_retains_authoritative_empty_array) ... ok
+test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes (__main__.HolidayCoverageTests.test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes) ... FAIL
+test_wrong_country_or_unrelated_region_does_not_certify_query (__main__.HolidayCoverageTests.test_wrong_country_or_unrelated_region_does_not_certify_query) ... ok
+test_wrong_json_shapes_never_authorize_cache_removal (__main__.HolidayCoverageTests.test_wrong_json_shapes_never_authorize_cache_removal) ... ok
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-1', 'AT-1'] != ['AT-BL', 'AT-BL']
+
+First differing element 0:
+'AT-1'
+'AT-BL'
+
+- ['AT-1', 'AT-1']
+?      ^       ^
+
++ ['AT-BL', 'AT-BL']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-2', 'AT-2'] != ['AT-KÄ', 'AT-KÄ']
+
+First differing element 0:
+'AT-2'
+'AT-KÄ'
+
+- ['AT-2', 'AT-2']
+?      ^       ^
+
++ ['AT-KÄ', 'AT-KÄ']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-3')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-3', 'AT-3'] != ['AT-NÖ', 'AT-NÖ']
+
+First differing element 0:
+'AT-3'
+'AT-NÖ'
+
+- ['AT-3', 'AT-3']
+?      ^       ^
+
++ ['AT-NÖ', 'AT-NÖ']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-4')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-4', 'AT-4'] != ['AT-OÖ', 'AT-OÖ']
+
+First differing element 0:
+'AT-4'
+'AT-OÖ'
+
+- ['AT-4', 'AT-4']
+?      ^       ^
+
++ ['AT-OÖ', 'AT-OÖ']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-5', 'AT-5'] != ['AT-SB', 'AT-SB']
+
+First differing element 0:
+'AT-5'
+'AT-SB'
+
+- ['AT-5', 'AT-5']
+?      ^       ^
+
++ ['AT-SB', 'AT-SB']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-6')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-6', 'AT-6'] != ['AT-SM', 'AT-SM']
+
+First differing element 0:
+'AT-6'
+'AT-SM'
+
+- ['AT-6', 'AT-6']
+?      ^       ^
+
++ ['AT-SM', 'AT-SM']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-7')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-7', 'AT-7'] != ['AT-TI', 'AT-TI']
+
+First differing element 0:
+'AT-7'
+'AT-TI'
+
+- ['AT-7', 'AT-7']
+?      ^       ^
+
++ ['AT-TI', 'AT-TI']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-8')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-8', 'AT-8'] != ['AT-VA', 'AT-VA']
+
+First differing element 0:
+'AT-8'
+'AT-VA'
+
+- ['AT-8', 'AT-8']
+?      ^       ^
+
++ ['AT-VA', 'AT-VA']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage (__main__.HolidayCoverageTests.test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage) (iso='AT-9')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 245, in test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
+AssertionError: Lists differ: ['AT-9', 'AT-9'] != ['AT-WI', 'AT-WI']
+
+First differing element 0:
+'AT-9'
+'AT-WI'
+
+- ['AT-9', 'AT-9']
+?      ^       ^
+
++ ['AT-WI', 'AT-WI']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-1', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-1', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-2', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-2', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-3')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-3', 'school-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-3', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-4')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-4', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-4', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-5', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-5', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-6')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-6', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-6', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-7')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-7', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-7', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-8')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-8', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-8', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_all_nine_austrian_response_aliases_return_to_iso_identity (__main__.HolidayCoverageTests.test_all_nine_austrian_response_aliases_return_to_iso_identity) (iso='AT-9')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 253, in test_all_nine_austrian_response_aliases_return_to_iso_identity
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-9', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-9', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_austrian_all_regions_and_opt_out_keep_original_scope_contract (__main__.HolidayCoverageTests.test_austrian_all_regions_and_opt_out_keep_original_scope_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 298, in test_austrian_all_regions_and_opt_out_keep_original_scope_contract
+    self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], ["AT-KÄ", "AT-WI"])
+AssertionError: Lists differ: ['AT-2', 'AT-9'] != ['AT-KÄ', 'AT-WI']
+
+First differing element 0:
+'AT-2'
+'AT-KÄ'
+
+- ['AT-2', 'AT-9']
+?      ^       ^
+
++ ['AT-KÄ', 'AT-WI']
+?      ^^       ^^
+
+
+======================================================================
+FAIL: test_known_austrian_iso_responses_and_unicode_normalization_remain_valid (__main__.HolidayCoverageTests.test_known_austrian_iso_responses_and_unicode_normalization_remain_valid) (code='AT-NÖ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 271, in test_known_austrian_iso_responses_and_unicode_normalization_remain_valid
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-3")})
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-3', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_known_austrian_iso_responses_and_unicode_normalization_remain_valid (__main__.HolidayCoverageTests.test_known_austrian_iso_responses_and_unicode_normalization_remain_valid) (code='AT-NÖ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 271, in test_known_austrian_iso_responses_and_unicode_normalization_remain_valid
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-3")})
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-3', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_mixed_known_and_unknown_austrian_response_is_not_complete (__main__.HolidayCoverageTests.test_mixed_known_and_unknown_austrian_response_is_not_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 284, in test_mixed_known_and_unknown_austrian_response_is_not_complete
+    self.assertEqual(self.scopes(result), set())
+AssertionError: Items in the first set but not the second:
+('AT', 'AT-9', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='AT-9', code='AT-9-UNKNOWN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 279, in test_unknown_austrian_response_codes_never_confirm_region_or_country
+    self.assertEqual(self.scopes(result), set())
+AssertionError: Items in the first set but not the second:
+('AT', 'AT-9', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-UNKNOWN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 279, in test_unknown_austrian_response_codes_never_confirm_region_or_country
+    self.assertEqual(self.scopes(result), set())
+AssertionError: Items in the first set but not the second:
+('AT', '', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-9-UNKNOWN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 279, in test_unknown_austrian_response_codes_never_confirm_region_or_country
+    self.assertEqual(self.scopes(result), set())
+AssertionError: Items in the first set but not the second:
+('AT', '', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_unknown_austrian_response_codes_never_confirm_region_or_country (__main__.HolidayCoverageTests.test_unknown_austrian_response_codes_never_confirm_region_or_country) (region='', code='AT-99')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 279, in test_unknown_austrian_response_codes_never_confirm_region_or_country
+    self.assertEqual(self.scopes(result), set())
+AssertionError: Items in the first set but not the second:
+('AT', '', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes (__main__.HolidayCoverageTests.test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 263, in test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes
+    self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-9"),
+AssertionError: Items in the second set but not the first:
+('AT', 'AT-9', 'public-holiday', '2026-01-01', '2026-12-31')
+('AT', 'AT-9', 'school-holiday', '2026-01-01', '2026-12-31')
+
+----------------------------------------------------------------------
+Ran 34 tests in 18.143s
+
+FAILED (failures=27)

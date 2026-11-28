@@ -1,0 +1,2 @@
+dbus-daemon[7]: Failed to start message bus: Failed to open socket: Operation not permitted
+dbus-run-session: EOF reading address from bus daemon

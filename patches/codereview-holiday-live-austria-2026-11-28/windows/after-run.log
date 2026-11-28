@@ -1,0 +1,44 @@
+PASS successful empty pages certify both requested kinds
+PASS opt-out certifies public only
+PASS missing required region certifies no school
+PASS country request remains separate from subdivisions
+PASS each year region and kind gets independent success
+PASS failed school region does not certify it
+PASS failed later school year preserves other success
+PASS unreadable school JSON retains whole failure contract
+PASS wrong JSON shapes never authorize removal
+PASS valid wrapper may certify empty array
+PASS skipped invalid row retains valid data without coverage
+PASS corrected end dates do not certify coverage
+PASS absent required end keeps point fallback without coverage
+PASS absent required nationwide keeps row without coverage
+PASS unscoped regional row cannot certify country response
+PASS malformed scope metadata cannot certify response
+PASS blank or partly malformed names cannot certify response
+PASS cross-year dates are returned intact
+PASS out-of-year response cannot certify requested year
+PASS unrelated or foreign scopes cannot certify query
+PASS parent child and relative scope codes remain compatible
+PASS nationwide record belongs to subdivision response
+PASS invalid requested subdivision fails before HTTP
+PASS public HTTP failure yields no successful partial response
+PASS size failure is not downgraded to school absence
+PASS existing parser entry point remains compatible
+PASS Austrian ISO AT-1 queries AT-BL and preserves ISO coverage
+PASS Austrian ISO AT-2 queries AT-KÄ and preserves ISO coverage
+PASS Austrian ISO AT-3 queries AT-NÖ and preserves ISO coverage
+PASS Austrian ISO AT-4 queries AT-OÖ and preserves ISO coverage
+PASS Austrian ISO AT-5 queries AT-SB and preserves ISO coverage
+PASS Austrian ISO AT-6 queries AT-SM and preserves ISO coverage
+PASS Austrian ISO AT-7 queries AT-TI and preserves ISO coverage
+PASS Austrian ISO AT-8 queries AT-VA and preserves ISO coverage
+PASS Austrian ISO AT-9 queries AT-WI and preserves ISO coverage
+PASS country response normalizes all nine Austrian provider aliases
+PASS known Austrian ISO response codes remain accepted
+PASS unknown Austrian response codes never certify coverage
+PASS known plus unknown Austrian response cannot certify partial geography
+PASS unknown Austrian request is rejected before HTTP
+PASS German and Swiss subdivision wire and coverage are unchanged
+PASS Austrian aliases are not normalized inside a foreign country response
+PASS all-state Austrian retrieval keeps ISO aggregate and per-region coverage
+{"total":43,"passed":43,"failed":0,"runtime":"8.0.34","scope":"actual C# methods / offline HTTP / Linux source host"}

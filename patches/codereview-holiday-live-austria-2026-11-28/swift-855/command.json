@@ -1,0 +1,8 @@
+[
+  "/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/swift-6.4.3-RELEASE-debian13/usr/bin/swift",
+  "test",
+  "--package-path",
+  "/workspace/scratch/69a9d769e56f/holiday-855-followup/swift/host",
+  "--jobs",
+  "2"
+]

@@ -1,0 +1,197 @@
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index a7a95ece..35099280 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -18517,6 +18517,26 @@ def _name_waehlen(namen, sprache=None):
+     return bester
+ 
+ 
++def _openholidays_region_code(code, zum_dienst=False):
++    """Map Austrian ISO state identities at the provider boundary (Refs #856)."""
++    import unicodedata
++    code = unicodedata.normalize("NFC", str(code or "")).strip().upper()
++    austria = {
++        "AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ",
++        "AT-4": "AT-OÖ", "AT-5": "AT-SB", "AT-6": "AT-SM",
++        "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI",
++    }
++    if not code.startswith("AT-"):
++        return code
++    if zum_dienst:
++        return austria.get(code)
++    if code in austria:
++        return code
++    # Unknown Austrian codes, including apparent ISO children, cannot certify
++    # complete coverage merely by passing the generic parent/child matcher.
++    return next((iso for iso, provider in austria.items() if provider == code), None)
++
++
+ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+     """Wertet die Antwort des Feiertagsdienstes aus und liefert Einträge
+     der Form {von, bis, name, art}."""
+@@ -18540,10 +18560,13 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+             and ("language" not in wert or isinstance(wert["language"], str))
+             for wert in namen))
+         unterregionen = satz.get("subdivisions", [])
++        region_codes = [
++            _openholidays_region_code(wert["code"])
++            if isinstance(wert, dict) and isinstance(wert.get("code"), str) else None
++            for wert in unterregionen] if isinstance(unterregionen, list) else []
+         regionenform = isinstance(unterregionen, list) and all(
+-            isinstance(wert, dict) and isinstance(wert.get("code"), str)
+-            and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())
+-            for wert in unterregionen)
++            isinstance(code, str) and re.fullmatch(r"[A-Z0-9-]{1,64}", code)
++            for code in region_codes)
+         if (not isinstance(satz.get("startDate"), str) or not namenform
+                 or not regionenform
+                 or not isinstance(satz.get("nationwide"), bool)
+@@ -18561,10 +18584,8 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+         if not _ist_iso(bis) or bis < von:
+             vollstaendig = False
+             bis = von
+-        regionen = sorted({wert["code"].strip().upper()
+-                           for wert in satz.get("subdivisions", []) if isinstance(wert, dict)
+-                           and isinstance(wert.get("code"), str)
+-                           and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())}) if isinstance(satz.get("subdivisions", []), list) else []
++        regionen = sorted({code for code in region_codes if isinstance(code, str)
++                           and re.fullmatch(r"[A-Z0-9-]{1,64}", code)})
+         eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
+                           "nationwide": satz.get("nationwide") is True, "regions": regionen})
+     return (eintraege, vollstaendig) if mit_vollstaendigkeit else eintraege
+@@ -18625,7 +18646,11 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
+                     ("validFrom", "%d-01-01" % jahr),
+                     ("validTo", "%d-12-31" % jahr)]
+                 if region_code:
+-                    felder.append(("subdivisionCode", region_code))
++                    provider_region = (_openholidays_region_code(region_code, zum_dienst=True)
++                                       if land == "AT" else region_code)
++                    if not provider_region:
++                        raise RuntimeError(_("School holidays are not available for this region."))
++                    felder.append(("subdivisionCode", provider_region))
+                 url = "%s/%s?%s" % (
+                     FEIERTAG_DIENST, pfad, urlencode(felder))
+                 try:
+diff --git a/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py b/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
+index 1b97c61c..74e29f7c 100644
+--- a/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
++++ b/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py
+@@ -1,4 +1,4 @@
+-"""Refs #855: actual provider functions, bounded offline HTTP, no GTK/app startup.
++"""Refs #855/#856: actual provider functions, bounded offline HTTP, no GTK/app startup.
+ 
+ Run with Python's standard-library unittest. MAGNOLIE_HOLIDAY_SOURCE can name
+ an immutable baseline copy to reproduce the missing-coverage assertions.
+@@ -23,8 +23,10 @@ def product_functions():
+     source = ast.parse(SOURCE.read_text())
+     names = {"_ist_iso", "kanonischer_text", "_feiertag_sprache", "_name_waehlen",
+              "_openholidays_auswerten", "feiertage_abrufen"}
+-    nodes = [node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names]
+-    assert {node.name for node in nodes} == names
++    optional_helpers = {"_openholidays_region_code"}  # Absent on the immutable #855 baseline.
++    nodes = [node for node in source.body if isinstance(node, ast.FunctionDef)
++             and node.name in names | optional_helpers]
++    assert names <= {node.name for node in nodes}
+     scope = dict(json=json, re=re, datetime=datetime, unicodedata=unicodedata,
+                  _ISO_DATUM=re.compile(r"^\d{4}-\d{2}-\d{2}$"),
+                  _=lambda text: text, ngettext=lambda one, many, count: one if count == 1 else many,
+@@ -229,6 +231,75 @@ class HolidayCoverageTests(unittest.TestCase):
+         self.assertIsInstance(result, list)
+         self.assertEqual((result[0]["von"], result[0]["bis"]), ("2026-06-01", "2026-06-02"))
+ 
++    # Official /Subdivisions?countryIsoCode=AT response, captured 28.11.2026.
++    # Keep ISO identities in stored data; API `code` differs from `isoCode`.
++    AUSTRIAN_CODES = {"AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ",
++                      "AT-4": "AT-OÖ", "AT-5": "AT-SB", "AT-6": "AT-SM",
++                      "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI"}
++
++    def test_all_nine_austrian_requests_use_provider_codes_with_iso_coverage(self):
++        for iso, provider in self.AUSTRIAN_CODES.items():
++            with self.subTest(iso=iso):
++                self.requests.clear()
++                result = self.fetch(land="AT", region=iso)
++                self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], [provider, provider])
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
++                    expected_scope("school-holiday", country="AT", region=iso)})
++
++    def test_all_nine_austrian_response_aliases_return_to_iso_identity(self):
++        for iso, provider in self.AUSTRIAN_CODES.items():
++            with self.subTest(iso=iso):
++                result = self.fetch(lambda *_: [row(subdivisions=[{"code": provider}])], land="AT", region=iso)
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region=iso),
++                    expected_scope("school-holiday", country="AT", region=iso)})
++                for actual in result["feiertage"]:
++                    self.assertEqual(actual["region"], iso)
++                    self.assertEqual(actual["regions"], [iso])
++                    self.assertEqual(actual["country"], "AT")
++
++    def test_vienna_group_preserves_lower_austria_and_burgenland_iso_scopes(self):
++        value = row(subdivisions=[{"code": "AT-BL"}, {"code": "AT-NÖ"}, {"code": "AT-WI"}])
++        result = self.fetch(lambda *_: [value], land="AT", region="AT-9")
++        self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-9"),
++            expected_scope("school-holiday", country="AT", region="AT-9")})
++        self.assertEqual(result["feiertage"][0]["regions"], ["AT-1", "AT-3", "AT-9"])
++
++    def test_known_austrian_iso_responses_and_unicode_normalization_remain_valid(self):
++        for code in ("AT-3", "AT-NÖ", "AT-NO\u0308"):
++            with self.subTest(code=code):
++                result = self.fetch(lambda *_: [row(subdivisions=[{"code": code}])], land="AT", region="AT-3", ferien=False)
++                self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-3")})
++                self.assertEqual(result["feiertage"][0]["regions"], ["AT-3"])
++
++    def test_unknown_austrian_response_codes_never_confirm_region_or_country(self):
++        for region in ("AT-9", ""):
++            for code in ("AT-UNKNOWN", "AT-9-UNKNOWN", "AT-Ü", "AT-99"):
++                with self.subTest(region=region, code=code):
++                    result = self.fetch(lambda *_: [row(subdivisions=[{"code": code}])], land="AT", region=region, ferien=False)
++                    self.assertEqual(self.scopes(result), set())
++
++    def test_mixed_known_and_unknown_austrian_response_is_not_complete(self):
++        result = self.fetch(lambda *_: [row(subdivisions=[{"code": "AT-WI"}, {"code": "AT-9-UNKNOWN"}])],
++                            land="AT", region="AT-9", ferien=False)
++        self.assertEqual(self.scopes(result), set())
++        self.assertEqual(result["feiertage"][0]["regions"], ["AT-9"])
++
++    def test_unknown_austrian_request_fails_before_network(self):
++        for code in ("AT-99", "AT-WI", "AT-9-UNKNOWN"):
++            with self.subTest(code=code):
++                self.requests.clear()
++                with self.assertRaisesRegex(RuntimeError, "not available"):
++                    self.fetch(land="AT", region=code)
++                self.assertEqual(self.requests, [])
++
++    def test_austrian_all_regions_and_opt_out_keep_original_scope_contract(self):
++        result = self.fetch(land="AT", region="", ferien=False,
++                            regionen=[("AT-2", "Carinthia"), ("AT-9", "Vienna")])
++        self.assertEqual([fields["subdivisionCode"] for _, fields in self.requests], ["AT-KÄ", "AT-WI"])
++        self.assertEqual(self.scopes(result), {expected_scope(country="AT", region="AT-2"),
++            expected_scope(country="AT", region="AT-9")})
++        self.assertTrue(all(path == "/PublicHolidays" for path, _ in self.requests))
++
+ 
+ if __name__ == "__main__":
+     unittest.main(verbosity=2)
+diff --git a/magnolie-organizer/pruefungen/test_setup_holidays.py b/magnolie-organizer/pruefungen/test_setup_holidays.py
+index c5e7bcae..256d35ba 100644
+--- a/magnolie-organizer/pruefungen/test_setup_holidays.py
++++ b/magnolie-organizer/pruefungen/test_setup_holidays.py
+@@ -161,7 +161,8 @@ def test_all_catalog_artifacts_and_placeholders():
+ def test_actual_provider_url_and_empty_availability(country, region):
+     # Compile actual provider functions only: importing the application would initialize host services.
+     source = ast.parse((ROOT / "bin/magnolie-organizer").read_text())
+-    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache"}
++    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache",
++             "_openholidays_region_code"}
+     code = ast.Module(body=[node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names], type_ignores=[])
+     scope = dict(json=json, _=lambda x: x, ngettext=lambda one, many, n: one if n == 1 else many,
+                  _REGIONAL={"language": "en"}, _ist_iso=lambda x: bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", x)),
+@@ -176,7 +177,8 @@ def test_actual_provider_url_and_empty_availability(country, region):
+     assert result["feiertage"] == []
+     assert result["bericht"] == "The service returned no entries for this selection."
+     assert len(urls) == 2 and "/SchoolHolidays?" in urls[1]
+-    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + region in url for url in urls)
++    provider_region = "AT-WI" if region == "AT-9" else region
++    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + provider_region in url for url in urls)
+     urls.clear()
+     scope["feiertage_abrufen"](country, region, [2026], False, fetch)
+     assert len(urls) == 1 and "SchoolHolidays" not in urls[0]

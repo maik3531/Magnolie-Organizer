@@ -10,17 +10,33 @@ Reviewzweig: work/open-issues-audit-20261127
 
 Diese dauerhafte Fortsetzungsdatei: patches/CODEREVIEW-WEITER.md auf dem Reviewzweig.
 
-Letzte vollständige Übergabe: patches/codereview-national-watermarks-2026-11-28/README.md (erster Teilpatch #853 nach #850); #855 bleibt als vorherige Übergabe erhalten.
+Letzte vollständige Übergabe: patches/codereview-holiday-live-austria-2026-11-28/README.md (#855-Nachprüfung und vollständiger Folgefix #856). Der erste nationale #853-Teilpatch nach #850 und frühere #855-Belege bleiben erhalten.
 
 Zentrale Issue-Übergabe: https://github.com/maik3531/Magnolie-Organizer/issues/113
 
-Stand dieses abgeschlossenen Arbeitspakets: 27. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
+Stand der jüngsten abgeschlossenen Übergabe: 28. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
+
+## Neueste abgeschlossene Nachprüfung – #855 und Österreich-Folgefix #856 (28.11.2026)
+
+[Vollständige Übergabe](codereview-holiday-live-austria-2026-11-28/README.md). Frischer main weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`; kein Produktmerge und keine Paketfreigabe. Beide Fachissues bleiben für Codex-Prüfung und spätere Übernahme offen.
+
+**Nachgeholt:** unveränderter Einrichtungsprüfer 88/88 mit allen 20 Sprachen und beiden Oberflächen, 38 regulär erzeugte Webkataloge; gleiche 88 auch mit regulär regeneriertem Nativkatalog. Unveränderter #855-Swift-Dienst plus vollständige reguläre XCTest-Klasse unter Swift 6.4.3 kompiliert: 11 ausführbare Methoden bestanden, 1 vorhandener Live-Mac-Test ausdrücklich übersprungen. Default-Mac-Transport und volle AppKit-/Mac-App sind damit nicht abgenommen.
+
+**Neuer tatsächlicher Livebefund #856:** interne österreichische ISO-Auswahl AT-9 wurde als Providerkennung benutzt, OpenHolidays erwartet AT-WI. Beide HTTP 200, aber falsche Anfrage nur 6 nationale Ferienperioden statt 8 einschließlich Wiener Semester-/Sommerferien. Beide vollständigen Desktopoberflächen reproduzierten fehlende Perioden und Verlust einer ausdrücklich gesetzten kanonischen Altcachefixture. Die 9 offiziellen ISO/Providerpaare werden nun auf Linux/Windows/Tablet/Mac an der HTTP-Grenze in beide Richtungen abgebildet; Cache/Setup bleiben ISO. Unbekannte/fremde/gemischte/prefixlose Antwortcodes erhalten keine sichere Coverage, auch nicht bei nationwide oder landesweiter Abfrage. Kein neuer Provider, keine neue Berechtigung.
+
+**Vollständige Alternativen:** [Gemeinsam #855+#856](codereview-holiday-live-austria-2026-11-28/holiday-cache-855-plus-austria-856.patch) auf der unveränderten Basis (173.824 Bytes, SHA256 `ee7179924bbdb0072259eb9b2f5e1bd14e10df943f458148af2b17ca4e8c5e1e`), ODER [nur #856 nach #855](codereview-holiday-live-austria-2026-11-28/austrian-regions-856-after-855.patch) auf Baum `f4f94a2c2cf73a064448d3208f31d471e150dbe4` (60.165 Bytes, SHA256 `f03e194168a4d412672ac0cc0c128285f9e30f1b82e6c42c35012ca18b00b0c9`). **Nicht beide Varianten und nicht zusätzlich ihre Teilpatches anwenden.** Beide vorwärts/rückwärts exakt geprüft; identischer Endbaum `e02b1150060a66d9289cfd910356b44029cb270b`.23 abschließende Bindungsprüfungen verbinden die Quellbelege mit dem finalen Paket.
+
+Endgültig gleicher Vorher-/Nachher-Prüfer: Python 27/35→35/35, C# 30/43→43/43, Kotlin 20/26→26/26, Swift 12/17→17/17 ausführbare Methoden (je 1 zusätzlicher Live-Mac-Skip), Desktop mit echten aufgenommenen nativen Antworten 6/12→12/12.3 ursprüngliche Python-Setupfälle bestanden. Ein unabhängiger Review fand noch einen prefixlosen Linux-Scopefehler; endgültig korrigiert, 36 gezielte Gegenproben bestanden. 4 neue echte Produkt-HTTPS-Requests nach finalem Fix: Wien 13 Feiertage + 8 Ferien, Kärnten 13 + 9. Maßgeblich `live/final-capture`; `after-capture`/`intermediate` sind ausdrücklich verworfene historische Zwischenstände. Daten mit OpenHolidays-Attribution/ODbL, Rohantworten/Zeitstempel/Hashes gesichert.
+
+**Konkreter native-Linux-Blocker:** echte WebKit-Abhängigkeiten bereitgestellt, aber schon AF_UNIX/SOCK_STREAM-Erzeugung scheitert außen und innen mit EPERM; D-Bus startet nicht. 0 native WebKit-Produkttestfälle ausgeführt, keine Sandbox abgeschaltet. Wiederholung braucht reguläre Linux-GUI mit erlaubtem lokalen IPC. C#-Host auf Linux, Kotlin-JVM und Swift-Servicehost sind keine native Windows-/Android-/Mac-App-/Paketabnahme. #855 konservative nationale/jahresübergreifende Altbestände und fehlende individuelle Legacy-GUI-Antwort-ID bleiben dokumentierte Grenzen.
+
+**Nächster konkreter Schritt:** erst frischen main, #855/#856 und die neuesten Arbeitsmarkierungen abgleichen; erledigte Sprach-/Service-/Live-Prüfungen nicht bloß wiederholen. Falls inzwischen reguläre native Umgebung verfügbar, gezielt die oben konkret fehlenden Abnahmen ausführen. Andernfalls den noch fehlenden #854-Quellpatch für tatsächliche FR/BE/NL-Subdivision-/Group-Anbindung bearbeiten; Lizenz/Attribution, gültige Providerkennungen und bestätigte Abdeckung verbinden. #853 hat bereits einen ersten CH/FR/NL-Nationalmotiv-Teilpatch nach #850 (folgender Abschnitt), kein erneutes identisches Motivpaket. Weitere kulturelle Identitäten/Motive bleiben eigene #853-Arbeit. #128-Automatik nicht konkurrierend neu implementieren, historische Sync-Aufsetzpunkte erhalten. Kein Produktmerge durch Review.
 
 ## Neuester Teilpatch – nationale Festtagswasserzeichen #853 (28.11.2026)
 
 [Erster Teilpatch und Nachweise](codereview-national-watermarks-2026-11-28/README.md) auf main `1749c92eb42801c38eaba31b272d8c0e27be9164`, **nach #850 anwenden**. Drei nationale Identitäten und neue SVGs (CH/FR/NL), NL-Ersatzsamstag, keine unbekannten Länder. V8-DOM-Doubles je Plattform 22/40 → 40/40, Textpatch-Rundlauf und Syntax; keine native/Raster/JSDOM-Abnahme. #853 bleibt offen für weitere Festidentitäten und regionale Regeln, Motive/Handbuch/Übersetzungen. Nächster konkreter Schritt #854: FR/BE/NL-Gruppen und Unterregionen anhand amtlicher Daten und tatsächlichem Anfrage-/Speicherpfad; #855-Nachprüfung und #128 nicht konkurrierend bearbeiten, Sync-Aufsetzpunkt erhalten.
 
-## Neuester abgeschlossener Review – Cache-Erhalt #855 (28.11.2026)
+## Historische Erstübergabe – Cache-Erhalt #855 (28.11.2026; Nachprüfung siehe oben)
 
 Fachissue https://github.com/maik3531/Magnolie-Organizer/issues/855 . Vollständiger Einzelpatch mit Produktquellen, Tests und Grenzen: [Übergabe](codereview-holiday-cache-2026-11-28/README.md). Basis `1749c92eb42801c38eaba31b272d8c0e27be9164`, Ergebnisbaum `f4f94a2c2cf73a064448d3208f31d471e150dbe4`, Patch-SHA256 `c1cecd73eda51d3726962039bbb5b9e3bef8d34dede05897a64908acbb2f588c`. Main bei Abschluss weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`; kein Produktmerge durch diesen Review. Nach frischen Änderungen immer erneut Übernahme/Dubletten prüfen.
 

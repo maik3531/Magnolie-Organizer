@@ -1,0 +1,55 @@
+{
+  "issue": 856,
+  "parent_issue": 855,
+  "base_commit": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "parent_candidate_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "source_bindings": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "before_sha256": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+      "after_sha256": "60d77f379d5de60a07752997ec131c44b0758731074cc4b8e6867f0545b1c065",
+      "bytes_before": 1614967,
+      "bytes_after": 1616065
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+      "before_sha256": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93",
+      "after_sha256": "1dadfa1df9ea467c435b188e2a428442d6754fa891bc0d222ef3b6dec354d265",
+      "bytes_before": 11883,
+      "bytes_after": 16446
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_setup_holidays.py",
+      "before_sha256": "27e9b9771f584337387717d98883e20513348af8aaecd249de137418be09fecd",
+      "after_sha256": "1487b0c75f282e735925b9e39cedcddea971cde311f853064655282aa3656065",
+      "bytes_before": 10100,
+      "bytes_after": 10213
+    }
+  ],
+  "python_method_results": {
+    "before_passed": 27,
+    "before_total": 34,
+    "before_failed_methods": 7,
+    "before_failed_assertions_including_subtests": 27,
+    "after_passed": 34,
+    "after_total": 34
+  },
+  "frontend_captured_live_results": {
+    "before_passed": 6,
+    "before_total": 12,
+    "after_passed": 12,
+    "after_total": 12
+  },
+  "setup_provider_original_cases": {
+    "passed": 3,
+    "total": 3,
+    "pytest": "9.2.0"
+  },
+  "native_product_http": {
+    "initial_requests": 8,
+    "after_requests": 4,
+    "captured_reference_requests": 4
+  },
+  "source_tree_untouched_in_index": true,
+  "files_staged_by_agent": false
+}

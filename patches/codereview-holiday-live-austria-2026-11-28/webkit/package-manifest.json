@@ -1,0 +1,79 @@
+[
+  {
+    "Package": "xvfb",
+    "Version": "2:21.1.16-1.3+deb13u4",
+    "Filename": "pool/updates/main/x/xorg-server/xvfb_21.1.16-1.3+deb13u4_amd64.deb",
+    "SHA256": "893d87bf159b6de077a929fc796a73c39f837d45310b2076e3eeebebb80552b6",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "xserver-common",
+    "Version": "2:21.1.16-1.3+deb13u4",
+    "Filename": "pool/updates/main/x/xorg-server/xserver-common_21.1.16-1.3+deb13u4_all.deb",
+    "SHA256": "94bc0dcceeefabd4f706af19b3424de7f827758d0ebad5c18c52e73365d7f3ab",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "gir1.2-webkit2-4.1",
+    "Version": "2.54.3-1~deb13u1",
+    "Filename": "pool/updates/main/w/webkit2gtk/gir1.2-webkit2-4.1_2.54.3-1~deb13u1_amd64.deb",
+    "SHA256": "a9f5a629c66e9c68a2eca845dd3ed4111b1e887f1d5563e73a2ac7e227fdd4d4",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "libwebkit2gtk-4.1-0",
+    "Version": "2.54.3-1~deb13u1",
+    "Filename": "pool/updates/main/w/webkit2gtk/libwebkit2gtk-4.1-0_2.54.3-1~deb13u1_amd64.deb",
+    "SHA256": "1f501aa1cea716d6f12186351add6a27471579692b44ff8e4428bdd637918c06",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "libjavascriptcoregtk-4.1-0",
+    "Version": "2.54.3-1~deb13u1",
+    "Filename": "pool/updates/main/w/webkit2gtk/libjavascriptcoregtk-4.1-0_2.54.3-1~deb13u1_amd64.deb",
+    "SHA256": "1c5e5cb605c23742df9f52f981187b727b6689fe64f89878f5626b9f4d85faf9",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "gir1.2-javascriptcoregtk-4.1",
+    "Version": "2.54.3-1~deb13u1",
+    "Filename": "pool/updates/main/w/webkit2gtk/gir1.2-javascriptcoregtk-4.1_2.54.3-1~deb13u1_amd64.deb",
+    "SHA256": "4f40772fc410dbf0db960b260a261ba37662c723ffe48afc3ed861347ba64952",
+    "Repo": "https://deb.debian.org/debian-security/"
+  },
+  {
+    "Package": "gir1.2-soup-3.0",
+    "Version": "3.6.5-3",
+    "Filename": "pool/main/libs/libsoup3/gir1.2-soup-3.0_3.6.5-3_amd64.deb",
+    "SHA256": "d52c5be8f54c526178a18b28611d2c64ddefbc930d0eaa99b19ec2a7b2326f07",
+    "Repo": "https://deb.debian.org/debian/"
+  },
+  {
+    "Package": "libharfbuzz-icu0",
+    "Version": "10.2.0-1+deb13u1",
+    "Filename": "pool/main/h/harfbuzz/libharfbuzz-icu0_10.2.0-1+deb13u1_amd64.deb",
+    "SHA256": "0b45d951629e98673c0da73b2bcd0886a467d833bb3b7499892a168f247165d2",
+    "Repo": "https://deb.debian.org/debian/"
+  },
+  {
+    "Package": "libmanette-0.2-0",
+    "Version": "0.2.12-1",
+    "Filename": "pool/main/libm/libmanette/libmanette-0.2-0_0.2.12-1_amd64.deb",
+    "SHA256": "98841a467692c46fd1870275113235691ebbfe71a3524f6b2a0fa7e9c33c6e56",
+    "Repo": "https://deb.debian.org/debian/"
+  },
+  {
+    "Package": "libhyphen0",
+    "Version": "2.8.8-7+b2",
+    "Filename": "pool/main/h/hyphen/libhyphen0_2.8.8-7+b2_amd64.deb",
+    "SHA256": "fa9dca7b8cf1381fd52800c44a385c5725a78a88bd705f7c39b1046a5293435e",
+    "Repo": "https://deb.debian.org/debian/"
+  },
+  {
+    "Package": "libhidapi-hidraw0",
+    "Version": "0.14.0-1+b2",
+    "Filename": "pool/main/h/hidapi/libhidapi-hidraw0_0.14.0-1+b2_amd64.deb",
+    "SHA256": "89c546cb55be403ce63fe668baff2515979100a30fa07e2b97de186b9c07f01e",
+    "Repo": "https://deb.debian.org/debian/"
+  }
+]

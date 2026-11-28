@@ -1,0 +1,43 @@
+JUnit version 4.13.2
+...E..E..E.....E...E..........E.
+Time: 1.113
+There were 6 failures:
+1) austrianProviderRepliesBecomeCanonicalIsoBeforeCoverageChecks(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+java.lang.AssertionError: expected:<[AT-1]> but was:<[AT-BL]>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.austrianProviderRepliesBecomeCanonicalIsoBeforeCoverageChecks(HolidayServiceTest.kt:130)
+2) austrianQueriesTranslateAllNineIsoCodesAndEncodeProviderUnicode(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+org.junit.ComparisonFailure: expected:<AT-[BL]> but was:<AT-[1]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.austrianQueriesTranslateAllNineIsoCodesAndEncodeProviderUnicode(HolidayServiceTest.kt:115)
+3) unknownAndForeignAustrianReplyCodesNeverCertifyCacheReplacement(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+java.lang.AssertionError
+	at org.junit.Assert.fail(Assert.java:87)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertTrue(Assert.java:53)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.unknownAndForeignAustrianReplyCodesNeverCertifyCacheReplacement(HolidayServiceTest.kt:166)
+4) unknownAustrianQueryNeverStartsHttp(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+java.lang.AssertionError: Expected holiday_invalid_query
+	at org.junit.Assert.fail(Assert.java:89)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.expect(HolidayServiceTest.kt:28)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.unknownAustrianQueryNeverStartsHttp(HolidayServiceTest.kt:153)
+5) austrianSharedPeriodsKeepAllCanonicalRegionsAndDeduplicateSelections(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+io.gitlab.maik3531.magnolietabletbeta.HolidayException: holiday_invalid_response
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayService$Companion.invalidResponse(HolidayService.kt:265)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayService$Companion.access$invalidResponse(HolidayService.kt:257)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayService.fetch(HolidayService.kt:214)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayService.fetch$default(HolidayService.kt:142)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.austrianSharedPeriodsKeepAllCanonicalRegionsAndDeduplicateSelections(HolidayServiceTest.kt:143)
+6) austrianEmptyOptOutCountryAndSwissQueriesKeepTheirCoverageBoundaries(io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest)
+org.junit.ComparisonFailure: expected:<AT-[KÄ]> but was:<AT-[2]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at io.gitlab.maik3531.magnolietabletbeta.HolidayServiceTest.austrianEmptyOptOutCountryAndSwissQueriesKeepTheirCoverageBoundaries(HolidayServiceTest.kt:185)
+
+FAILURES!!!
+Tests run: 26,  Failures: 6
+

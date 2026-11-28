@@ -1,0 +1,171 @@
+{
+  "before": {
+    "passed": 12,
+    "failed": 5,
+    "skipped": 1,
+    "methods": [
+      {
+        "name": "testAllRegionDuplicatesMergeWithoutLosingScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testAustrianGroupedResponseUsesOnlyCanonicalISOScope",
+        "result": "failed"
+      },
+      {
+        "name": "testAustrianProviderIdentifiersRoundTripAllNineRegions",
+        "result": "failed"
+      },
+      {
+        "name": "testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays",
+        "result": "passed"
+      },
+      {
+        "name": "testGermanSwissAndCanonicalAustrianResponseScopesRemainValid",
+        "result": "failed"
+      },
+      {
+        "name": "testInvalidSelectionAndMalformedResponsesReject",
+        "result": "passed"
+      },
+      {
+        "name": "testLaterFailedRequestPublishesNoPartialCoverage",
+        "result": "passed"
+      },
+      {
+        "name": "testLivePublicHolidayServiceWhenRequested",
+        "result": "skipped"
+      },
+      {
+        "name": "testNativeHolidayCommandContract",
+        "result": "passed"
+      },
+      {
+        "name": "testPublicAndSchoolScopeLanguageAndInclusiveDates",
+        "result": "passed"
+      },
+      {
+        "name": "testRegionFallbackAppliesToEveryGroupedResponse",
+        "result": "passed"
+      },
+      {
+        "name": "testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testToleratedMalformedMetadataNeverCertifiesReplacement",
+        "result": "passed"
+      },
+      {
+        "name": "testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage",
+        "result": "failed"
+      },
+      {
+        "name": "testUnknownAustrianSelectionRejectsBeforeHTTP",
+        "result": "failed"
+      },
+      {
+        "name": "testUnknownUnicodeRegionCodesKeepStrictParserFailure",
+        "result": "passed"
+      },
+      {
+        "name": "testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope",
+        "result": "passed"
+      }
+    ],
+    "warnings": 0
+  },
+  "after": {
+    "passed": 17,
+    "failed": 0,
+    "skipped": 1,
+    "methods": [
+      {
+        "name": "testAllRegionDuplicatesMergeWithoutLosingScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testAustrianGroupedResponseUsesOnlyCanonicalISOScope",
+        "result": "passed"
+      },
+      {
+        "name": "testAustrianProviderIdentifiersRoundTripAllNineRegions",
+        "result": "passed"
+      },
+      {
+        "name": "testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays",
+        "result": "passed"
+      },
+      {
+        "name": "testGermanSwissAndCanonicalAustrianResponseScopesRemainValid",
+        "result": "passed"
+      },
+      {
+        "name": "testInvalidSelectionAndMalformedResponsesReject",
+        "result": "passed"
+      },
+      {
+        "name": "testLaterFailedRequestPublishesNoPartialCoverage",
+        "result": "passed"
+      },
+      {
+        "name": "testLivePublicHolidayServiceWhenRequested",
+        "result": "skipped"
+      },
+      {
+        "name": "testNativeHolidayCommandContract",
+        "result": "passed"
+      },
+      {
+        "name": "testPublicAndSchoolScopeLanguageAndInclusiveDates",
+        "result": "passed"
+      },
+      {
+        "name": "testRegionFallbackAppliesToEveryGroupedResponse",
+        "result": "passed"
+      },
+      {
+        "name": "testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes",
+        "result": "passed"
+      },
+      {
+        "name": "testToleratedMalformedMetadataNeverCertifiesReplacement",
+        "result": "passed"
+      },
+      {
+        "name": "testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage",
+        "result": "passed"
+      },
+      {
+        "name": "testUnknownAustrianSelectionRejectsBeforeHTTP",
+        "result": "passed"
+      },
+      {
+        "name": "testUnknownUnicodeRegionCodesKeepStrictParserFailure",
+        "result": "passed"
+      },
+      {
+        "name": "testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope",
+        "result": "passed"
+      }
+    ],
+    "warnings": 0
+  },
+  "issue": 856,
+  "parent_candidate_issue": 855,
+  "parent_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "swift": "6.4.3",
+  "host": "x86_64-unknown-linux-gnu",
+  "same_test_bytes_before_after": true,
+  "whole_actual_HolidayService_and_test_class": true,
+  "native_transport_or_macOS_app": false,
+  "after_inputs_exact_at_handoff": true
+}

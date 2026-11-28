@@ -1,0 +1,67 @@
+{
+  "issue": 856,
+  "parent_issue": 855,
+  "base_commit": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "parent_candidate_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "source_bindings": [
+    {
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "before_sha256": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+      "after_sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+      "bytes_before": 1614967,
+      "bytes_after": 1616309
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py",
+      "before_sha256": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93",
+      "after_sha256": "636fda2011d0fad66696f23a9da64e4186b69311631549155195a555ffa5559e",
+      "bytes_before": 11883,
+      "bytes_after": 17064
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/test_setup_holidays.py",
+      "before_sha256": "27e9b9771f584337387717d98883e20513348af8aaecd249de137418be09fecd",
+      "after_sha256": "1487b0c75f282e735925b9e39cedcddea971cde311f853064655282aa3656065",
+      "bytes_before": 10100,
+      "bytes_after": 10213
+    }
+  ],
+  "python_runtime": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "python_method_results": {
+    "before_passed": 27,
+    "before_total": 35,
+    "before_failed_methods": 8,
+    "before_failed_assertions_including_subtests": 41,
+    "after_passed": 35,
+    "after_total": 35
+  },
+  "frontend_captured_live_results": {
+    "before_passed": 6,
+    "before_total": 12,
+    "after_passed": 12,
+    "after_total": 12,
+    "runtime": {
+      "node": "v24.22.3",
+      "jsdom": "26.1.0"
+    }
+  },
+  "setup_provider_original_cases": {
+    "passed": 3,
+    "total": 3,
+    "pytest": "9.2.0"
+  },
+  "native_product_http": {
+    "initial_requests": 8,
+    "intermediate_requests": 4,
+    "final_requests": 4,
+    "captured_reference_requests": 4
+  },
+  "files_staged_by_agent": false,
+  "final_native_reply_receipt": "final-capture/live-results.json",
+  "final_frontend_receipt": "frontend-live-final-results.json",
+  "final_setup_log": "setup-provider-final.log",
+  "historical_intermediate_evidence": [
+    "after-capture",
+    "intermediate"
+  ]
+}

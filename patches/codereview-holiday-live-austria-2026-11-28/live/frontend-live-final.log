@@ -1,0 +1,81 @@
+{
+  "mode": "Full desktop scripts in JSDOM; real captured native responses, not live native GUI",
+  "runtime": {
+    "node": "v24.22.3",
+    "jsdom": "26.1.0"
+  },
+  "source_base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "candidate_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "native_reply_revision": "#855 plus #856; source hashes in final-capture/live-results.json",
+  "source_sha256": {
+    "magnolie-organizer-windows/tests/holiday-cache.js": "b5609a55a3da57dc49a726eedd680b727c59c0cf4b5c598b8c95c9f3fdfb55a9",
+    "magnolie-organizer/web/anwendung.js": "98b1c2006ac9006defeb46321cae6a66a62c527507cbad191a25ea3dfd8455ea",
+    "magnolie-organizer-windows/app/web/anwendung.js": "850a21a8a8b804cd96872308d427f1fc74f801343335341dc9e26922b5b750a1"
+  },
+  "live_receipt_sha256": "b665aafea625bd2bd956254c2059af9f12009d14186d02fd5148e8e436c1a3b5",
+  "after_live_receipt_sha256": "54f0f27ffa115d9600aaf6b5858a3f4463dcdab64d1bdbfd1c854f81951e696f",
+  "passed": 12,
+  "total": 12,
+  "results": [
+    {
+      "web": "magnolie-organizer/web",
+      "name": "DE/SN 2026 live response imports all 18 parsed rows and complete cross-year dates",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "DE live refresh preserves the complete AT and CH live cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "school opt-out preserves captured Saxony school periods",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Semester Holidays 2026-02-02",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Summer Holidays 2026-07-04",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "AT-9 partial live answer preserves a seeded canonical Vienna semester cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "DE/SN 2026 live response imports all 18 parsed rows and complete cross-year dates",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "DE live refresh preserves the complete AT and CH live cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "school opt-out preserves captured Saxony school periods",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Semester Holidays 2026-02-02",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "AT-9 live request contains provider-confirmed Vienna Summer Holidays 2026-07-04",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "AT-9 partial live answer preserves a seeded canonical Vienna semester cache",
+      "passed": true
+    }
+  ]
+}

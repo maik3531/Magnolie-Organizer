@@ -1,0 +1,1 @@
+Initial harness precheck expected tracked and generated native JSON to match exactly. This failed before the original setup test ran. Inspection found one pre-existing Portuguese entry: No -> Não. Both catalogue variants are therefore tested explicitly by the final harness; the original product regression is unchanged.

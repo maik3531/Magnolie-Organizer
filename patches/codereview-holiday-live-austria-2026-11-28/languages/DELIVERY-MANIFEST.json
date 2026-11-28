@@ -1,0 +1,50 @@
+{
+  "README.md": {
+    "bytes": 5536,
+    "sha256": "765401097b2986eff1275d2d682d22dfca7829e1bea1a3cc4eca7b06650637a9"
+  },
+  "commands.json": {
+    "bytes": 27822,
+    "sha256": "d89abd8850416a0c8ab8474af506c3c15405b857f052c7b542b59d750104f51b"
+  },
+  "gettext-provenance.json": {
+    "bytes": 941,
+    "sha256": "58be339aa2656a90f4c4f0e3beef115f9150168c61a6c4a4883ab3818d757ee7"
+  },
+  "initial-generation-commands.json": {
+    "bytes": 27061,
+    "sha256": "9ebf37a56392e0ca0bf025e99eb3b29cce4a3d3f046494a9ae59de65e727c35a"
+  },
+  "initial-precheck.txt": {
+    "bytes": 322,
+    "sha256": "8f1f11e925b3092901a8f4f90bfcb8ed1d19775520eecfccdd7a5025b73643b9"
+  },
+  "native-catalogue-diff.json": {
+    "bytes": 152,
+    "sha256": "819514764d0a8ee628d00f57df72d5a0f15ce6af0b6e962d3a3c7a7a09283060"
+  },
+  "receipt.json": {
+    "bytes": 17746,
+    "sha256": "99c908830b16e71942814d05888d6d8313549f460f9f434c9f202dc2ca743a0b"
+  },
+  "run-validation.py": {
+    "bytes": 6568,
+    "sha256": "6adbae1cb5eedd61492fbe1439edeb11771d83c940e4d3c001f5628e5d36c241"
+  },
+  "setup-holidays-all-languages.log": {
+    "bytes": 61,
+    "sha256": "cb61c3b86af560f0c0fd80ebd8476e7401fe997a9c05396b093e88cdbc47a6d9"
+  },
+  "setup-holidays-rebuilt-native-all-languages.log": {
+    "bytes": 61,
+    "sha256": "cb61c3b86af560f0c0fd80ebd8476e7401fe997a9c05396b093e88cdbc47a6d9"
+  },
+  "source-manifest.json": {
+    "bytes": 28745,
+    "sha256": "ee290345ff17f7a785867d2c29b0b85fefeddfaff7edc465fed7c56d3970c0bc"
+  },
+  "source-preservation.json": {
+    "bytes": 172,
+    "sha256": "d1dd9161fecc6a22c57012a739ef959a2a577b698ae84a43b6383f65f4b2c686"
+  }
+}

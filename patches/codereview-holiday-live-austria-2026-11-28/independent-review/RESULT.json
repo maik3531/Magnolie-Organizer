@@ -1,0 +1,61 @@
+{
+  "issue": 856,
+  "review_date": "2026-11-28",
+  "status": "observed completed independent countercheck",
+  "exit_code": 0,
+  "independent_linux_counterchecks": 36,
+  "negative_combinations": 32,
+  "positive_controls": 4,
+  "all_passed": true,
+  "negative_scopes": [
+    [
+      "WI"
+    ],
+    [
+      "9"
+    ],
+    [
+      "AT"
+    ],
+    [
+      "AT-9-UNKNOWN"
+    ],
+    [
+      "AT-WI-UNKNOWN"
+    ],
+    [
+      "AT-WI",
+      "WI"
+    ],
+    [
+      "AT-WI",
+      "DE-SN"
+    ],
+    [
+      "AT-WI",
+      "AT-9-UNKNOWN"
+    ]
+  ],
+  "selected_regions": [
+    "",
+    "AT-9"
+  ],
+  "nationwide_values": [
+    false,
+    true
+  ],
+  "negative_assertion": "abrufbereiche == []",
+  "positive_scope": [
+    "AT-WI"
+  ],
+  "positive_assertions": [
+    "len(abrufbereiche) == 1",
+    "feiertage[0]['regions'] == ['AT-9']"
+  ],
+  "source_sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+  "original_observed_blocker_source_sha256": "60d77f379d5de60a07752997ec131c44b0758731074cc4b8e6867f0545b1c065",
+  "cases_reexecuted_for_packaging": false,
+  "artifact_note": "The same already executed case and assertion loops are saved in counterprobe.py with portable CLI path selection and a source-hash guard. This JSON records the observed earlier execution, not a newly claimed run.",
+  "native_gui_or_network_run": false,
+  "remaining_blockers_in_reviewed_scope": []
+}

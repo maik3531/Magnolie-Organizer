@@ -1,0 +1,640 @@
+[
+  {
+    "name": "msgfmt-version",
+    "argv": [
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/gettext/usr/bin/msgfmt",
+      "--version"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.004,
+    "stdout": "msgfmt (GNU gettext-tools) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "stderr": ""
+  },
+  {
+    "name": "node-version",
+    "argv": [
+      "node",
+      "--version"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.006,
+    "stdout": "v24.22.3\n",
+    "stderr": ""
+  },
+  {
+    "name": "jsdom-version",
+    "argv": [
+      "node",
+      "-p",
+      "require('jsdom/package.json').version"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.083,
+    "stdout": "26.1.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:de",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "de",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/de.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/de.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.065,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:fr",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "fr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/fr.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/fr.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.074,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:es",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "es",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/es.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/es.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.063,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:it",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "it",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/it.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/it.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.074,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:nl",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "nl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/nl.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/nl.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.062,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:pt",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "pt",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/pt.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/pt.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.073,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:ru",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ru",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/ru.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/ru.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.081,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:cs",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "cs",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/cs.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/cs.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.068,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:pl",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "pl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/pl.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/pl.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.068,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:hsb",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "hsb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/hsb.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/hsb.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.066,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:da",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "da",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/da.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/da.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.067,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:nb",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "nb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/nb.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/nb.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.068,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:hi",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "hi",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/hi.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/hi.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.078,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:zh_CN",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "zh_CN",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/zh_CN.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/zh_CN.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.06,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:ja",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ja",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/ja.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/ja.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.071,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:ar",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "ar",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/ar.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/ar.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.079,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:uk",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "uk",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/uk.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/uk.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.07,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:be",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "be",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/be.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/be.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.079,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer:tr",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/werkzeuge/po_zu_js.py",
+      "tr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/po/tr.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer/web/i18n/tr.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.063,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:de",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "de",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/de.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/de.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.078,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:fr",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "fr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/fr.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/fr.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.074,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:es",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "es",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/es.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/es.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.072,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:it",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "it",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/it.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/it.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.063,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:nl",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "nl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/nl.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/nl.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.063,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:pt",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "pt",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/pt.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/pt.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.064,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:ru",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "ru",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ru.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/ru.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.079,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:cs",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "cs",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/cs.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/cs.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.068,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:pl",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "pl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/pl.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/pl.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.06,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:hsb",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "hsb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/hsb.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/hsb.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.061,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:da",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "da",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/da.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/da.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.061,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:nb",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "nb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/nb.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/nb.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.059,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:hi",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "hi",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/hi.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/hi.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.065,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:zh_CN",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "zh_CN",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/zh_CN.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/zh_CN.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.059,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:ja",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "ja",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ja.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/ja.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.073,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:ar",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "ar",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ar.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/ar.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.069,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:uk",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "uk",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/uk.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/uk.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.065,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:be",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "be",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/be.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/be.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.067,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "magnolie-organizer-windows:tr",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_js.py",
+      "tr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/tr.po",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/web/i18n/tr.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.062,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "native-catalogue-generation",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/werkzeuge/po_zu_native.py",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/evidence/native-i18n.generated.json",
+      "ar",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ar.po",
+      "be",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/be.po",
+      "cs",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/cs.po",
+      "da",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/da.po",
+      "de",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/de.po",
+      "es",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/es.po",
+      "fr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/fr.po",
+      "hi",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/hi.po",
+      "hsb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/hsb.po",
+      "it",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/it.po",
+      "ja",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ja.po",
+      "nb",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/nb.po",
+      "nl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/nl.po",
+      "pl",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/pl.po",
+      "pt",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/pt.po",
+      "ru",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/ru.po",
+      "tr",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/tr.po",
+      "uk",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/uk.po",
+      "zh_CN",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/app/po/zh_CN.po"
+    ],
+    "returncode": 0,
+    "duration_seconds": 0.589,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "unchanged-full-setup-holidays",
+    "argv": [
+      "node",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/tests/setup-holidays.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 14.108,
+    "stdout": "Setup holidays: 88 cross-desktop cases passed; 20 languages.\n",
+    "stderr": ""
+  },
+  {
+    "name": "unchanged-full-setup-holidays-rebuilt-native",
+    "argv": [
+      "node",
+      "/workspace/scratch/69a9d769e56f/holiday-855-followup/languages/source/magnolie-organizer-windows/tests/setup-holidays.js"
+    ],
+    "returncode": 0,
+    "duration_seconds": 15.887,
+    "stdout": "Setup holidays: 88 cross-desktop cases passed; 20 languages.\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "README.md": {
+    "bytes": 4553,
+    "sha256": "4c9d427bd3cf6a8a6a7c77139b2ebe082d0cb4e9d8c3468b655f321b07ae5c5d"
+  },
+  "after-build.log": {
+    "bytes": 373,
+    "sha256": "25ec78c4ecca0ea92b38320cc862828708a93d41b6513747e3ac6d4ac5b721a8"
+  },
+  "after-run.log": {
+    "bytes": 2626,
+    "sha256": "6bc205e7cd288d1fa18a3f29d3a87fdbe8c33cf501369064e239d57638841e6a"
+  },
+  "after-source-bindings.json": {
+    "bytes": 552,
+    "sha256": "bab1cf5f5ba91471b2f0997ed107907d13f5969d1f20e15f6e861ce0b2a0018b"
+  },
+  "before-build.log": {
+    "bytes": 375,
+    "sha256": "663112cc5cc0e6ce058d533f630cfe80a549b8dc28a5ad7037df14b429d0d3e4"
+  },
+  "before-run.log": {
+    "bytes": 3249,
+    "sha256": "f71d767106a4347ce09f48916f754c5af2bfbf9ebc062d92950ab6fe87b3e98c"
+  },
+  "before-source-bindings.json": {
+    "bytes": 552,
+    "sha256": "fcd8f695096f36df0bf2e3c83047ef3638023d7b7cf7f2042b79df63cfe47f3c"
+  },
+  "patch-check.json": {
+    "bytes": 1431,
+    "sha256": "e45cd85e69585a16cdf7f757f4cd9dda82d41ef9705b4817c0e6e68c3faa4e30"
+  },
+  "receipt.json": {
+    "bytes": 1472,
+    "sha256": "49bb5abadaae617668c960b5b091669c05e74e35eb993f5d5af126d10b2b135e"
+  },
+  "windows-provider-856.patch": {
+    "bytes": 16422,
+    "sha256": "63b923f22215547b1eb292a8bc2852e466f00c1b82744496bb5492c3ad1a3e1a"
+  }
+}
