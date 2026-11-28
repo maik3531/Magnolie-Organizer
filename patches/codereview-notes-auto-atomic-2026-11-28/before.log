@@ -1,0 +1,8 @@
+FAIL format2 snapshot
+FAIL format1 snapshot
+FAIL format2 staging
+FAIL format2 request insert after batch
+FAIL format1 batch insert after request
+PASS format1 success
+PASS format2 success
+2/7

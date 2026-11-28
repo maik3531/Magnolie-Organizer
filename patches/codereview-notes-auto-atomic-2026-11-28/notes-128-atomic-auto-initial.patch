@@ -1,0 +1,152 @@
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDatenbank.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDatenbank.kt
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDatenbank.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDatenbank.kt
+@@ -708,7 +708,32 @@
+         }
+     }
+ 
+-    fun queueFormat2Direction(peerId: String, runId: String, reply: Boolean, recordsHash: String,
++    /** Register a locally initiated legacy automatic run only with its complete initial outbox. */
++    internal fun queueInitialAutoRun(peerId: String, message: JsonObject, batches: List<JsonObject>,
++        attachments: List<Triple<String, String, ByteArray>> = emptyList(), attachmentExpiresMs: Long = message.long("expires_ms")) {
++        TelefonNachrichten.validate(message)
++        val request = message.getValue("body") as JsonObject
++        require(message.string("kind") == "personal_sync.request" && request.string("trigger") == "auto_wifi")
++        val runId = request.string("run_id")
++        val format = request.long("format")
++        require(batches.isNotEmpty() && (format >= 2 || attachments.isEmpty()))
++        val now = System.currentTimeMillis()
++        require(message.long("expires_ms") > now)
++        helper.writableDatabase.inTransaction {
++            rememberPersonalRunInDatabase(this, peerId, request, message.long("expires_ms"), now)
++            val policy = requireNotNull(authenticatedRun(peerId, runId, this)).first.transportPolicy
++            if (format >= 2) {
++                queueFormat2DirectionIn(this, peerId, runId, false, batches.first().string("records_hash"), null,
++                    batches, attachments, policy, attachmentExpiresMs)
++                writableInsert(peerId, message, this, policy)
++            } else {
++                writableInsert(peerId, message, this, policy)
++                batches.forEach { writableInsert(peerId, TelefonNachrichten.message("personal_sync.batch", it, 86_400_000), this, policy) }
++            }
++        }
++    }
++
++    fun queueFormat2Direction(peerId: String, runId: String, reply: Boolean, recordsHash: String,
+                               request: JsonObject?, batches: List<JsonObject>,
+                               attachments: List<Triple<String, String, ByteArray>>, transportPolicy: String,
+                               expiresMs: Long) {
+diff --git a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
+--- a/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
++++ b/magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt
+@@ -5329,27 +5329,35 @@
+             put("modules", JsonArray(modules.map(::JsonPrimitive)))
+         }
+         val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
+-        queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"), actorRun = actorRun)
+-        if (format >= 2) {
+-            val snapshot = Ablage.hole(context).personalSyncSnapshotMitAnhaengen(modules.toSet(), format)
+-            val policy = queue.personalRunPolicy(peer.device_id, runId)
+-                ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
+-            val batches = buildSnapshotBatches(runId, snapshot.records, false, format).first
+-            val aggregate = batches.first().string("records_hash")
+-            val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
+-                .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }
+-                .map { (it as JsonObject).string("sha256") }.toSet()
+-            val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, attachment) -> Triple(hash,
+-                (attachment.descriptor["mime"] as JsonPrimitive).content, attachment.bytes) }
+-            queue.queueFormat2Direction(peer.device_id, runId, false, aggregate, null, batches,
+-                attachments, policy, System.currentTimeMillis() + 86_400_000)
+-            queue.queuePrepared(peer.device_id, requestMessage, policy)
+-        } else {
+-            queue.queuePrepared(peer.device_id, requestMessage, queue.personalRunPolicy(peer.device_id, runId)
+-                ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))
+-            val records = Ablage.hole(context).personalSyncSnapshot(modules.toSet())
+-            queueSnapshotRecords(peer, runId, records, false, 1)
+-        }
++        val automatic = trigger == "auto_wifi"
++        if (!automatic) queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"), actorRun = actorRun)
++        if (format >= 2) {
++            val snapshot = Ablage.hole(context).personalSyncSnapshotMitAnhaengen(modules.toSet(), format)
++            val batches = buildSnapshotBatches(runId, snapshot.records, false, format).first
++            val aggregate = batches.first().string("records_hash")
++            val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
++                .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }
++                .map { (it as JsonObject).string("sha256") }.toSet()
++            val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, attachment) -> Triple(hash,
++                (attachment.descriptor["mime"] as JsonPrimitive).content, attachment.bytes) }
++            if (automatic) {
++                queue.queueInitialAutoRun(peer.device_id, requestMessage, batches, attachments, System.currentTimeMillis() + 86_400_000)
++            } else {
++                val policy = queue.personalRunPolicy(peer.device_id, runId)
++                    ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
++                queue.queueFormat2Direction(peer.device_id, runId, false, aggregate, null, batches,
++                    attachments, policy, System.currentTimeMillis() + 86_400_000)
++                queue.queuePrepared(peer.device_id, requestMessage, policy)
++            }
++        } else if (automatic) {
++            val records = Ablage.hole(context).personalSyncSnapshot(modules.toSet())
++            queue.queueInitialAutoRun(peer.device_id, requestMessage, buildSnapshotBatches(runId, records, false, 1).first)
++        } else {
++            queue.queuePrepared(peer.device_id, requestMessage, queue.personalRunPolicy(peer.device_id, runId)
++                ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))
++            val records = Ablage.hole(context).personalSyncSnapshot(modules.toSet())
++            queueSnapshotRecords(peer, runId, records, false, 1)
++        }
+         if (peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted) {
+             val proposals = PersonalSync.proposals(Ablage.hole(context).bestand.value, peer.device_id).filter {
+                 it.kind == "task" || !PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)
+diff --git a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonQueueDatabaseTest.kt b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonQueueDatabaseTest.kt
+--- a/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonQueueDatabaseTest.kt
++++ b/magnolie-notes/app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonQueueDatabaseTest.kt
+@@ -128,7 +128,50 @@
+             queue.due("peer", TelefonTransportArt.WIFI).map { it.payload.string("kind") })
+     }
+ 
+-    private fun request(runId: String) = buildJsonObject {
++    @Test fun `failed initial automatic request or batch does not reserve the run`() {
++        for ((format, failingKind) in listOf(1 to "personal_sync.batch", 2 to "personal_sync.request")) {
++            val peer = "atomic-peer-$format"
++            val runId = uuid(700 + format)
++            val request = buildJsonObject {
++                put("format", JsonPrimitive(format)); put("run_id", JsonPrimitive(runId))
++                put("trigger", JsonPrimitive("auto_wifi"))
++                put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
++            }
++            val message = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
++            val hash = io.gitlab.maik3531.magnolienotes.daten.PersonalSync.recordsHash(emptyList())
++            val batch = PersonalSyncProtokoll.batch(runId, emptyList(), 0, true, false, format, hash)
++            assertFalse(queue.hasActiveAutoRun(peer))
++            val unrelated = queue.queue(peer, "device_status.request", buildJsonObject {
++                put("request_id", JsonPrimitive(uuid(800 + format))); put("version", JsonPrimitive(1))
++            }, 60_000)
++            context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
++                db.execSQL("CREATE TRIGGER fail_initial_auto BEFORE INSERT ON outbox WHEN NEW.kind='$failingKind' " +
++                    "BEGIN SELECT RAISE(ABORT, 'injected'); END")
++            }
++            try {
++                org.junit.Assert.assertThrows(android.database.sqlite.SQLiteException::class.java) {
++                    queue.queueInitialAutoRun(peer, message, listOf(batch))
++                }
++            } finally {
++                context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
++                    db.execSQL("DROP TRIGGER fail_initial_auto")
++                }
++            }
++            assertFalse(queue.hasActiveAutoRun(peer))
++            assertEquals(null, queue.personalRun(peer, runId))
++            assertEquals(listOf(unrelated.string("message_id")),
++                queue.due(peer, TelefonTransportArt.WIFI).map { it.messageId })
++            queue.queueInitialAutoRun(peer, message, listOf(batch))
++            assertTrue(queue.hasActiveAutoRun(peer))
++            assertEquals("wifi_only", queue.personalRunPolicy(peer, runId))
++            assertEquals(setOf("device_status.request", "personal_sync.request", "personal_sync.batch"),
++                queue.due(peer, TelefonTransportArt.WIFI).map { it.payload.string("kind") }.toSet())
++            assertEquals(listOf(unrelated.string("message_id")),
++                queue.due(peer, TelefonTransportArt.BLUETOOTH).map { it.messageId })
++        }
++    }
++
++    private fun request(runId: String) = buildJsonObject {
+         put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive("manual"))
+         put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
+     }
