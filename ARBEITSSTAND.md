@@ -23,6 +23,10 @@ aufgeführt.
   Windows verwendet dafür die lokale UUID aus derselben authentifizierten
   Verbindung. Sechs native Windows-Testgruppen einschließlich des
   verschlüsselten Bluetooth-Kontrolltransports bestanden.
+  Linux bindet den Lauf an die tatsächlich gesendete aktuelle Capability
+  und das angebotene Modulformat. Eine spätere Revision setzt den alten
+  Lauf nicht fort. 82 Hostfälle und die erweiterte verschlüsselte
+  Gegenprobe bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte

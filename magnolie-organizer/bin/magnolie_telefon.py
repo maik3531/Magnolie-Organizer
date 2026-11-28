@@ -2688,6 +2688,11 @@ class PhoneStore:
                        (key, str(revision).encode("ascii")))
         return revision
 
+    def current_revision(self, name):
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT value FROM meta WHERE key=?", ("own_revision:" + name,)).fetchone()
+        return int(bytes(row[0]).decode("ascii")) if row else 0
+
     def initial_skip_deletions(self, peer_id):
         peer = self.peer(peer_id)
         if peer is None:
@@ -5961,6 +5966,11 @@ class PhoneService:
                     current.get("capabilities", {}).get("items", {}))
                 or not self.shared_settings_ready(peer_id)):
             raise PermissionError("Connection automation has no current negotiated reader.")
+        advertised = getattr(channel, "last_capabilities", None)
+        if (not advertised or advertised["revision"] != self.store.current_revision("capabilities.update")
+                or not personal_sync_contract.auto_connection_supported(
+                    advertised["items"], current["capabilities"]["items"])):
+            raise PermissionError("Connection automation has not been advertised on this reader.")
         settings = self.store.shared_settings(peer_id, public)
         values = shared_sync_contract.effective(settings)
         local, remote = current["local_grants"], current["grants"]
@@ -5970,10 +5980,12 @@ class PhoneService:
             needed = personal_sync_grants_needed("personal_sync.request", request)
             if ("send_item" in request or not needed or any(
                     local["grants"].get(name) is not True or remote["grants"].get(name) is not True
+                    or request["format"] not in advertised["items"].get(name, {}).get("versions", [])
                     or not supports_personal_format(current, name, request["format"]) for name in needed)):
                 raise PermissionError("Connection automation does not have current scope and grants.")
         return hashlib.sha256(canonical({
             "peer": peer_id, "key": public, "session": b64(sid), "reader": b64(reader_nonce), "transport": transport,
+            "local_capabilities": advertised["revision"],
             "remote_capabilities": current["capabilities"]["revision"],
             "local_grants": local["revision"], "remote_grants": remote["revision"],
             "content_mode": settings["settings"]["content_mode"], "auto_mode": settings["settings"]["auto_mode"],

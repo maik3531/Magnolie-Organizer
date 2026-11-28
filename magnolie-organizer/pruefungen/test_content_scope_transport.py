@@ -1,10 +1,14 @@
+import base64
 import copy
+import json
+import socket
 import sys
 import uuid
 import sqlite3
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_content_scope as scope
@@ -114,6 +118,7 @@ def connection_automation_fixture(tmp_path, monkeypatch, transport, gate=None, *
         service.store.save_peers()
     elif gate == "reader":
         service.connections[peer_id] = Channel()
+    channel.last_capabilities = phone.desktop_capabilities(service.store.next_revision("capabilities.update"))
     return service, peer, channel, remote, manifest
 
 
@@ -122,6 +127,7 @@ def reconnect_automation_fixture(service, peer, original, remote, manifest):
     # Simulate an unchanged advertised session id, but a new native reader.
     replacement.sid = original.sid
     replacement.reader_nonce = uuid.uuid4().bytes + uuid.uuid4().bytes
+    replacement.last_capabilities = copy.deepcopy(original.last_capabilities)
     service.connections[peer["device_id"]] = replacement
     service.note_controls[replacement] = copy.deepcopy(service.note_controls[original])
     service._payload(peer, replacement, message(remote))
@@ -213,9 +219,11 @@ def test_gui_connection_start_rechecks_original_reader_and_saved_book(tmp_path, 
     service.native_actor_book_source = lambda: current["book_source"]
     service.native_actor_saved_book = lambda: dict(current)
     fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
+    advertised = reader.last_capabilities
+    reader.last_capabilities = None
     with pytest.raises(PermissionError, match="not been advertised"):
         service.prepare_gui_connection_start(peer_id, fingerprint)
-    reader.last_capabilities = phone.desktop_capabilities()
+    reader.last_capabilities = advertised
     if change == "other_initiator":
         assert not service.gui_connection_start_ready(peer_id)
         with pytest.raises(PermissionError, match="elected initiator"):
@@ -336,6 +344,69 @@ def test_connection_automation_requires_current_negotiated_authority(tmp_path, m
             assert service.store.dedupe_result(peer_id, packet["message_id"]) is None
         expected_error = "temporary_failure" if gate == "settings_echo" else "not_granted"
         assert (ack["status"], ack["error"]) == ("rejected", expected_error), ack
+
+
+def test_connection_request_requires_current_capability_sent_on_the_original_reader(tmp_path, monkeypatch):
+    service, peer, original, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    peer_id, public = peer["device_id"], peer["static_public"]
+    run_id = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run_id, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
+    packet = dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND)
+    outbound_key, outbound_prefix = b"k" * 32, b"p" * 4
+    desktop_socket, phone_socket = socket.socketpair()
+    with desktop_socket, phone_socket:
+        phone_socket.settimeout(2)
+        channel = phone.SecureChannel(desktop_socket, original.sid, outbound_key, outbound_prefix, b"r" * 32, b"q" * 4)
+        service.connections[peer_id] = channel
+        service.note_controls[channel] = copy.deepcopy(service.note_controls[original])
+
+        def receive():
+            secured = phone.receive_frame(phone_socket, 1 << 20)
+            header = {key: value for key, value in secured.items() if key != "ciphertext"}
+            nonce = outbound_prefix + header["seq"].to_bytes(8, "big")
+            return json.loads(AESGCM(outbound_key).decrypt(
+                nonce, base64.b64decode(secured["ciphertext"]), phone.canonical(header)))
+
+        # Receive the shared choice and phone membership through the same reader.
+        service._payload(peer, channel, message(remote))
+        service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+        assert service.shared_settings_ready(peer_id)
+        for _ in range(channel.send_seq):
+            receive()
+
+        def send_advertisement(capabilities):
+            wire = dict(message(capabilities), kind="capabilities.update")
+            channel.send(wire)
+            assert receive() == wire and channel.last_capabilities == capabilities
+
+        def require_rejected():
+            service._payload(peer, channel, packet)
+            ack = receive()
+            assert (ack["status"], ack["error"]) == ("rejected", "not_granted")
+            assert service.store.personal_run(peer_id, run_id) == {}
+            assert service.store.scoped_run_reference(peer_id, public, run_id) is None
+            assert service.store.dedupe_result(peer_id, packet["message_id"]) is None
+
+        require_rejected()
+        stale = original.last_capabilities
+        missing_format = phone.desktop_capabilities(service.store.next_revision("capabilities.update"))
+        missing_format["items"]["personal_tasks_sync"]["versions"].remove(3)
+        send_advertisement(stale)
+        require_rejected()
+        send_advertisement(missing_format)
+        require_rejected()
+        current = phone.desktop_capabilities(service.store.next_revision("capabilities.update"))
+        send_advertisement(current)
+        service._payload(peer, channel, packet)
+        assert receive()["status"] == "accepted"
+        assert service.store.personal_run(peer_id, run_id) == request
+        stored = service.store._personal_run_record(peer_id, run_id)
+        latest = phone.desktop_capabilities(service.store.next_revision("capabilities.update"))
+        with pytest.raises(PermissionError, match="not been advertised"):
+            service._connection_run_authority(peer, channel, stored)
+        send_advertisement(latest)
+        with pytest.raises(PermissionError, match="reader changed"):
+            service._connection_run_authority(peer, channel, stored)
 
 
 def test_current_phone_membership_arrives_only_after_complete_bound_manifest(tmp_path, monkeypatch):
