@@ -23095,6 +23095,80 @@ class Fenster(_FENSTER_BASIS):
         else:
             self.sende_js("%s(JSON.parse(%s));" % (funktion, js_zeichenkette(nutzlast)))
 
+    def _speicher_text_verwerfen(self, kennung=None):
+        stand = getattr(self, "_speicher_text_eingang", None)
+        if stand is not None and (kennung is None or stand["id"] == kennung):
+            self._speicher_text_eingang = None
+            GLib.source_remove(stand["timer"])
+            stand["text"].close()
+
+    def _speicher_text_buchbindung(self):
+        daten = self._aktuelle_daten or {}
+        metadaten = daten.get("syncMetadaten")
+        return (daten_datei(), self._daten_dek_kennung, daten.get("syncEpoch"),
+                metadaten.get("syncEpoch") if isinstance(metadaten, dict) else None)
+
+    def _speicher_text_teil(self, wert, laenge):
+        nummer = wert.object_get_property_at_index(0)
+        if not nummer.is_number():
+            return
+        kennung = nummer.to_double()
+        if not kennung.is_integer() or not 1 <= kennung <= 2**53 - 1:
+            return
+        kennung = int(kennung)
+        if laenge == 1:
+            self._speicher_text_verwerfen(kennung)
+            return
+        if laenge != 4:
+            return
+        try:
+            index = wert.object_get_property_at_index(1)
+            text = wert.object_get_property_at_index(2)
+            ende = wert.object_get_property_at_index(3)
+            if not index.is_number() or not text.is_string() or not ende.is_boolean():
+                raise ValueError
+            index = index.to_double()
+            if not index.is_integer() or not 0 <= index < 128:
+                raise ValueError
+            index, ende = int(index), ende.to_boolean()
+            if self._gesperrt or self._operation_laeuft or self._ladefehler:
+                raise ValueError
+            bindung = self._speicher_text_buchbindung()
+            stand = getattr(self, "_speicher_text_eingang", None)
+            if index == 0:
+                if stand is not None or ende or not self._darf_schreiben():
+                    raise ValueError
+
+                def ablaufen():
+                    stand = self._speicher_text_eingang
+                    if stand is not None and stand["id"] == kennung:
+                        self._speicher_text_eingang = None
+                        stand["text"].close()
+                    return False
+
+                stand = {"id": kennung, "index": 0, "bindung": bindung, "text": io.StringIO(),
+                         "timer": GLib.timeout_add_seconds(30, ablaufen)}
+                self._speicher_text_eingang = stand
+            if (stand is None or stand["id"] != kennung or stand["index"] != index or stand["bindung"] != bindung):
+                raise ValueError
+            text = text.to_string()
+            if not 0 < len(text) <= 4 * 1024 * 1024 or index == 127 and not ende:
+                raise ValueError
+            stand["text"].write(text)
+            stand["index"] += 1
+            if ende:
+                if not self._darf_schreiben():
+                    raise ValueError
+                klartext = stand["text"].getvalue()
+                self._speicher_text_verwerfen(kennung)
+                self._speicher_auftraege.put((kennung, klartext, None, None, None, None, bindung))
+            else:
+                self.antwort("App.speicherTextTeil", {"id": kennung, "index": index})
+        except (AttributeError, TypeError, ValueError):
+            self._speicher_text_verwerfen(kennung)
+            self.antwort("App.gespeichert", {"id": kennung, "ok": False,
+                                             "fehler": _("The save request is invalid.")})
+
     def bei_nachricht(self, inhalte, ergebnis=None):
         if not self._organizer_vertraut():
             return
@@ -23105,7 +23179,9 @@ class Fenster(_FENSTER_BASIS):
             else:
                 wert = ergebnis.get_js_value() if hasattr(ergebnis, "get_js_value") else ergebnis
                 if getattr(wert, "is_array", lambda: False)():
-                    if wert.object_get_property("length").to_int32() != 2:
+                    laenge = wert.object_get_property("length").to_int32()
+                    if laenge != 2:
+                        self._speicher_text_teil(wert, laenge)
                         return
                     kennung = wert.object_get_property_at_index(0)
                     text = wert.object_get_property_at_index(1)
@@ -24903,6 +24979,7 @@ class Fenster(_FENSTER_BASIS):
             native_writer_job = nachweise[1] if len(nachweise) > 1 else None
             contact_result = nachweise[2] if len(nachweise) > 2 else None
             notes_work = nachweise[3] if len(nachweise) > 3 else None
+            text_bindung = nachweise[4] if len(nachweise) > 4 else None
             from magnolie_contact_notes_ui import _SaveProof
             notes_completion = notes_work if type(notes_work) is _SaveProof else None
             self._speicher_laeuft = True
@@ -24925,6 +25002,9 @@ class Fenster(_FENSTER_BASIS):
                             getattr(self, "_ladefehler", "")):
                         raise RuntimeError(getattr(self, "_ladefehler", "") or _(
                             "Save rejected: The data is encrypted and has not been unlocked yet."))
+                    if text_bindung is not None and (self._operation_laeuft or
+                            text_bindung != self._speicher_text_buchbindung()):
+                        raise PermissionError(_("The save request is invalid."))
                     daten = json.loads(klartext)
                     if not isinstance(daten, dict):
                         raise ValueError(_("The data is not a JSON object."))
@@ -25452,6 +25532,7 @@ class Fenster(_FENSTER_BASIS):
         """Beim Start: Sind die Daten verschlüsselt, wird zuerst nach dem
         Kennwort gefragt."""
         start = time.monotonic()
+        self._speicher_text_verwerfen()
         self._kennwort = getattr(self, "_kennwort", "")
         self._gesperrt = True
         if (getattr(self, "_phone_screen_window", None) is not None or
@@ -25519,6 +25600,7 @@ class Fenster(_FENSTER_BASIS):
         Fenster._medien_papierkorb_aufbewahrung_laden(self)
         self.antwort("App.init", {"daten": daten, "neu": ist_neu,
                                   "speicherTextV1": not getattr(self, "_chromium", None),
+                                  "speicherTextV2": not getattr(self, "_chromium", None),
                                   "echterErststart": echter_erststart,
                                   "datenPfad": daten_datei(),
                                   "migriert": migriert,
@@ -25616,6 +25698,7 @@ class Fenster(_FENSTER_BASIS):
         self._erinnerungsprojektion_aktualisieren()
         self.antwort("App.init", {"daten": daten, "neu": False,
                                   "speicherTextV1": not getattr(self, "_chromium", None),
+                                  "speicherTextV2": not getattr(self, "_chromium", None),
                                   "datenPfad": daten_datei(),
                                   "kennwort": True,
                                   "handbuchInstalliert": handbuch_installiert(),

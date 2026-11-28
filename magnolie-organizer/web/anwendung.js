@@ -6793,6 +6793,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   let contributorPruefungLaeuft = false;
   let letzterSpeicherText = null;
   let speicherTextV1 = false;
+  let speicherTextV2 = false;
+  const SPEICHER_TEXT_TEIL = 4 * 1024 * 1024;
+  const SPEICHER_TEXT_MAX = 127 * SPEICHER_TEXT_TEIL; // Leave one slot for surrogate boundaries.
   let notesOriginalGeladenText = null; // Loaded model only, NEVER a native saved witness.
   let letzterSpeicherSha256 = "", baumSpeicherNachweis = null;
   let naechsteSpeicherId = 1;
@@ -6884,7 +6887,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       // quote in a second JSON document. Bound saves keep the full envelope.
       const grosseTextnachricht = speicherTextV1 && auftrag.text.length >= 8 * 1024 * 1024 &&
         !nachricht.baumSyncLauf && !("kontaktOriginalLauf" in nachricht);
-      if (!(grosseTextnachricht ? Bruecke.sende([id, auftrag.text], true) : Bruecke.sende(nachricht))) {
+      if (grosseTextnachricht && speicherTextV2 && auftrag.text.length <= SPEICHER_TEXT_MAX) {
+        auftrag.textTeile = { offset: 0, index: 0 };
+        sendeSpeicherTextTeil(auftrag);
+      } else if (!(grosseTextnachricht ? Bruecke.sende([id, auftrag.text], true) : Bruecke.sende(nachricht))) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -6902,6 +6908,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     if (beendenGewuenscht && Bruecke.vorhanden && !laufenderSpeicher && wartenderSpeicherText === null) {
       Bruecke.sende({ cmd: "beenden_bereit" });
+    }
+  }
+
+  function sendeSpeicherTextTeil(auftrag) {
+    const teil = auftrag.textTeile;
+    let ende = Math.min(teil.offset + SPEICHER_TEXT_TEIL, auftrag.text.length);
+    const zeichen = auftrag.text.charCodeAt(ende - 1);
+    if (ende < auftrag.text.length && zeichen >= 0xd800 && zeichen <= 0xdbff) ende--;
+    const text = auftrag.text.slice(teil.offset, ende);
+    teil.offset = ende;
+    if (!Bruecke.sende([auftrag.id, teil.index++, text, ende === auftrag.text.length], true)) {
+      App.gespeichert({ id: auftrag.id, ok: false });
     }
   }
 
@@ -7088,6 +7106,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
     speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
     ausstehenderNotizSnapshot = null;
+    if (laufenderSpeicher?.textTeile) Bruecke.sende([laufenderSpeicher.id], true);
     laufenderSpeicher = null; wartenderSpeicherText = null;
     beendenGewuenscht = false; ausstehendeAdressbuchBaseline = null;
     beendeSpeicherAktionen(_("Restore"));
@@ -36534,6 +36553,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const startPhase = performance.now();
       nutzlast = nutzlast || {};
       speicherTextV1 = nutzlast.speicherTextV1 === true;
+      speicherTextV2 = nutzlast.speicherTextV2 === true;
       antwortErhalten = true;
       contributorAktiv = nutzlast.contributorAktiv === true;
       handbuchInstalliert = !!nutzlast.handbuchInstalliert;
@@ -38359,12 +38379,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
     notesSetupVorbereiten(nutzlast) { empfangeNotesSetupVorbereiten(nutzlast); },
+    speicherTextTeil(nutzlast) {
+      const auftrag = laufenderSpeicher, teil = auftrag?.textTeile;
+      if (teil && nutzlast?.id === auftrag.id && nutzlast.index === teil.index - 1 &&
+          teil.offset < auftrag.text.length && !gesperrt) sendeSpeicherTextTeil(auftrag);
+    },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};
       if (Bruecke.vorhanden && (!laufenderSpeicher || !Number.isSafeInteger(ergebnis.id) ||
           ergebnis.id !== laufenderSpeicher.id)) return;
       const erledigt = laufenderSpeicher;
+      if (erledigt?.textTeile && ergebnis.ok !== true) Bruecke.sende([erledigt.id], true);
       const originalKontaktNachweis = originalKontaktSpeicher?.text === erledigt?.text ? originalKontaktSpeicher : null;
       clearTimeout(speicherAntwortTimer);
       speicherAntwortTimer = null;

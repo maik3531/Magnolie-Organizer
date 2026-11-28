@@ -528,9 +528,15 @@ aufgeführt.
   Schreibvorgängen und unnötige Wiederherstellungs-Fingerprints.
   Mit 10.000 Einträgen je Bereich bestand die native Linux-Vollfolge:
   bereit in 4,29 s, Notizsuche in 153 ms und Speicherung in 2,14 s
-  mit erneuter Dateiprüfung. Bei 50.000 je Bereich erreicht der zweite
-  Vollbuchtransfer weiterhin 5 GiB vor seiner Speicherbestätigung.
-  Begrenzte Übertragung sowie Windows, N100 und 30 Tray-Tage bleiben offen.
+  mit erneuter Dateiprüfung. Große gewöhnliche GTK-Schreibvorgänge
+  übertragen den Buchtext in bestätigten Abschnitten und bilden den
+  unveränderten kanonischen Buchhash ohne zweite vollständige Textkopie.
+  Mit 50.000 Einträgen je Bereich bestand die Linux-Vollfolge unter
+  2 CPU/5 GiB ohne Swap: bereit in 6,63 s, Scrollen in 107 ms,
+  Notizsuche in 518 ms, Speicherung und erneute Dateiprüfung in 18,70 s.
+  Der längste Bildabstand beim Speichern betrug 1,56 s. Weitere
+  Reaktionszeitverbesserungen sowie Windows, N100 und 30 Tray-Tage
+  bleiben offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige
   Buchsortierungen und die unbenutzte Kontaktsuche bei expliziter Auswahl.

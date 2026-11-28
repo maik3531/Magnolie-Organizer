@@ -35,7 +35,28 @@ def parse_book(raw):
 
 
 def book_hash(value):
-    return hashlib.sha256(canonical_book(value)).hexdigest()
+    if (type(value) is not dict or not all(type(key) is str for key in value) or
+            not any(type(field) is list and len(field) > 512 for field in value.values())):
+        return hashlib.sha256(canonical_book(value)).hexdigest()
+    # Keep the canonical bytes, but avoid materializing the complete sorted
+    # book and a second full UTF-8 copy alongside the live model.
+    digest = hashlib.sha256(b'{')
+    for index, (key, field) in enumerate(sorted(value.items())):
+        if index:
+            digest.update(b',')
+        digest.update(canonical_book(key))
+        digest.update(b':')
+        if type(field) is list and len(field) > 512:
+            digest.update(b'[')
+            for start in range(0, len(field), 512):
+                if start:
+                    digest.update(b',')
+                digest.update(memoryview(canonical_book(field[start:start + 512]))[1:-1])
+            digest.update(b']')
+        else:
+            digest.update(canonical_book(field))
+    digest.update(b'}')
+    return digest.hexdigest()
 
 
 def same_book(left, right):

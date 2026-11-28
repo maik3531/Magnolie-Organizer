@@ -1,4 +1,5 @@
 """Finite local book numbers never relax the telephone wire format (Refs #761)."""
+import hashlib
 from pathlib import Path
 import sys
 
@@ -47,3 +48,12 @@ def test_integer_book_hash_remains_wire_compatible_but_fractions_remain_forbidde
     assert same_book(decimal_book,parse_book(canonical_book(decimal_book)))
     with pytest.raises(ValueError,match='unsupported canonical JSON value'):canonical(decimal_book)
     with pytest.raises(ValueError,match='fractions are forbidden'):strict_json(canonical_book(decimal_book))
+
+
+def test_large_book_hash_preserves_the_canonical_bytes():
+    book = {"z": {"list": [], "name": "Straße"}, "ä": [None], "n": False,
+            "rows": [{"text": "日本語 🌺", "value": index / 10, "blank": []} for index in range(1025)]}
+    assert book_hash(book) == hashlib.sha256(canonical_book(book)).hexdigest()
+    book["rows"][513]["value"] = float("inf")
+    with pytest.raises(ValueError):
+        book_hash(book)
