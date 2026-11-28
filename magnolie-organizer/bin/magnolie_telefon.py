@@ -66,6 +66,9 @@ CAPABILITY_REASONS = {"available", "not_implemented", "no_hardware", "disabled",
                       "permission_missing", "os_restricted"}
 ACK_ERRORS = phone_ack_contract.ERRORS
 RETRY_MS = (1000, 2000, 5000, 10000, 30000, 60000)
+OUTBOX_PRIORITY_KINDS = ("capabilities.update", "grants.update", "personal_sync.settings",
+                         "personal_sync.note_settings", "personal_sync.desktop_features",
+                         "personal_sync.custom_settings")
 BLUETOOTH_FALLBACK_SECONDS = 15
 BLUETOOTH_RETRY_SECONDS = 60
 PERSONAL_COMMIT_SECONDS = 30
@@ -1314,25 +1317,39 @@ class PhoneStore:
         return [item[0] for item in prepared]
 
     def pending(self, peer_id, transport="wifi", *, connection_authority=None):
+        messages, _ = self.pump_window(peer_id, transport, connection_authority=connection_authority)
+        return messages
+
+    def pump_window(self, peer_id, transport, after=None, *, connection_authority=None):
+        """Read one bounded page without moving the original reader's position."""
         if transport not in {"wifi", "bluetooth"}:
             raise ValueError("invalid current transport")
         now = now_ms()
+        priority = ",".join("?" for _ in OUTBOX_PRIORITY_KINDS)
+        query = ("SELECT rowid,message_id,payload,kind,created_ms FROM outbox WHERE peer_id=? AND "
+                 "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' "
+                 "OR (transport_policy='wifi_only' AND ?='wifi') OR transport_policy GLOB ?) ")
+        arguments = [peer_id, now, now, transport,
+                     f"connection_only:{connection_authority}:*" if connection_authority else None]
+        if after is not None:
+            query += "AND (kind IN (" + priority + ") OR (created_ms,rowid)>(?,?)) "
+            arguments.extend((*OUTBOX_PRIORITY_KINDS, *after))
+        query += "ORDER BY CASE WHEN kind IN (" + priority + ") THEN 0 ELSE 1 END,created_ms,rowid LIMIT 32"
+        arguments.extend(OUTBOX_PRIORITY_KINDS)
         with sqlite3.connect(self.database_path) as db:
-            rows = db.execute("SELECT message_id,payload,kind FROM outbox WHERE peer_id=? AND "
-                              "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' "
-                              "OR (transport_policy='wifi_only' AND ?='wifi') OR transport_policy GLOB ?) "
-                              "ORDER BY CASE WHEN kind IN ('capabilities.update','grants.update','personal_sync.settings',"
-                              "'personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings') THEN 0 ELSE 1 END,"
-                              "created_ms,rowid LIMIT 32",
-                              (peer_id, now, now, transport,
-                               f"connection_only:{connection_authority}:*" if connection_authority else None)).fetchall()
-        result = []
-        for message_id, payload, kind in rows:
+            rows = db.execute(query, arguments).fetchall()
+        messages, last_data, actors_only = [], None, True
+        for row_id, message_id, payload, kind, created in rows:
             message = strict_json(self._decrypt(payload, "outbox", message_id))
-            if message.get("kind") == personal_actor_contract.DATA_KIND and personal_actor_contract.unwrap(message["body"])[0] != kind:
+            is_actor = message.get("kind") == personal_actor_contract.DATA_KIND
+            if is_actor and personal_actor_contract.unwrap(message["body"])[0] != kind:
                 raise ValueError("Actor wire/semantic outbox identity mismatch")
-            result.append(message)
-        return result
+            if kind not in OUTBOX_PRIORITY_KINDS:
+                last_data = (created, row_id)
+                actors_only = actors_only and is_actor
+            messages.append(message)
+        advance = last_data if len(rows) == 32 and actors_only else None
+        return messages, advance
 
     def mark_attempt(self, peer_id, message_id):
         with sqlite3.connect(self.database_path) as db:
@@ -3401,6 +3418,7 @@ class PhoneService:
         self.native_actor_producer_book = None
         self._personal_actor_registry = None
         self.personal_actor_admissions = {}
+        self._outbox_actor_windows = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
         self.contact_group_preparations = {}
@@ -9172,6 +9190,33 @@ class PhoneService:
                 self.request_end_call(peer_id, call_ref, revision, command_ref)
             return True
 
+    def _pump_pending(self, channel, peer_id, transport, *, connection_authority=None):
+        def has_owner():
+            return any(value.get("peer") == peer_id and value.get("channel") is channel
+                       for value in self.personal_actor_admissions.values())
+
+        with self.lock:
+            old = self._outbox_actor_windows.get(channel)
+            after = old[2] if old is not None and old[:2] == (peer_id, transport) else None
+            if connection_authority is not None or has_owner():
+                after = None  # Protected runs keep their original head selection.
+        messages, advance = self.store.pump_window(peer_id, transport, after, connection_authority=connection_authority)
+        for message in messages:
+            if message.get("kind") == personal_actor_contract.DATA_KIND:
+                # A new owner may appear after the read. Never send an actor
+                # from an advanced page before its head messages.
+                if after is not None:
+                    continue
+                if self._send_message(channel, peer_id, message):
+                    advance = None
+            else:
+                self._send_message(channel, peer_id, message)
+        with self.lock:
+            if advance is None or connection_authority is not None or has_owner():
+                self._outbox_actor_windows.pop(channel, None)
+            else:
+                self._outbox_actor_windows[channel] = (peer_id, transport, advance)
+
     def _send_message(self, channel, peer_id, message):
         if is_reserved_ephemeral_phone_control(message):
             return False
@@ -10173,8 +10218,7 @@ class PhoneService:
                             authority = self._connection_automation_authority(peer, channel)
                         except PermissionError:
                             authority = None
-                    for message in self.store.pending(peer["device_id"], transport, connection_authority=authority):
-                        self._send_message(channel, peer["device_id"], message)
+                    self._pump_pending(channel, peer["device_id"], transport, connection_authority=authority)
         finally:
             self._signal_native_webcam_retire(channel)
             self._signal_native_screen_retire(channel)

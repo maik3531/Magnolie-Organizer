@@ -2665,9 +2665,13 @@ internal sealed partial class TelefonConnection : IDisposable
             await offer(originalOffer);
     }
 
+    private TelefonOutboxCursor? outboxActorWindow;
+
     private async Task PumpOutboxUnderNotePolicyAsync()
     {
-        var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
+        var now = Now();
+        var window = store.PumpWindow(peer.Id, now, transport, outboxActorWindow);
+        foreach (var item in window.Messages)
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
             if (PhoneCameraControl.IsReserved(kind, body)) continue;
@@ -2750,6 +2754,8 @@ internal sealed partial class TelefonConnection : IDisposable
             else await SendScopedOrPlainAsync(item.Message);
             store.MarkAttempt(item.Id, item.Attempts, now);
         }
+        // Only the ordinary sender advances across held actor pages.
+        outboxActorWindow = window.Advance;
     }
     private static void ValidateControlUuidAndTime(JsonObject value)
     { if (!TelefonProtocolContract.IsUuidV4(value["ping_id"]?.GetValue<string>()) || !TelefonProtocolContract.TryInteger(value["sent_ms"], out var sent) || sent is < 0 or > 253402300799999) throw new InvalidDataException("Ungültiger Heartbeat."); }

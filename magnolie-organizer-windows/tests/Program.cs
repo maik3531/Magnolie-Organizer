@@ -312,6 +312,7 @@ runner.Add("Notes actor post-data review / separate SaveACK claim / native hando
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
 runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorStoreTests.RunAsync);
+runner.Add("Phone outbox actor fairness / bounded connection windows", TelefonOutboxFairnessTests.RunAsync);
 runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
 runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);
 runner.Add("Notes actor native book / lifecycle ownership fence", NativeBookOwnerScopeTests.RunAsync);

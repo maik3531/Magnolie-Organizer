@@ -37,6 +37,13 @@ aufgeführt.
   Bestätigung vor dem Versand ungültig, kann dieselbe Verbindung keinen
   zweiten Start annehmen. Folgeframes brauchen weiterhin die gesendete
   Bestätigung. Sieben native Testgruppen und der WinForms-Bau bestanden.
+  Linux und Windows erreichen gewöhnlichen Telefonverkehr hinter
+  gehaltenen Actor-Nachrichten in begrenzten Postfachfenstern. Priorisierte
+  Steuerdaten und die Sendereihenfolge autorisierter Läufe bleiben erhalten.
+  Beim Kontrollauftrag hinter 65 gehaltenen Nachrichten wurde keine davon
+  gesendet oder verändert. 132 Linux-Hostfälle bestanden; 19 bereits auf der
+  Basis rote Fälle sind in #870 und #871 erfasst. Zwölf native Windows-
+  Testgruppen und der reguläre WinForms-Bau bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte

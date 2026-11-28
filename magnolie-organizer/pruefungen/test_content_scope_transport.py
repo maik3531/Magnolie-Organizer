@@ -201,9 +201,17 @@ def test_grouped_connection_start_waits_for_original_request_ack(tmp_path, monke
     assert service.store.outbox_message(peer_id, start["message_id"]) is not None
 
     service.connections[peer_id] = reader
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("UPDATE outbox SET next_attempt_ms=0 WHERE message_id=?", (start["message_id"],))
+    service._outbox_actor_windows[reader] = (peer_id, "bluetooth", (start["created_ms"] + 1, 0))
+    service._pump_pending(reader, peer_id, "bluetooth",
+                          connection_authority=service._connection_automation_authority(peer, reader))
+    assert frames(reader) == [start, start] and reader not in service._outbox_actor_windows
+
     service._payload(peer, reader, ack("accepted", "none"))
-    sent_request, sent_batch = frames(reader)
+    sent_request, sent_retry, sent_batch = frames(reader)
     assert sent_request == start
+    assert sent_retry == start
     assert sent_batch["body"] == scope.wrap("personal_sync.batch", batch, manifest)
 
 

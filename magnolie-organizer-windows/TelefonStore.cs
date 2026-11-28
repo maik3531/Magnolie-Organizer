@@ -854,22 +854,49 @@ internal sealed partial class TelefonStore
     }
 
     internal IReadOnlyList<TelefonQueuedMessage> Due(string peerId, long now, int maximum = 32, string transport = "wifi")
+        => ReadDue(peerId, now, maximum, transport, null, boundedWindow: false).Messages;
+
+    internal TelefonOutboxWindow PumpWindow(string peerId, long now, string transport, TelefonOutboxCursor? after)
+        => ReadDue(peerId, now, 32, transport, after, boundedWindow: true);
+
+    private TelefonOutboxWindow ReadDue(string peerId, long now, int maximum, string transport,
+        TelefonOutboxCursor? after, bool boundedWindow)
     {
-        if (RestoreFenced) return [];
+        if (RestoreFenced) return new([], null);
         var result = new List<TelefonQueuedMessage>();
+        TelefonOutboxCursor? lastData = null;
+        var actorsOnly = true;
+        var hasActor = false;
+        var fullWindow = false;
         lock (gate)
         {
-            if (RestoreFenced) return [];
+            if (RestoreFenced) return new([], null);
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR (transport_policy='wifi_only' AND $transport='wifi')) ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
+            const string priorityKinds = "'capabilities.update','grants.update','personal_sync.settings','personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings'";
+            command.Transaction = transaction;
+            command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy,created_ms,rowid FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR (transport_policy='wifi_only' AND $transport='wifi'))";
+            if (after is not null)
+            {
+                command.CommandText += $" AND (kind IN ({priorityKinds}) OR (created_ms,rowid)>($afterCreated,$afterRow))";
+                command.Parameters.AddWithValue("$afterCreated", after.CreatedMs);
+                command.Parameters.AddWithValue("$afterRow", after.RowId);
+            }
+            command.CommandText += " ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
+            if (boundedWindow) command.CommandText += " LIMIT 32";
             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
-            var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
-            using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));
+            var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy, long CreatedMs, long RowId)>();
+            using (var reader = command.ExecuteReader()) while (reader.Read())
+                queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4),
+                    reader.GetInt64(5), reader.GetInt64(6)));
+            fullWindow = boundedWindow && queued.Count == 32;
             var limit = Math.Clamp(maximum, 1, 32); var purgedRuns = new HashSet<string>(StringComparer.Ordinal);
             foreach (var item in queued)
             {
                 if (result.Count == limit) break;
+                var priority = item.Kind is "capabilities.update" or "grants.update" or "personal_sync.settings" or
+                    "personal_sync.note_settings" or "personal_sync.desktop_features" or "personal_sync.custom_settings";
+                if (!priority) lastData = new(item.CreatedMs, item.RowId);
                 JsonObject message;
                 try
                 {
@@ -879,6 +906,8 @@ internal sealed partial class TelefonStore
                         throw new InvalidDataException("Actor wire/semantic outbox identity mismatch.");
                 }
                 catch (Exception) when (TelefonProtocolContract.PersonalKinds.Contains(item.Kind)) { DeleteOutbox(connection, transaction, peerId, item.Id); continue; }
+                var actor = message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind;
+                if (!priority && actor) hasActor = true;
                 if (item.Kind == "personal_sync.deletion_proposals" && ActorProducerWaitingForRun(connection, transaction, message, now)) continue;
                 if (item.Kind != "personal_sync.settings" && TelefonProtocolContract.PersonalKinds.Contains(item.Kind) &&
                     message["body"]?["run_id"]?.GetValue<string>() is string runId &&
@@ -888,11 +917,14 @@ internal sealed partial class TelefonStore
                     if (purgedRuns.Add(runId)) PurgePersonalRun(connection, transaction, peerId, runId);
                     continue;
                 }
+                if (!priority && !actor) actorsOnly = false;
                 result.Add(new TelefonQueuedMessage(item.Id, message, item.Attempts, item.Policy));
             }
             transaction.Commit();
         }
-        return result;
+        // A full raw page can contain filtered producers or deleted invalid rows.
+        // They must not pin the ordinary pump behind otherwise held actors.
+        return new(result, fullWindow && hasActor && actorsOnly ? lastData : null);
     }
 
     internal void MarkAttempt(string messageId, int previousAttempts, long now, string error = "")
@@ -1440,4 +1472,6 @@ internal sealed record TelefonPeer(string Id, string Name, byte[] PublicKey, str
     internal JsonObject Grants { get; init; } = StoredGrants ?? TelefonProtocolContract.DesktopGrants();
 }
 internal sealed record TelefonQueuedMessage(string Id, JsonObject Message, int Attempts, string TransportPolicy = "any");
+internal sealed record TelefonOutboxCursor(long CreatedMs, long RowId);
+internal sealed record TelefonOutboxWindow(IReadOnlyList<TelefonQueuedMessage> Messages, TelefonOutboxCursor? Advance);
 internal sealed record TelefonAck(string MessageId, string Status, string Error, bool Process = false);
