@@ -1,0 +1,208 @@
+diff --git a/magnolie-organizer-windows/PersonalSyncStore.cs b/magnolie-organizer-windows/PersonalSyncStore.cs
+--- a/magnolie-organizer-windows/PersonalSyncStore.cs
++++ b/magnolie-organizer-windows/PersonalSyncStore.cs
+@@ -15,19 +15,20 @@
+     private const int MaximumAttachmentsPerRun = 64;
+     private const int MaximumChunkRows = 4096;
+ 
+-    internal void RememberRun(string peerId, JsonObject request, long now, long? claimedExpiresMs = null)
+-    {
+-        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+-        PersonalSyncContract.ValidateBody("personal_sync.request", request); var runId = request["run_id"]!.GetValue<string>();
+-        var expires = Math.Min(checked(now + RunLifetimeMs), claimedExpiresMs ?? long.MaxValue);
+-        if (expires <= now) throw new InvalidDataException("Personal-Sync-Lauf ist abgelaufen.");
+-        var key = RunKey(peerId, runId); var existing = ReadMeta(key, "personal_run");
+-        if (existing is not null)
+-        {
+-            if (!JsonNode.DeepEquals(existing["body"], request) || claimedExpiresMs > existing["expires_ms"]?.GetValue<long>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
+-            return;
+-        }
+-        WriteMeta(key, "personal_run", new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = expires }, false);
++    internal void RememberRun(string peerId, JsonObject request, long now, long? claimedExpiresMs = null,
++        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
++    {
++        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
++        PersonalSyncContract.ValidateBody("personal_sync.request", request); var runId = request["run_id"]!.GetValue<string>();
++        var expires = Math.Min(checked(now + RunLifetimeMs), claimedExpiresMs ?? long.MaxValue);
++        if (expires <= now) throw new InvalidDataException("Personal-Sync-Lauf ist abgelaufen.");
++        var key = RunKey(peerId, runId); var existing = ReadMeta(key, "personal_run", context);
++        if (existing is not null)
++        {
++            if (!JsonNode.DeepEquals(existing["body"], request) || claimedExpiresMs > existing["expires_ms"]?.GetValue<long>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
++            return;
++        }
++        WriteMeta(key, "personal_run", new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = expires }, false, context);
+     }
+ 
+     internal PersonalSyncRun? LoadRun(string peerId, string runId, long now)
+@@ -493,7 +494,16 @@
+         return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "", format);
+     }
+ 
+-    private JsonObject? ReadMeta(string key, string type) { using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT value FROM meta WHERE key=$key"; command.Parameters.AddWithValue("$key", key); return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null; }
++    private JsonObject? ReadMeta(string key, string type, (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
++    {
++        using var owned = context is null ? store.OpenDatabase() : null;
++        owned?.Open();
++        using var command = (context?.Connection ?? owned!).CreateCommand();
++        command.Transaction = context?.Transaction;
++        command.CommandText = "SELECT value FROM meta WHERE key=$key";
++        command.Parameters.AddWithValue("$key", key);
++        return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null;
++    }
+     private JsonObject LoadAttachmentMetadata(string peerId, string runId, bool reply, string recordsHash, string hash, string direction, long now)
+     {
+         using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT size,mime,transport_policy,expires_ms,complete,metadata FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction"; Parameters(command, peerId, runId, reply); command.Parameters.AddWithValue("$records", recordsHash); command.Parameters.AddWithValue("$hash", hash); command.Parameters.AddWithValue("$direction", direction); using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidDataException("Attachment-Manifest fehlt.");
+@@ -501,7 +511,18 @@
+         if (metadata["peer_id"]?.GetValue<string>() != peerId || metadata["run_id"]?.GetValue<string>() != runId || metadata["reply"]?.GetValue<bool>() != reply || metadata["records_hash"]?.GetValue<string>() != recordsHash || metadata["sha256"]?.GetValue<string>() != hash || metadata["direction"]?.GetValue<string>() != direction || metadata["size"]?.GetValue<long>() != reader.GetInt64(0) || metadata["mime"]?.GetValue<string>() != reader.GetString(1) || metadata["transport_policy"]?.GetValue<string>() != reader.GetString(2) || metadata["expires_ms"]?.GetValue<long>() != reader.GetInt64(3) || metadata["complete"]?.GetValue<bool>() != reader.GetBoolean(4) || reader.GetInt64(3) <= now) throw new InvalidDataException("Unauthentisierte oder abgelaufene Attachment-Metadaten.");
+         return metadata;
+     }
+-    private void WriteMeta(string key, string type, JsonObject value, bool replace) { using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = $"INSERT OR {(replace ? "REPLACE" : "IGNORE")} INTO meta(key,value) VALUES($key,$value)"; command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", store.Seal(type, key, TelefonCrypto.Canonical(value))); command.ExecuteNonQuery(); }
++    private void WriteMeta(string key, string type, JsonObject value, bool replace,
++        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
++    {
++        using var owned = context is null ? store.OpenDatabase() : null;
++        owned?.Open();
++        using var command = (context?.Connection ?? owned!).CreateCommand();
++        command.Transaction = context?.Transaction;
++        command.CommandText = $"INSERT OR {(replace ? "REPLACE" : "IGNORE")} INTO meta(key,value) VALUES($key,$value)";
++        command.Parameters.AddWithValue("$key", key);
++        command.Parameters.AddWithValue("$value", store.Seal(type, key, TelefonCrypto.Canonical(value)));
++        command.ExecuteNonQuery();
++    }
+     private void WriteApplied(SqliteConnection connection, SqliteTransaction transaction, string peerId, string runId, bool reply, string token, long now) { var key = $"personal_applied:{peerId}:{runId}:{(reply ? 1 : 0)}"; var value = store.Seal("personal_applied", key, TelefonCrypto.Canonical(new JsonObject { ["commit_token"] = token, ["applied_ms"] = now })); using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = "INSERT OR REPLACE INTO meta VALUES($key,$value)"; command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", value); command.ExecuteNonQuery(); }
+     private void EnsureAttachmentCapacity(SqliteConnection connection, SqliteTransaction transaction, string peerId, string runId, bool reply, string recordsHash, string hash, string direction, bool transferExists, IReadOnlyList<(int Index, byte[] Payload)> chunks)
+     {
+diff --git a/magnolie-organizer-windows/TelefonStore.cs b/magnolie-organizer-windows/TelefonStore.cs
+--- a/magnolie-organizer-windows/TelefonStore.cs
++++ b/magnolie-organizer-windows/TelefonStore.cs
+@@ -760,8 +760,20 @@
+         }
+     }
+ 
+-    internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any", string? actorRunId = null)
+-    {
++    internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any", string? actorRunId = null)
++        => EnqueueCore(peerId, kind, body, ttlMs, now, transportPolicy, actorRunId, false);
++
++    internal string EnqueueInitialAutoRequest(string peerId, JsonObject body, long ttlMs, long now)
++    {
++        PersonalSyncContract.ValidateBody("personal_sync.request", body);
++        if (body["trigger"]!.GetValue<string>() != "auto_wifi" || body["format"]!.GetValue<int>() is not (1 or 2))
++            throw new InvalidDataException("Invalid legacy automatic request.");
++        return EnqueueCore(peerId, "personal_sync.request", body, ttlMs, now, "wifi_only", null, true);
++    }
++
++    private string EnqueueCore(string peerId, string kind, JsonObject body, long ttlMs, long now,
++        string transportPolicy, string? actorRunId, bool rememberInitialAutoRun)
++    {
+         if (PhoneCameraControl.IsReserved(kind, body)) throw new InvalidDataException("webcam_ephemeral_control_required");
+         if (PhoneScreenControl.IsReserved(kind, body)) throw new InvalidDataException("screen_ephemeral_control_required");
+         if (kind.StartsWith("device_status.", StringComparison.Ordinal) && (body.ContainsKey("identifiers") || TelefonProtocolContract.TryInteger(body["version"], out var statusVersion) && statusVersion == 4))
+@@ -779,8 +791,10 @@
+         {
+             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+-            if (kind == "personal_sync.deletion_proposals")
+-                RememberPersonalProposalKinds(connection, transaction,
++            if (rememberInitialAutoRun)
++                new PersonalSyncStore(this).RememberRun(peerId, body, now, context: (connection, transaction));
++            if (kind == "personal_sync.deletion_proposals")
++                RememberPersonalProposalKinds(connection, transaction,
+                     actorRunId is null ? peerId : PersonalSyncActorContract.StoragePeer(actorRunId), body, true, now);
+             if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind or SharedSyncSettings.Kind or MediaSyncSettings.Kind)
+             {
+diff --git a/magnolie-organizer-windows/TelefonCoordinator.cs b/magnolie-organizer-windows/TelefonCoordinator.cs
+--- a/magnolie-organizer-windows/TelefonCoordinator.cs
++++ b/magnolie-organizer-windows/TelefonCoordinator.cs
+@@ -944,9 +944,16 @@
+         if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
+         if (kind == "personal_sync.batch") PersonalSyncContract.ValidateSelectedRecords(run!.Request, body["records"]!.AsArray().OfType<JsonObject>());
+         string policy;
+-        if (kind == "personal_sync.request") { personalSync.RememberRun(id, body, now); policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any"; }
+-        else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
+-        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection); var ttl = kind == "personal_sync.request" ? 3_600_000 : 86_400_000; var messageId = store.Enqueue(id, kind, body, ttl, now, policy);
++        var initialLegacyAuto = kind == "personal_sync.request" &&
++            body["trigger"]?.GetValue<string>() == "auto_wifi" && body["format"]!.GetValue<int>() is (1 or 2);
++        if (kind == "personal_sync.request")
++        {
++            if (!initialLegacyAuto) personalSync.RememberRun(id, body, now);
++            policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any";
++        }
++        else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
++        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection); var ttl = kind == "personal_sync.request" ? 3_600_000 : 86_400_000;
++        var messageId = initialLegacyAuto ? store.EnqueueInitialAutoRequest(id, body, ttl, now) : store.Enqueue(id, kind, body, ttl, now, policy);
+         if (connection is not null) await connection.PumpOutboxNowAsync(); return messageId;
+     }
+ 
+diff --git a/magnolie-organizer-windows/tests/PersonalSyncTests.cs b/magnolie-organizer-windows/tests/PersonalSyncTests.cs
+--- a/magnolie-organizer-windows/tests/PersonalSyncTests.cs
++++ b/magnolie-organizer-windows/tests/PersonalSyncTests.cs
+@@ -6,8 +6,52 @@
+ 
+ internal static class PersonalSyncTests
+ {
+-    internal static async Task RunAsync()
+-    {
++    internal static Task AtomicInitialAutoRequestAsync()
++    {
++        var root = Path.Combine(Path.GetTempPath(), "magnolie-atomic-auto-request-" + Guid.NewGuid().ToString("N"));
++        var paths = new WindowsPaths(root);
++        var key = Enumerable.Repeat((byte)37, 32).ToArray();
++        var store = new TelefonStore(paths, key);
++        var personal = new PersonalSyncStore(store);
++        const string peer = "55555555-5555-4555-8555-555555555555";
++        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
++        using var pool = store.OpenDatabase();
++        try
++        {
++            foreach (var format in new[] { 1, 2 })
++            {
++                var run = Guid.NewGuid().ToString("D");
++                var request = new JsonObject { ["format"] = format, ["run_id"] = run, ["trigger"] = "auto_wifi", ["modules"] = new JsonArray("notes") };
++                using (var db = store.OpenDatabase())
++                {
++                    db.Open(); using var command = db.CreateCommand();
++                    command.CommandText = "CREATE TRIGGER reject_auto_request BEFORE INSERT ON outbox WHEN NEW.kind='personal_sync.request' BEGIN SELECT RAISE(ABORT,'injected'); END";
++                    command.ExecuteNonQuery();
++                }
++                TestAssert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => store.EnqueueInitialAutoRequest(peer, request, 3_600_000, now),
++                    "Injected request INSERT failure did not escape.");
++                var reopened = new TelefonStore(paths, key);
++                TestAssert.That(new PersonalSyncStore(reopened).LoadRun(peer, run, now) is null, "Failed request left persistent run metadata.");
++                using (var db = store.OpenDatabase())
++                {
++                    db.Open(); using var command = db.CreateCommand(); command.CommandText = "DROP TRIGGER reject_auto_request"; command.ExecuteNonQuery();
++                }
++                var messageId = store.EnqueueInitialAutoRequest(peer, request, 3_600_000, now);
++                TestAssert.That(personal.LoadRun(peer, run, now)?.Policy == "wifi_only", "Successful request missing run/policy.");
++                TestAssert.That(store.Due(peer, now, transport: "wifi").Any(row => row.Id == messageId) &&
++                    !store.Due(peer, now, transport: "bluetooth").Any(row => row.Id == messageId), "Legacy transport boundary changed.");
++            }
++        }
++        finally
++        {
++            Microsoft.Data.Sqlite.SqliteConnection.ClearPool(pool);
++            if (Directory.Exists(root)) Directory.Delete(root, true);
++        }
++        return Task.CompletedTask;
++    }
++
++    internal static async Task RunAsync()
++    {
+         PersonalCustomConsentTests.Run();
+         PersonalSyncModeTests.Run();
+         PersonalDesktopFeaturesTests.Run();
+diff --git a/magnolie-organizer-windows/tests/Program.cs b/magnolie-organizer-windows/tests/Program.cs
+--- a/magnolie-organizer-windows/tests/Program.cs
++++ b/magnolie-organizer-windows/tests/Program.cs
+@@ -261,7 +261,8 @@
+ runner.Add("Tray appearance / actual encrypted personal time actor IO", TraySyncActivityTests.WriterAsync);
+ runner.Add("Tray appearance / native visual lease and saved developer gate", TrayAppearanceTests.VisualLeaseAsync);
+ runner.Add("Tray appearance / actual KDE TLS without SMS", KdeConnectTests.TrayProjectionAsync);
+-runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
++runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
++runner.Add("Personal synchronization legacy initial request / atomic run registration", PersonalSyncTests.AtomicInitialAutoRequestAsync);
+ runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
+ runner.Add("Video preview container / bounded memory input refuses external references", DeviceFileVideoPreviewTests.ContainerAsync);
+ runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);

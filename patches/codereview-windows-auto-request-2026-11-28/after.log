@@ -1,0 +1,7 @@
+PASS capacity
+PASS insert_failure
+PASS retry
+PASS existing
+PASS conflict
+PASS success
+6/6 passed; SQLite 3.46.1; mode=after
