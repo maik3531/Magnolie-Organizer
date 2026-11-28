@@ -51,6 +51,8 @@ internal sealed record FirstRunSetupSelections
     public bool SchoolHolidays { get; init; }
     [JsonPropertyName("schoolHolidayRegion")]
     public string SchoolHolidayRegion { get; init; } = "";
+    [JsonPropertyName("schoolHolidayAreaExplicit")]
+    public bool SchoolHolidayAreaExplicit { get; init; }
     [JsonPropertyName("setupSkipped")]
     public bool SetupSkipped { get; init; }
     [JsonPropertyName("addressSort")]
@@ -182,13 +184,18 @@ internal static class FirstRunSetupSelectionNormalizer
                 BackupInterval = "manual"
             };
 
-        var holidayRegion = SchoolHolidayRegion(selections.Address.Country, selections.Address.State);
+        var areas = SchoolHolidayAreas(selections.Address.Country);
+        var explicitArea = selections.SchoolHolidayAreaExplicit &&
+            areas.Any(item => item.Code == selections.SchoolHolidayRegion);
+        var holidayRegion = explicitArea ? selections.SchoolHolidayRegion :
+            SchoolHolidayRegion(selections.Address.Country, selections.Address.State);
         var holidayConsent = selections.SchoolHolidays && holidayRegion.Length > 0 &&
             holidayRegion == selections.SchoolHolidayRegion;
         return selections with
         {
             SchoolHolidays = holidayConsent,
             SchoolHolidayRegion = holidayConsent ? holidayRegion : "",
+            SchoolHolidayAreaExplicit = holidayConsent && explicitArea,
             AddressSort = selections.AddressSort == "first-name" ? "first-name" : "last-name",
             OneTimeImports = Canonical(selections.OneTimeImports, ImportOrder),
             PhoneActions = [],
@@ -250,6 +257,16 @@ internal static class FirstRunSetupSelectionNormalizer
         var trimmed = (value ?? "").Trim();
         return trimmed[..Math.Min(trimmed.Length, 120)];
     }
+
+    internal static (string Code, string Name)[] SchoolHolidayAreas(string country) => Limited(country).ToUpperInvariant() switch
+    {
+        "BE" => [("BE-DE", "Deutschsprachige Gemeinschaft"), ("BE-FR", "Communauté française"), ("BE-NL", "Vlaamse Gemeenschap")],
+        "NL" => [("NL-NO", "Regio Noord"), ("NL-MI", "Regio Midden"), ("NL-ZU", "Regio Zuid")],
+        "FR" => [("FR-ZA", "Zone A"), ("FR-ZB", "Zone B"), ("FR-ZC", "Zone C"), ("FR-CO", "Corse"),
+            ("FR-GP", "Guadeloupe"), ("FR-GY", "Guyane"), ("FR-MQ", "Martinique"), ("FR-YT", "Mayotte"),
+            ("FR-RU", "La Réunion"), ("FR-BL", "Saint-Barthélemy"), ("FR-MF", "Saint-Martin"), ("FR-SP", "Saint-Pierre-et-Miquelon")],
+        _ => []
+    };
 
     internal static string SchoolHolidayRegion(string country, string region)
     {

@@ -31,8 +31,8 @@ aufgeführt.
   Gruppenidentität; lokale oder unvollständige Antworten bestätigen keine
   vollständige Abdeckung. Je 90 Gruppenfälle im Python- und C#-Host
   bestanden; bytegleiche Swift-/Kotlin-Nachweise: 98 und 112 Fälle.
-  Die reguläre Desktop-Auswahl und ihr Cachevertrag sind in #854 ergänzt;
-  die Auswahlschritte der Ersteinrichtung bleiben dort offen.
+  Die reguläre Desktop-Auswahl, ihr Cachevertrag und die getrennte
+  Schulgebietswahl im Desktop-Assistenten sind in #854 ergänzt.
   die native Paketabnahme bleibt in #113.
 
 - [#854](https://github.com/maik3531/Magnolie-Organizer/issues/854):
@@ -52,8 +52,12 @@ aufgeführt.
   94 Einrichtungs-DOM-Fälle in 20 Sprachen bestanden. Beide Desktopskripte
   verarbeiteten acht echte Anbieterantwortsätze (sechs Gruppen, beide
   Länder ohne Gruppenfilter). Die in den Adressschritt eingetragene
-  Region gilt dabei nicht als eigene Schulferienwahl. Ersteinrichtung,
-  Handbuch, Lückenanzeige und native Paketabnahme bleiben offen.
+  Region gilt dabei nicht als eigene Schulferienwahl. Der Desktop-Assistent
+  hat dafür eine separate, zunächst leere Auswahl. Land- oder Gebietswechsel
+  widerrufen die Zustimmung; der Abruf beginnt erst nach bestätigter
+  Speicherung. 106 Einrichtungs-DOM-Fälle, der native Windows-Bau mit
+  Kerngruppe sowie GTK- und WinForms-Dialogprüfungen in 20 Sprachen bestanden.
+  Handbuch, Lückenanzeige und installierte Paketabnahme bleiben offen.
 
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten

@@ -26364,8 +26364,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const vergleich = region.toLocaleLowerCase().trim();
     const aliasCode = land === "DE" && vergleich === "sachsen" ? "DE-SN" : "";
     const eigeneSchulferienwahl = schulferienOhneRegion(land);
-    const treffer = !eigeneSchulferienwahl && landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
-      [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
+    const treffer = landEintrag?.regionen.find(([code, name]) => eigeneSchulferienwahl
+      ? roh.schoolHolidayAreaExplicit === true && roh.schoolHolidayRegion === code
+      : code === aliasCode || [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
     const ferienZustimmung = roh.schoolHolidays === true && !!treffer &&
       roh.schoolHolidayRegion === treffer[0];
     if (land && (ortUebernehmen || ferienZustimmung)) {
@@ -26377,7 +26378,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         eigene.land = land;
       }
     }
-    if (!eigeneSchulferienwahl && (ortUebernehmen || ferienZustimmung)) {
+    if (ferienZustimmung || !eigeneSchulferienwahl && ortUebernehmen) {
       const fremdesLand = /^[A-Z]{2}-/i.test(region) && !region.toUpperCase().startsWith(land + "-");
       ort.region = treffer ? treffer[0] : fremdesLand ? "" : region.slice(0, 80);
       ort.regionName = treffer ? _(treffer[1]) : ort.region;

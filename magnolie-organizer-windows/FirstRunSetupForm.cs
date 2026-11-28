@@ -89,6 +89,7 @@ internal sealed class FirstRunSetupForm : Form
     private string region = "";
     private bool schoolHolidays;
     private string schoolHolidayRegion = "";
+    private string schoolHolidayAreaSelection = "";
     private string addressSort = "last-name";
     private bool customRegisterEnabled;
     private bool customTabChanged;
@@ -326,14 +327,18 @@ internal sealed class FirstRunSetupForm : Form
         var holidayUnavailable = Note(T("School holidays are not available for this region."));
         void UpdateSchoolHolidays()
         {
-            var selected = Regions.FirstOrDefault(item => item.Country == country && item.Code == region);
-            var code = selected?.Code ?? "";
+            var areas = FirstRunSetupSelectionNormalizer.SchoolHolidayAreas(country);
+            var area = areas.FirstOrDefault(item => item.Code == schoolHolidayAreaSelection);
+            var selected = areas.Length == 0
+                ? Regions.FirstOrDefault(item => item.Country == country && item.Code == region) : null;
+            var code = area.Code ?? selected?.Code ?? "";
+            var name = area.Name ?? (selected is null ? "" : T(selected.Name));
             if (schoolHolidayRegion != code) schoolHolidays = false;
             schoolHolidayRegion = code;
-            holidayCheck.Text = T("Show school holidays for %(state)s in the calendar?").Replace("%(state)s", selected is null ? "" : T(selected.Name));
+            holidayCheck.Text = T("Show school holidays for %(state)s in the calendar?").Replace("%(state)s", name);
             holidayCheck.Checked = schoolHolidays;
             holidayCheck.Visible = holidayNote.Visible = code.Length > 0;
-            holidayUnavailable.Visible = region.Length > 0 && code.Length == 0;
+            holidayUnavailable.Visible = areas.Length == 0 && region.Length > 0 && code.Length == 0;
         }
         holidayCheck.CheckedChanged += (_, _) => schoolHolidays = holidayCheck.Checked;
         UpdateSchoolHolidays();
@@ -358,7 +363,8 @@ internal sealed class FirstRunSetupForm : Form
         area.Controls.Add(ChoiceField(T("Country"), new[] { ("", T("None")) }.Concat(countryChoices.Select(item => (item.Code, T(item.Name)))),
             country, 280, value =>
             {
-                country = value;
+                 country = value;
+                 schoolHolidayAreaSelection = "";
                 if (!Regions.Any(item => item.Country == country && item.Code == region)) region = "";
                 UpdateSchoolHolidays();
                 addressSource = "own";
@@ -371,6 +377,14 @@ internal sealed class FirstRunSetupForm : Form
             new[] { ("", T("None")) }.Concat(regionChoices.Select(item => (item.Code, T(item.Name)))),
             region, 280, value => { region = value; addressSource = "own"; UpdateSchoolHolidays(); }));
         panel.Controls.Add(area);
+        var schoolAreas = FirstRunSetupSelectionNormalizer.SchoolHolidayAreas(country);
+        if (schoolAreas.Length > 0)
+        {
+            var schoolArea = ChoiceField(T("Country & holidays"), new[] { ("", T("None")) }.Concat(schoolAreas),
+                schoolHolidayAreaSelection, 330, value => { schoolHolidayAreaSelection = value; UpdateSchoolHolidays(); });
+            schoolArea.Name = "setup-school-holiday-area";
+            panel.Controls.Add(schoolArea);
+        }
         panel.Controls.Add(holidayCheck);
         panel.Controls.Add(holidayNote);
         panel.Controls.Add(holidayUnavailable);
@@ -965,6 +979,8 @@ internal sealed class FirstRunSetupForm : Form
             AddressChanged = addressSource != "later",
             SchoolHolidays = schoolHolidays,
             SchoolHolidayRegion = schoolHolidays ? schoolHolidayRegion : "",
+            SchoolHolidayAreaExplicit = schoolHolidays && schoolHolidayAreaSelection == schoolHolidayRegion &&
+                FirstRunSetupSelectionNormalizer.SchoolHolidayAreas(country).Any(item => item.Code == schoolHolidayRegion),
             AddressSort = addressSort,
             Address = new FirstRunSetupAddress { FirstName = firstName, LastName = lastName,
                 Street = street, PostalCode = postalCode, City = city, Country = country, State = region },

@@ -15,8 +15,8 @@ internal static class FirstRunSetupUiSelfTest
             VerifySkip(Path.Combine(root, "skip-native"));
             VerifyComplete(Path.Combine(root, "complete-native"));
             VerifyAutomaticPhoneServices(Path.Combine(root, "automatic-phone-services"));
-            VerifyOwnPhonePrompt(Path.Combine(root, "own-phone-prompt"));
             VerifyHolidayLanguages(Path.Combine(root, "holidays-native"));
+            VerifyOwnPhonePrompt(Path.Combine(root, "own-phone-prompt"));
             VerifyCountryFlags(Path.Combine(root, "country-flags-native"));
             VerifyQrLinks(Path.Combine(root, "qr-links-native"));
             Console.WriteLine("WINDOWS-FIRST-RUN-UI-OK");
@@ -387,11 +387,33 @@ internal static class FirstRunSetupUiSelfTest
             render.Invoke(form, null);
             Test(!Descendants(form).OfType<CheckBox>().Single(c => c.Name == "setup-school-holidays").Visible,
                 "A mismatched country must not offer holiday retrieval.");
+            if (language is "fr" or "be" or "nl")
+            {
+                var (territory, areaCode) = language switch { "fr" => ("FR", "FR-ZB"), "be" => ("BE", "BE-DE"), _ => ("NL", "NL-NO") };
+                SetField(form, "country", territory);
+                SetField(form, "region", areaCode);
+                render.Invoke(form, null);
+                CheckBox HolidayCheck() => Descendants(form).OfType<CheckBox>().Single(c => c.Name == "setup-school-holidays");
+                ComboBox SchoolArea() => Descendants(Descendants(form).Single(c => c.Name == "setup-school-holiday-area")).OfType<ComboBox>().Single();
+                Test(!HolidayCheck().Visible && SchoolArea().SelectedIndex == 0,
+                    "An address must not implicitly select a school area.");
+                var picker = SchoolArea();
+                var area = FirstRunSetupSelectionNormalizer.SchoolHolidayAreas(territory).Single(item => item.Code == areaCode);
+                picker.SelectedIndex = Enumerable.Range(1, picker.Items.Count - 1).Single(index => picker.GetItemText(picker.Items[index]) == area.Name);
+                Test(HolidayCheck().Visible && !HolidayCheck().Checked,
+                    "Selecting a school area must allow an explicit unchecked opt-in.");
+                HolidayCheck().Checked = true;
+                render.Invoke(form, null);
+                Test(HolidayCheck().Checked, "Re-rendering the same school area lost consent.");
+                SchoolArea().SelectedIndex = 0;
+                Test(!HolidayCheck().Checked && !HolidayCheck().Visible, "Clearing the school area must revoke consent.");
+            }
             form.Close();
             Console.WriteLine($"WINDOWS-FIRST-RUN-HOLIDAY-END {language} elapsedMs={elapsed.ElapsedMilliseconds}");
             Test(!JsonSerializer.Deserialize<FirstRunSetupMarker>(new AtomicStore().ReadRecoverableJson(paths.FirstRunSetup)!)!.Selections.SchoolHolidays,
                 "Closing native setup persisted staged consent.");
         }
+        Console.WriteLine("WINDOWS-FIRST-RUN-HOLIDAYS-OK");
     }
 
     private static IEnumerable<Control> Descendants(Control parent)

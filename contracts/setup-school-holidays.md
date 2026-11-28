@@ -10,7 +10,7 @@ Canonical implementations: `magnolie-organizer` (GTK/Python) and
 | Own address | Setup copied address/country; map action stayed at its global location default. | Setup defaults to Route only with usable address content, using `eigeneAnschriftTaugt` and excluding digits in names alone. Explicit existing map actions/providers are retained. |
 | Unedited address | A system country alone could replace an existing sender/country. | Country-only defaults do not replace an existing sender or imported country. |
 | Region choice | Setup stored the region; no school-holiday consent was passed. | Native checkbox names the selected localized region and starts unchecked. |
-| Consent | No setup-to-provider connection. | `schoolHolidays` plus `schoolHolidayRegion` bind explicit consent to a supported subdivision. Country/region changes revoke the staged choice; language-only redraws retain it. |
+| Consent | No setup-to-provider connection. | `schoolHolidays` plus `schoolHolidayRegion` bind explicit consent to an exact area. For France, Belgium and the Netherlands, `schoolHolidayAreaExplicit` records the independent selection. Changing country or selected area revokes consent; language-only redraws retain it. |
 | Finish | Address/settings handoff only. | Shared apply persists `einstellungen.ort.ferien` and `setupFerienAbruf`; after successful durable save, the existing `feiertage` bridge retrieves the current and following year. |
 | Cancel / Skip | Skip returned default selections without an explicit skip discriminator. | Cancel returns no selection; Skip sets `setupSkipped` and shared apply exits before changing address/map/holiday settings. Neither starts holiday retrieval. |
 | Response/restart | Existing dedicated holiday cache. | The same `DATEN.feiertage` cache is saved and normalized on restart. Success clears pending retrieval; offline failure retains it for the next startup. Stale country/region responses are discarded. |
@@ -74,13 +74,18 @@ installed packages remain separate acceptance work.
 
 ## Availability and consent
 
-Setup offers region-bound retrieval only for the existing local OpenHolidays
-subdivisions: Germany (16 states, including `DE-SN`), Austria (9 states), and
-Switzerland (26 cantons). Unknown/free-text regions have no invented code or data.
-Recognized codes, display names, and supported aliases resolve to their local
-country; a foreign subdivision is rejected. The existing provider can return no
-records for a requested region/year, which keeps the existing availability message.
-The native setup explains the OpenHolidays internet request alongside the checkbox.
+For Germany (16 states, including `DE-SN`), Austria (9 states), and Switzerland
+(26 cantons), setup keeps the original region-bound consent. Recognized codes,
+display names, and supported aliases resolve to their local country; a foreign
+subdivision is rejected.
+
+France, Belgium, and the Netherlands offer a separate initially blank school
+area selector with the same verified identities as the regular desktop
+settings. A postal state or region cannot set it. The checkbox remains
+unchecked until the user chooses an area and opts in. The renderer accepts
+this handoff only when the explicit selection belongs to the selected country.
+Other unknown or free-text regions have no inferred code or data.
+The native setup explains the OpenHolidays internet request next to the checkbox.
 
 The original setup-host verification is offline: actual Python and C# provider functions receive
 recording HTTP adapters. It verifies DE-SN, AT-9, CH-ZH request paths, opt-out,

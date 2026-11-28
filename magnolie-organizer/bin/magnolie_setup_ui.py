@@ -171,6 +171,7 @@ def _default_selections(language="system"):
         "addressChanged": False,
         "schoolHolidays": False,
         "schoolHolidayRegion": "",
+        "schoolHolidayAreaExplicit": False,
         "addressSort": "last-name",
         "calendarUids": [],
         "addressBookUid": "",
@@ -207,6 +208,17 @@ def school_holiday_region(country, state, translate=lambda text: text):
         if value in (code.casefold(), name.casefold(), translate(name).casefold()) or aliases.get(value) == code:
             return code, translate(name)
     return "", ""
+
+
+SCHOOL_HOLIDAY_AREAS = {
+    "BE": (("BE-DE", "Deutschsprachige Gemeinschaft"), ("BE-FR", "Communauté française"),
+           ("BE-NL", "Vlaamse Gemeenschap")),
+    "NL": (("NL-NO", "Regio Noord"), ("NL-MI", "Regio Midden"), ("NL-ZU", "Regio Zuid")),
+    "FR": (("FR-ZA", "Zone A"), ("FR-ZB", "Zone B"), ("FR-ZC", "Zone C"), ("FR-CO", "Corse"),
+           ("FR-GP", "Guadeloupe"), ("FR-GY", "Guyane"), ("FR-MQ", "Martinique"),
+           ("FR-YT", "Mayotte"), ("FR-RU", "La Réunion"), ("FR-BL", "Saint-Barthélemy"),
+           ("FR-MF", "Saint-Martin"), ("FR-SP", "Saint-Pierre-et-Miquelon")),
+}
 
 
 def _store_result(write_state, status, selections):
@@ -546,6 +558,16 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     address_changed = [False]
     refreshing_address = [False]
     holiday_region = [""]
+    school_area_key = ["", ""]
+    school_area_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+    school_area_box.pack_start(label(N_("Country & holidays")), False, False, 0)
+    school_area = Gtk.ComboBoxText()
+    school_area.set_name("setup-school-holiday-area")
+    school_area.get_accessible().set_name(tr("Country & holidays"))
+    school_area_box.pack_start(school_area, False, False, 0)
+    school_area_box.show_all()
+    school_area_box.hide()
+    school_area_box.set_no_show_all(True)
     school_holidays = Gtk.CheckButton(label="")
     school_holidays.set_name("setup-school-holidays")
     school_holidays.set_no_show_all(True)
@@ -559,20 +581,40 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     def update_school_holidays(*_args):
         if refreshing_address[0]:
             return
-        country_value = country.get_active_id() or country.get_child().get_text()
+        country_value = str(country.get_active_id() or country.get_child().get_text()).strip().upper()
         state_value = state.get_active_id()
         if state_value is None:
             state_value = state.get_child().get_text()
-        code, name = school_holiday_region(country_value, state_value, tr)
+        choices = SCHOOL_HOLIDAY_AREAS.get(country_value, ())
+        if school_area_key != [country_value, language]:
+            selected = school_area.get_active_id() if school_area_key[0] == country_value else ""
+            school_area_key[:] = [country_value, language]
+            refreshing_address[0] = True
+            try:
+                school_area.remove_all()
+                school_area.append("", tr("None"))
+                for area_code, area_name in choices:
+                    school_area.append(area_code, area_name)
+                school_area.set_active_id(selected or "")
+                school_area.get_accessible().set_name(tr("Country & holidays"))
+            finally:
+                refreshing_address[0] = False
+        school_area_box.set_visible(bool(choices))
+        if choices:
+            code = school_area.get_active_id() or ""
+            name = dict(choices).get(code, "")
+        else:
+            code, name = school_holiday_region(country_value, state_value, tr)
         if code != holiday_region[0]:
             school_holidays.set_active(False)
         holiday_region[0] = code
         school_holidays.set_label(tr("Show school holidays for %(state)s in the calendar?") % {"state": name})
         school_holidays.set_visible(bool(code))
         holiday_note.set_visible(bool(code))
-        holiday_unavailable.set_visible(bool(str(state_value).strip()) and not code)
+        holiday_unavailable.set_visible(not choices and bool(str(state_value).strip()) and not code)
 
     state.connect("changed", update_school_holidays)
+    school_area.connect("changed", update_school_holidays)
 
     def populate_regions(selected=""):
         choices = REGIONS_BY_COUNTRY.get(country.get_active_id(), ())
@@ -588,6 +630,7 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
 
     populate_regions()
     country.connect("changed", lambda _combo: populate_regions())
+    country.get_child().connect("changed", update_school_holidays)
     field(address_grid, 0, "First name", first_name, 0, 2)
     field(address_grid, 2, "Last name", last_name, 0, 2)
     field(address_grid, 4, "Street and house number", street, 0, 2)
@@ -603,6 +646,7 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     address_sort.set_active_id("last-name")
     dynamic_choices.append((address_sort, sort_choices))
     address.pack_start(address_grid, False, False, 0)
+    address.pack_start(school_area_box, False, False, 0)
     address.pack_start(school_holidays, False, False, 0)
     address.pack_start(holiday_note, False, False, 0)
     address.pack_start(holiday_unavailable, False, False, 0)
@@ -1303,6 +1347,7 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     language_box.connect("changed", language_changed)
 
     def selections():
+        update_school_holidays()
         country_value = country.get_active_id()
         if not country_value or country_value == "other":
             country_value = country.get_child().get_text().strip()[:80]
@@ -1324,6 +1369,8 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
             "addressChanged": address_changed[0],
             "schoolHolidays": school_holidays.get_active() and bool(holiday_region[0]),
             "schoolHolidayRegion": holiday_region[0] if school_holidays.get_active() else "",
+            "schoolHolidayAreaExplicit": school_holidays.get_active() and
+                holiday_region[0] in dict(SCHOOL_HOLIDAY_AREAS.get(str(country_value).strip().upper(), ())),
             "addressSort": address_sort.get_active_id() or "last-name",
             "calendarUids": connection["calendarUids"] + [account["uid"] for account, widget in account_checks
                               if widget.get_active() and account["kind"] == "calendar"],

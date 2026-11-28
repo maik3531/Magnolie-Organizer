@@ -41,6 +41,7 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
     tr = ui._translation(language, str(ROOT / "bin"))
     calls, failures = [], []
     marker = tmp_path / "setup-state.json"
+    separate = {"fr": ("FR", "FR-ZB"), "be": ("BE", "BE-DE"), "nl": ("NL", "NL-NO")}.get(language)
 
     def save(status, selections):
         calls.append((status, selections))
@@ -53,6 +54,7 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
             country = next(w for w in widgets if w.get_name() == "setup-country")
             region = next(w for w in widgets if w.get_name() == "setup-state")
             check = next(w for w in widgets if w.get_name() == "setup-school-holidays")
+            school_area = next(w for w in widgets if w.get_name() == "setup-school-holiday-area")
             assert not check.get_active() and not check.get_visible()
             country.set_active(-1)
             country.get_child().set_text("ZZ")
@@ -82,7 +84,7 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
                 region.set_active(-1)
                 region.get_child().set_text(typed)
                 assert not check.get_visible() and not check.get_active()
-                assert any(isinstance(w, Gtk.Label) and w.get_visible() and w.get_text() == tr(UNAVAILABLE) for w in widgets)
+                assert any(isinstance(w, Gtk.Label) and w.get_visible() and w.get_text() == tr(UNAVAILABLE) for w in widgets) is (territory != "FR")
             country.set_active_id("DE")
             region.set_active_id("DE-SN")
             check.set_active(True)
@@ -94,6 +96,28 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
             assert check.get_label() == other_tr(QUESTION) % {"state": other_tr("Saxony")}
             languages.set_active_id(language)
             assert check.get_label() == tr(QUESTION) % {"state": tr("Saxony")}
+            if separate:
+                territory, code = separate
+                country.set_active_id(territory)
+                region.get_child().set_text(code)
+                assert not check.get_visible() and not check.get_active()
+                assert school_area.get_parent().get_visible() and (school_area.get_active_id() or "") == ""
+                assert school_area.set_active_id(code)
+                assert check.get_visible() and not check.get_active()
+                name = dict(ui.SCHOOL_HOLIDAY_AREAS[territory])[code]
+                assert check.get_label() == tr(QUESTION) % {"state": name}
+                check.set_active(True)
+                languages.set_active_id(alternate)
+                assert check.get_active() and school_area.get_active_id() == code
+                school_area.set_active_id(next(key for key, _name in ui.SCHOOL_HOLIDAY_AREAS[territory] if key != code))
+                assert not check.get_active()
+                school_area.set_active_id(code)
+                check.set_active(True)
+                country.set_active_id("DE")
+                country.set_active_id(territory)
+                assert (school_area.get_active_id() or "") == "" and not check.get_active()
+                school_area.set_active_id(code)
+                check.set_active(True)
             assert not calls and not marker.exists(), "Consent is only staged"
             if ending == "cancel": dialog.response(Gtk.ResponseType.CANCEL)
             elif ending == "skip":
@@ -125,7 +149,9 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
         persisted = json.loads(marker.read_text())["selections"]
         assert len(calls) == 1
         assert persisted["schoolHolidays"] is (ending == "finish")
-        assert persisted["schoolHolidayRegion"] == ("DE-SN" if ending == "finish" else "")
+        expected = separate[1] if separate else "DE-SN"
+        assert persisted["schoolHolidayRegion"] == (expected if ending == "finish" else "")
+        assert persisted["schoolHolidayAreaExplicit"] is bool(separate and ending == "finish")
         if ending == "skip": assert persisted["setupSkipped"] is True
 
 

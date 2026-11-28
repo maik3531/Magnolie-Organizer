@@ -246,20 +246,24 @@ internal static class FirstRunSetupTests
     internal static void VerifySchoolHolidayConsent(WindowsPaths paths)
     {
         TestAssert.That(!new FirstRunSetupSelections().SchoolHolidays, "School holidays require explicit opt-in.");
-        foreach (var (country, region, bound, expected) in new[]
+        foreach (var (country, region, bound, explicitArea, expected) in new[]
         {
-            ("DE", "DE-SN", "DE-SN", true), ("DE", "Sachsen", "DE-SN", true),
-            ("AT", "AT-9", "AT-9", true), ("CH", "CH-ZH", "CH-ZH", true),
-            ("AT", "DE-SN", "DE-SN", false), ("DE", "DE-BY", "DE-SN", false),
-            ("DE", "Unknown region", "Unknown region", false), ("US", "California", "California", false)
+            ("DE", "DE-SN", "DE-SN", false, true), ("DE", "Sachsen", "DE-SN", false, true),
+            ("AT", "AT-9", "AT-9", false, true), ("CH", "CH-ZH", "CH-ZH", false, true),
+            ("AT", "DE-SN", "DE-SN", false, false), ("DE", "DE-BY", "DE-SN", false, false),
+            ("DE", "Unknown region", "Unknown region", false, false), ("US", "California", "California", false, false),
+            ("FR", "Paris", "FR-ZA", true, true), ("BE", "BE-WAL", "BE-FR", true, true),
+            ("NL", "NL-NH", "NL-NO", true, true), ("NL", "NL-NO", "NL-NO", false, false),
+            ("FR", "Paris", "NL-NO", true, false)
         })
         {
             var draft = new FirstRunSetupSelections { Address = new() { Country = country, State = region },
-                SchoolHolidays = true, SchoolHolidayRegion = bound };
+                SchoolHolidays = true, SchoolHolidayRegion = bound, SchoolHolidayAreaExplicit = explicitArea };
             var chosen = FirstRunSetupSelectionNormalizer.Normalize(draft, paths.Backups);
             TestAssert.That(chosen.SchoolHolidays == expected, "Consent must match a supported country and region.");
             var roundtrip = JsonSerializer.Deserialize<FirstRunSetupSelections>(JsonSerializer.Serialize(chosen))!;
-            TestAssert.That(roundtrip.SchoolHolidays == expected && roundtrip.SchoolHolidayRegion == (expected ? bound : ""),
+            TestAssert.That(roundtrip.SchoolHolidays == expected && roundtrip.SchoolHolidayRegion == (expected ? bound : "") &&
+                roundtrip.SchoolHolidayAreaExplicit == (expected && explicitArea),
                 "Native setup handoff lost holiday consent.");
             var state = new FirstRunSetupState(paths);
             state.Begin();
@@ -291,7 +295,7 @@ internal static class FirstRunSetupTests
         var root = document.RootElement;
         var expected = new[]
         {
-            "language", "address", "addressSource", "addressChanged", "schoolHolidays", "schoolHolidayRegion", "setupSkipped", "addressSort", "calendarUids", "addressBookUid", "oneTimeImports", "stagedImports", "phoneActions", "phoneBackgroundServices",
+            "language", "address", "addressSource", "addressChanged", "schoolHolidays", "schoolHolidayRegion", "schoolHolidayAreaExplicit", "setupSkipped", "addressSort", "calendarUids", "addressBookUid", "oneTimeImports", "stagedImports", "phoneActions", "phoneBackgroundServices",
             "registers", "customTabEnabled", "customTabName", "customTabDesignRequested", "customTabChanged", "customOrganizerChanged", "customOrganizer",
             "openHandbook", "backupPath", "backupInterval", "autostart", "tray", "weather", "restoreRequest"
         };

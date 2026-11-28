@@ -84,19 +84,27 @@ for (const web of [path.join(root, "magnolie-organizer/web"), path.join(root, "m
     finally { b.close(); }
   }
   for (const [country, state, code] of [
-    ["FR", "La Réunion", "FR-RU"], ["BE", "Vlaamse Gemeenschap", "BE-NL"], ["NL", "NL-MI", "NL-MI"]
+    ["FR", "Paris", "FR-RU"], ["BE", "Brussels", "BE-NL"], ["NL", "Utrecht", "NL-MI"]
   ]) {
-    const b = boot(web, {}, selection({ address: { ...address, country, state },
-      schoolHolidays: true, schoolHolidayRegion: code }));
-    try {
-      const ort = b.t.daten().einstellungen.ort;
-      assert.equal(ort.land, country);
-      assert.equal(ort.region, "", "An address cannot select a separate school area");
-      assert.equal(ort.setupFerienAbruf, false);
-      b.start();
-      assert.equal(b.holidays().length, 0);
-      count++;
-    } finally { b.close(); }
+    for (const [explicit, token, expected] of [[false, code, false], [true, code, true], [true, "DE-SN", false]]) {
+      const b = boot(web, {}, selection({ address: { ...address, country, state },
+        schoolHolidays: true, schoolHolidayRegion: token, schoolHolidayAreaExplicit: explicit }));
+      try {
+        const ort = b.t.daten().einstellungen.ort;
+        assert.equal(ort.land, country);
+        assert.equal(ort.region, expected ? code : "", "Only the independent consent chooses the school area");
+        assert.equal(ort.setupFerienAbruf, expected);
+        b.start();
+        assert.equal(b.holidays().length, 0);
+        if (expected) {
+          b.ack();
+          assert.equal(b.holidays().length, 1);
+          assert.equal(b.holidays()[0].region, code);
+          assert.equal(b.holidays()[0].regionErforderlich, false);
+        }
+        count++;
+      } finally { b.close(); }
+    }
   }
   const existing = { einstellungen: { adressen: { absender: "Existing 2\n8000 Zürich", route: false,
     land: "CH", landCode: "CH", karten: "openstreetmap" }, ort: { land: "CH", region: "CH-ZH", ferien: true } } };
