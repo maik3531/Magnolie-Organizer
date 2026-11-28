@@ -21,7 +21,7 @@ public sealed partial class HolidayFetchCoverageHost
             return Task.CompletedTask;
         }
     }
-    private sealed record Request(string Path, Dictionary<string, string> Fields);
+    private sealed record Request(string Path, Dictionary<string, string> Fields, string EscapedQuery);
     private sealed record Result(JsonElement Value, List<Request> Requests);
     private sealed class OfflineHttp(Func<Request, HttpResponseMessage> responder) : HttpMessageHandler
     {
@@ -32,7 +32,7 @@ public sealed partial class HolidayFetchCoverageHost
             if (uri.Scheme != "https" || uri.Host != "openholidaysapi.org") throw new InvalidOperationException("Unexpected HTTP origin");
             var fields = uri.Query.TrimStart('?').Split('&').Select(part => part.Split('=', 2))
                 .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
-            var recorded = new Request(uri.AbsolutePath, fields); Requests.Add(recorded);
+            var recorded = new Request(uri.AbsolutePath, fields, uri.Query); Requests.Add(recorded);
             return Task.FromResult(responder(recorded));
         }
     }
@@ -40,6 +40,20 @@ public sealed partial class HolidayFetchCoverageHost
         new(status) { Content = new StringContent(data, Encoding.UTF8, "application/json") };
     private static HttpResponseMessage Data(object? data) => Raw(JsonSerializer.Serialize(data));
     private static Dictionary<string, object?> Row() => new() { ["startDate"] = "2026-06-01", ["endDate"] = "2026-06-02", ["name"] = "Synthetic holiday", ["nationwide"] = false };
+    // Refs #856: frozen from /Subdivisions?countryIsoCode=AT, 2026-11-28.
+    // The public API's provider code is distinct from its isoCode.
+    private static readonly (string Iso, string Provider, string Escaped)[] AustrianRegions = [
+        ("AT-1", "AT-BL", "AT-BL"), ("AT-2", "AT-KÄ", "AT-K%C3%84"),
+        ("AT-3", "AT-NÖ", "AT-N%C3%96"), ("AT-4", "AT-OÖ", "AT-O%C3%96"),
+        ("AT-5", "AT-SB", "AT-SB"), ("AT-6", "AT-SM", "AT-SM"),
+        ("AT-7", "AT-TI", "AT-TI"), ("AT-8", "AT-VA", "AT-VA"),
+        ("AT-9", "AT-WI", "AT-WI")
+    ];
+    private static Dictionary<string, object?> AustrianRow(params string[] codes)
+    {
+        var row = Row(); row["subdivisions"] = codes.Select(code => new { code }).ToArray();
+        return row;
+    }
     private static async Task<Result> Fetch(Func<Request, HttpResponseMessage>? reply = null, string country = "DE", string region = "DE-SN",
         int[]? years = null, bool school = true, string[][]? regions = null, bool regionRequired = false)
     {
@@ -206,6 +220,71 @@ public sealed partial class HolidayFetchCoverageHost
                 return Task.CompletedTask;
             })
         };
+        foreach (var mapping in AustrianRegions)
+        {
+            cases.Add(($"Austrian ISO {mapping.Iso} queries {mapping.Provider} and preserves ISO coverage", async () => {
+                var result = await Fetch(_ => Data(new[] { AustrianRow(mapping.Provider) }), country: "AT", region: mapping.Iso);
+                Check(result.Requests.Count == 2, "Expected both public and school endpoints");
+                Check(result.Requests.All(request => request.Fields["subdivisionCode"] == mapping.Provider), "ISO code sent as provider subdivision");
+                Check(result.Requests.All(request => request.EscapedQuery.Contains("subdivisionCode=" + mapping.Escaped, StringComparison.Ordinal)), "Provider subdivision was not UTF-8 URL encoded");
+                EqualScopes(result, Scope(country: "AT", region: mapping.Iso), Scope("school-holiday", country: "AT", region: mapping.Iso));
+                Check(Count(result) == 2 && result.Value.GetProperty("feiertage").EnumerateArray().All(entry =>
+                    entry.GetProperty("region").GetString() == mapping.Iso && entry.GetProperty("country").GetString() == "AT" &&
+                    entry.GetProperty("regions").EnumerateArray().Select(code => code.GetString()).SequenceEqual(new[] { mapping.Iso })),
+                    "Provider codes leaked into the canonical cache geography");
+            }));
+        }
+        cases.Add(("country response normalizes all nine Austrian provider aliases", async () => {
+            var rows = AustrianRegions.Select(mapping => { var row = AustrianRow(mapping.Provider); row["name"] = mapping.Iso; return row; }).ToArray();
+            var result = await Fetch(_ => Data(rows), country: "AT", region: "", school: false);
+            EqualScopes(result, Scope(country: "AT", region: ""));
+            Check(Count(result) == 9 && result.Value.GetProperty("feiertage").EnumerateArray().SelectMany(entry =>
+                entry.GetProperty("regions").EnumerateArray().Select(code => code.GetString())).Order(StringComparer.Ordinal)
+                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Austrian result subdivision mapping is incomplete");
+        }));
+        cases.Add(("known Austrian ISO response codes remain accepted", async () => {
+            var result = await Fetch(_ => Data(new[] { AustrianRow(AustrianRegions.Select(mapping => mapping.Iso).ToArray()) }), country: "AT", region: "", school: false);
+            EqualScopes(result, Scope(country: "AT", region: ""));
+            Check(result.Value.GetProperty("feiertage")[0].GetProperty("regions").EnumerateArray().Select(code => code.GetString())
+                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Canonical ISO codes changed");
+        }));
+        cases.Add(("unknown Austrian response codes never certify coverage", async () => {
+            foreach (var code in new[] { "AT-X", "AT-2-UNKNOWN", "AT-KÄ-UNKNOWN", "AT-Ä", "DE-SN", "CH-ZH", "WI" })
+                EqualScopes(await Fetch(_ => Data(new[] { AustrianRow(code) }), country: "AT", region: "AT-2", school: false));
+        }));
+        cases.Add(("known plus unknown Austrian response cannot certify partial geography", async () => {
+            foreach (var code in new[] { "AT-X", "AT-2-UNKNOWN", "AT-Ä", "DE-SN" })
+                EqualScopes(await Fetch(_ => Data(new[] { AustrianRow("AT-2", code) }), country: "AT", region: "AT-2", school: false));
+        }));
+        cases.Add(("unknown Austrian request is rejected before HTTP", async () => {
+            foreach (var code in new[] { "AT-0", "AT-10", "AT-WI", "AT-KÄ", "AT-2-UNKNOWN", "DE-SN" }) {
+                var result = await Fetch(country: "AT", region: code);
+                Check(result.Value.TryGetProperty("fehler", out _) && result.Requests.Count == 0 && Scopes(result).Count == 0, "Unknown AT selection reached provider");
+            }
+        }));
+        cases.Add(("German and Swiss subdivision wire and coverage are unchanged", async () => {
+            foreach (var pair in new[] { (Country: "DE", Region: "DE-SN"), (Country: "CH", Region: "CH-ZH") }) {
+                var result = await Fetch(_ => Data(new[] { AustrianRow(pair.Region) }), country: pair.Country, region: pair.Region);
+                Check(result.Requests.All(request => request.Fields["subdivisionCode"] == pair.Region), "Unrelated provider query changed");
+                EqualScopes(result, Scope(country: pair.Country, region: pair.Region), Scope("school-holiday", country: pair.Country, region: pair.Region));
+            }
+        }));
+        cases.Add(("Austrian aliases are not normalized inside a foreign country response", async () => {
+            foreach (var pair in new[] { (Country: "DE", Region: "DE-SN"), (Country: "CH", Region: "CH-ZH") }) {
+                var result = await Fetch(_ => Data(new[] { AustrianRow("AT-WI") }), country: pair.Country, region: pair.Region, school: false);
+                EqualScopes(result);
+                Check(result.Value.GetProperty("feiertage")[0].GetProperty("regions")[0].GetString() == "AT-WI", "Country boundary was ignored during normalization");
+            }
+        }));
+        cases.Add(("all-state Austrian retrieval keeps ISO aggregate and per-region coverage", async () => {
+            var result = await Fetch(request => Data(new[] { AustrianRow(request.Fields["subdivisionCode"]) }), country: "AT", region: "", school: false,
+                regions: AustrianRegions.Select(mapping => new[] { mapping.Iso, mapping.Iso }).ToArray());
+            Check(result.Requests.Select(request => request.Fields["subdivisionCode"]).Order(StringComparer.Ordinal)
+                .SequenceEqual(AustrianRegions.Select(mapping => mapping.Provider).Order(StringComparer.Ordinal)), "All-state query used ISO provider codes");
+            EqualScopes(result, AustrianRegions.Select(mapping => Scope(country: "AT", region: mapping.Iso)).ToArray());
+            Check(Count(result) == 1 && result.Value.GetProperty("feiertage")[0].GetProperty("regions").EnumerateArray()
+                .Select(code => code.GetString()).SequenceEqual(AustrianRegions.Select(mapping => mapping.Iso)), "Aggregate returned provider aliases or duplicate scopes");
+        }));
         var failed = 0;
         foreach (var test in cases) {
             try { await test.Run(); Console.WriteLine("PASS " + test.Name); }

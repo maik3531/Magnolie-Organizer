@@ -4,6 +4,14 @@ import CoreFoundation
 /// Public holiday data only. The server and endpoints are fixed; no account
 /// credentials or user-provided URLs are sent to this service.
 public struct HolidayService {
+    // Refs #856: OpenHolidays uses its own AT subdivision codes, not ISO 3166-2.
+    // Keep the selected/cache identity in ISO form; translate only at this boundary.
+    private static let austrianProviderRegions = [
+        "AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ", "AT-4": "AT-OÖ",
+        "AT-5": "AT-SB", "AT-6": "AT-SM", "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI"
+    ]
+    private static let austrianISORegions = Dictionary(uniqueKeysWithValues:
+        austrianProviderRegions.map { ($0.value, $0.key) })
     public struct Region: Hashable, Sendable {
         public let code: String
         public let name: String
@@ -28,7 +36,8 @@ public struct HolidayService {
             for region in regions {
                 guard region.code.utf8.count <= 128 else { throw BetaError("Invalid holiday region.") }
                 let code = region.code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-                guard HolidayService.matches(code, "^[A-Z0-9-]{1,64}$"), region.name.count <= 256 else {
+                guard HolidayService.matches(code, "^[A-Z0-9-]{1,64}$"), region.name.count <= 256,
+                      country != "AT" || HolidayService.austrianProviderRegions[code] != nil else {
                     throw BetaError("The selected holiday region is invalid.")
                 }
                 if seen.insert(code).inserted { selected.append(Region(code: code, name: region.name)) }
@@ -120,7 +129,11 @@ public struct HolidayService {
                         URLQueryItem(name: "languageIsoCode", value: query.language),
                         URLQueryItem(name: "validFrom", value: String(format: "%04d-01-01", year)),
                         URLQueryItem(name: "validTo", value: String(format: "%04d-12-31", year))]
-                    if let region { url.queryItems!.append(URLQueryItem(name: "subdivisionCode", value: region.code)) }
+                    if let region {
+                        let providerCode = query.country == "AT" ? Self.austrianProviderRegions[region.code] : region.code
+                        guard let providerCode else { throw BetaError("The selected holiday region is invalid.") }
+                        url.queryItems!.append(URLQueryItem(name: "subdivisionCode", value: providerCode))
+                    }
                     let response = try await transport.send(BoundedHTTPRequest(url: url.url!,
                         headers: ["Accept": "application/json", "User-Agent": "Magnolie-Organizer-macOS/2.0.30"],
                         timeout: min(20, remaining), maximumResponseBytes: 2 * 1024 * 1024))
@@ -164,9 +177,14 @@ public struct HolidayService {
                         var rowRegions = Set<String>()
                         if let subdivisions = row["subdivisions"] as? [[String: Any]] {
                             for subdivision in subdivisions {
-                                guard let code = subdivision["code"] as? String, Self.matches(code, "^[A-Z0-9-]{1,64}$") else {
+                                guard let rawCode = subdivision["code"] as? String else {
                                     throw BetaError("The holiday service returned invalid regional scope.")
                                 }
+                                let code = query.country == "AT" ? (Self.austrianISORegions[rawCode] ?? rawCode) : rawCode
+                                guard Self.matches(code, "^[A-Z0-9-]{1,64}$") else {
+                                    throw BetaError("The holiday service returned invalid regional scope.")
+                                }
+                                if query.country == "AT" && Self.austrianProviderRegions[code] == nil { complete = false }
                                 rowRegions.insert(code)
                             }
                         }

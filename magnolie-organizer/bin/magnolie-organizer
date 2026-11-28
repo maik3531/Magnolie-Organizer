@@ -18517,6 +18517,26 @@ def _name_waehlen(namen, sprache=None):
     return bester
 
 
+def _openholidays_region_code(code, zum_dienst=False):
+    """Map Austrian ISO state identities at the provider boundary (Refs #856)."""
+    import unicodedata
+    code = unicodedata.normalize("NFC", str(code or "")).strip().upper()
+    austria = {
+        "AT-1": "AT-BL", "AT-2": "AT-KÄ", "AT-3": "AT-NÖ",
+        "AT-4": "AT-OÖ", "AT-5": "AT-SB", "AT-6": "AT-SM",
+        "AT-7": "AT-TI", "AT-8": "AT-VA", "AT-9": "AT-WI",
+    }
+    if not code.startswith("AT-"):
+        return code
+    if zum_dienst:
+        return austria.get(code)
+    if code in austria:
+        return code
+    # Unknown Austrian codes, including apparent ISO children, cannot certify
+    # complete coverage merely by passing the generic parent/child matcher.
+    return next((iso for iso, provider in austria.items() if provider == code), None)
+
+
 def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
     """Wertet die Antwort des Feiertagsdienstes aus und liefert Einträge
     der Form {von, bis, name, art}."""
@@ -18540,10 +18560,13 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
             and ("language" not in wert or isinstance(wert["language"], str))
             for wert in namen))
         unterregionen = satz.get("subdivisions", [])
+        region_codes = [
+            _openholidays_region_code(wert["code"])
+            if isinstance(wert, dict) and isinstance(wert.get("code"), str) else None
+            for wert in unterregionen] if isinstance(unterregionen, list) else []
         regionenform = isinstance(unterregionen, list) and all(
-            isinstance(wert, dict) and isinstance(wert.get("code"), str)
-            and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())
-            for wert in unterregionen)
+            isinstance(code, str) and re.fullmatch(r"[A-Z0-9-]{1,64}", code)
+            for code in region_codes)
         if (not isinstance(satz.get("startDate"), str) or not namenform
                 or not regionenform
                 or not isinstance(satz.get("nationwide"), bool)
@@ -18561,10 +18584,8 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
         if not _ist_iso(bis) or bis < von:
             vollstaendig = False
             bis = von
-        regionen = sorted({wert["code"].strip().upper()
-                           for wert in satz.get("subdivisions", []) if isinstance(wert, dict)
-                           and isinstance(wert.get("code"), str)
-                           and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())}) if isinstance(satz.get("subdivisions", []), list) else []
+        regionen = sorted({code for code in region_codes if isinstance(code, str)
+                           and re.fullmatch(r"[A-Z0-9-]{1,64}", code)})
         eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
                           "nationwide": satz.get("nationwide") is True, "regions": regionen})
     return (eintraege, vollstaendig) if mit_vollstaendigkeit else eintraege
@@ -18625,7 +18646,11 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                     ("validFrom", "%d-01-01" % jahr),
                     ("validTo", "%d-12-31" % jahr)]
                 if region_code:
-                    felder.append(("subdivisionCode", region_code))
+                    provider_region = (_openholidays_region_code(region_code, zum_dienst=True)
+                                       if land == "AT" else region_code)
+                    if not provider_region:
+                        raise RuntimeError(_("School holidays are not available for this region."))
+                    felder.append(("subdivisionCode", provider_region))
                 url = "%s/%s?%s" % (
                     FEIERTAG_DIENST, pfad, urlencode(felder))
                 try:
@@ -18647,6 +18672,10 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                     if eintrag["von"] > ende or eintrag["bis"] < anfang:
                         return False
                     codes = eintrag["regions"]
+                    if land == "AT" and any(not code.startswith("AT-") or
+                            _openholidays_region_code(code, zum_dienst=True) is None
+                            for code in codes):
+                        return False
                     if any("-" in code and not code.startswith(land + "-") for code in codes):
                         return False
                     if not region_code and not eintrag["nationwide"] and not codes:

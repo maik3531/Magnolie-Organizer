@@ -41,6 +41,7 @@ class HolidayService(
             this.regions = regions.map {
                 val code = it.code.trim().uppercase(Locale.ROOT)
                 if (it.code.length > 128 || !REGION.matches(code) || it.name.length > 256 || it.name.any { c -> c < ' ' }) invalidQuery()
+                if (this.country == "AT" && code !in AUSTRIAN_PROVIDER_REGIONS) invalidQuery()
                 Region(code, it.name.trim())
             }.distinctBy { it.code }.toList()
             this.years = years.distinct().sorted()
@@ -157,7 +158,8 @@ class HolidayService(
             val remaining = remainingMillis()
             val fields = linkedMapOf("countryIsoCode" to query.country, "languageIsoCode" to query.language,
                 "validFrom" to "%04d-01-01".format(Locale.ROOT, year), "validTo" to "%04d-12-31".format(Locale.ROOT, year))
-            if (region != null) fields["subdivisionCode"] = region.code
+            if (region != null) fields["subdivisionCode"] = if (query.country == "AT")
+                AUSTRIAN_PROVIDER_REGIONS.getValue(region.code) else region.code
             val uri = URI("https://openholidaysapi.org/$endpoint?" + fields.entries.joinToString("&") {
                 URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8")
             })
@@ -210,8 +212,10 @@ class HolidayService(
                         for (i in 0 until subdivisions.length()) {
                             remainingMillis()
                             val raw = subdivisions.opt(i) as? JSONObject ?: invalidResponse()
-                            val code = (raw.opt("code") as? String ?: invalidResponse()).trim().uppercase(Locale.ROOT)
+                            val providerCode = (raw.opt("code") as? String ?: invalidResponse()).trim().uppercase(Locale.ROOT)
+                            val code = if (query.country == "AT") AUSTRIAN_ISO_REGIONS[providerCode] ?: providerCode else providerCode
                             if (!REGION.matches(code)) invalidResponse()
+                            if (query.country == "AT" && code !in AUSTRIAN_PROVIDER_REGIONS) complete = false
                             scopes.add(code)
                         }
                     }
@@ -257,6 +261,12 @@ class HolidayService(
     companion object {
         private val COUNTRY = Regex("^[A-Z]{2}$")
         private val REGION = Regex("^[A-Z0-9-]{1,64}$")
+        // Refs #856: official OpenHolidays /Subdivisions (AT), verified 2026-11-28.
+        // Only the HTTP boundary uses provider codes; settings and cache stay ISO.
+        private val AUSTRIAN_PROVIDER_REGIONS = mapOf("AT-1" to "AT-BL", "AT-2" to "AT-KÄ",
+            "AT-3" to "AT-NÖ", "AT-4" to "AT-OÖ", "AT-5" to "AT-SB", "AT-6" to "AT-SM",
+            "AT-7" to "AT-TI", "AT-8" to "AT-VA", "AT-9" to "AT-WI")
+        private val AUSTRIAN_ISO_REGIONS = AUSTRIAN_PROVIDER_REGIONS.entries.associate { (iso, provider) -> provider to iso }
         private val DATE = Regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
         private const val RESPONSE_BYTES = 2 * 1024 * 1024
         private const val TOTAL_BYTES = 16 * 1024 * 1024

@@ -2439,7 +2439,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "DE" : "EN";
         var query = $"countryIsoCode={Uri.EscapeDataString(country)}&languageIsoCode={language}" +
                     $"&validFrom={year}-01-01&validTo={year}-12-31" +
-                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(region.Code)}" : "");
+                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(OpenHolidayData.ProviderSubdivisionCode(country, region.Code))}" : "");
         using var response = await http.GetAsync($"https://openholidaysapi.org/{path}?{query}", HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength > remainingBytes)

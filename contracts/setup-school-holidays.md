@@ -72,10 +72,49 @@ country; a foreign subdivision is rejected. The existing provider can return no
 records for a requested region/year, which keeps the existing availability message.
 The native setup explains the OpenHolidays internet request alongside the checkbox.
 
-Provider verification is offline: actual Python and C# provider functions receive
+The original setup-host verification is offline: actual Python and C# provider functions receive
 recording HTTP adapters. It verifies DE-SN, AT-9, CH-ZH request paths, opt-out,
 empty responses, and mismatched-country rejection. It does not claim a live service
 availability check or a Windows GUI run on Linux.
+
+## Austrian provider identifiers (Refs #856)
+
+Settings, bridge requests, cached `region`/`regions` and `abrufbereiche` use the
+existing ISO 3166-2 identifiers. OpenHolidays uses different identifiers at its
+HTTP boundary. The official `/Subdivisions?countryIsoCode=AT` response, verified
+on 2026-11-28, defines these nine pairs:
+
+| Internal ISO identifier | OpenHolidays `code` |
+| --- | --- |
+| AT-1 | AT-BL |
+| AT-2 | AT-KÄ |
+| AT-3 | AT-NÖ |
+| AT-4 | AT-OÖ |
+| AT-5 | AT-SB |
+| AT-6 | AT-SM |
+| AT-7 | AT-TI |
+| AT-8 | AT-VA |
+| AT-9 | AT-WI |
+
+All four providers translate the selected ISO identifier before URL encoding and
+translate known response aliases back to ISO before existing character/scope
+validation. The Unicode provider aliases are encoded as UTF-8 in the URL; the
+general region grammar is not loosened. Known ISO response codes remain compatible.
+Unknown Austrian selections cannot start a falsely qualified request. Unknown,
+foreign, prefixless or mixed response scopes never certify complete Austrian
+coverage, including nationwide rows and whole-country requests. Existing strict
+handling of other malformed Unicode codes remains intact.
+
+HTTP 200 alone does not establish that a supplied region is recognized. In the
+recorded live Vienna/2026 comparison, `AT-9` returned only six nationwide school
+periods while the correct `AT-WI` returned eight, including semester and summer
+holidays. The confirmed response fixture, provider attribution, exact source
+hashes and compiler/live follow-up proofs are delivered with #856. This fixes an
+existing supported region; country/provider expansion remains a separate task.
+
+No persisted selection or book format changes, new permission, additional setup
+step or generated holiday date is introduced. The #855 conservative handling of
+partially covered national/cross-year cache periods still applies.
 
 ## Localization
 

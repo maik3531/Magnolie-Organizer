@@ -7,6 +7,28 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#856](https://github.com/maik3531/Magnolie-Organizer/issues/856),
+  vorbereiteter Folgepatch zu #855: Die neun österreichischen ISO-Regionen
+  werden an der OpenHolidays-Grenze in die tatsächlich erwarteten Kennungen
+  übersetzt. Rückantworten einschließlich Umlautkennungen werden vor der
+  Regionsprüfung wieder auf ISO abgebildet; Auswahl und gespeicherte Daten
+  behalten ihre Identität. Ein echter Wien-Abruf bestätigte zuvor HTTP 200,
+  ließ mit AT-9 aber Semester- und Sommerferien aus; AT-WI liefert beide.
+  Unbekannte oder gemischte österreichische Kennungen dürfen keine vollständige
+  Cache-Ersetzung bestätigen. Gleiche Vorher-/Nachher-Prüfer: Python
+  27/35 -> 35/35, C# 30/43 -> 43/43, Kotlin 20/26 -> 26/26 und Swift
+  12/17 -> 17/17 ausführbare Methoden; ein zusätzlicher Live-Mac-Test bleibt
+  ausdrücklich übersprungen. Beide vollständigen Desktopoberflächen mit
+  aufgezeichneten echten Providerantworten: 6/12 -> 12/12. Neue tatsächliche
+  Linux-HTTP-Abrufe bestätigen Wien (13 Feiertage, 8 Ferien) und Kärnten
+  (13 Feiertage, 9 Ferien). Eine unabhängige Gegenprüfung fand und schloss
+  einen Linux-Grenzfall bei unqualifizierten AT-Kennungen; 36 gezielte
+  Gegenproben bestanden. Die native Linux-WebKit-Prüfung blieb vor dem
+  Produktlauf an EPERM beim lokalen AF_UNIX-Socket hängen; keine Sandbox
+  abgeschaltet und keine native GUI-Abnahme behauptet. Vollständiger
+  Folgepatch, echte Nachweise und Grenzen liegen im Fachissue. Kein
+  Produkt-main-Merge und keine Paketfreigabe durch diesen Review.
+
 - [#855](https://github.com/maik3531/Magnolie-Organizer/issues/855),
   vorbereiteter Reviewpatch: Feiertags-/Ferienabrufe ersetzen gespeicherte
   Bereiche nur anhand vollständig ausgewerteter nativer Abrufnachweise.
@@ -14,12 +36,19 @@ aufgeführt.
   bleiben erhalten. Gemeinsame Regionszeilen werden ohne wachsende Dubletten
   aufgeteilt beziehungsweise zusammengeführt. Vollständige Desktopskripte:
   80 gezielte JSDOM-Fälle und sechs MCP-/SaveACK-Fälle bestanden; bestehender
-  Einrichtungsablauf: 50 Fälle mit englischem Quellkatalog bestanden.
+  Einrichtungsablauf: Nachprüfung mit allen 20 Sprachkatalogen, unveränderter
+  vollständiger Prüfer mit 88 bestandenen Fällen. Die 38 Webkataloge wurden
+  mit den regulären Generatoren und GNU msgfmt erzeugt.
   Python- und C#-Providerquellen: jeweils 26 kontrollierte Hostfälle bestanden,
   C# unter Linux mit .NET 8.0.428. Tablet-Dienst: 20 tatsächliche Kotlin/JUnit-
-  Prüfungen bestanden, keine Android-Geräteabnahme. Mac-Antwortparität und fünf
-  Swift-Testmethoden vorbereitet, hier mangels Compiler nicht ausgeführt.
-  Native GUI-/Live-Provider-/Paketabnahme und übrige Sprachläufe bleiben offen.
+  Prüfungen bestanden, keine Android-Geräteabnahme. Der unveränderte
+  Mac-Feiertagsdienst und seine vollständige XCTest-Klasse wurden nachträglich
+  unter Swift 6.4.3 auf Linux kompiliert: elf Methoden bestanden, ein vorhandener
+  Live-Mac-Test ausdrücklich übersprungen. Alle fünf neuen #855-Methoden
+  bestanden. Das ersetzt keine vollständige Mac-App-/native Transportabnahme.
+  Die Live-Nachprüfung belegte einen eigenen österreichischen Regionsfehler
+  (#856); beide Patches vor Übernahme zusammen prüfen. Native Plattform- und
+  Paketabnahmen bleiben getrennte Restarbeit.
   Unvollständig abgedeckte nationale beziehungsweise jahresübergreifende
   Altzeilen werden konservativ erhalten; keine vollständige Aktualitätszusage
   für diese Restbestände. Keine Paketfreigabe durch diese Quellprüfung.

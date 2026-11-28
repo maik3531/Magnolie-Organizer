@@ -11,6 +11,41 @@ internal sealed record HolidayFetchScope(string country, string region, string a
 
 internal static class OpenHolidayData
 {
+    // Refs #856: OpenHolidays /Subdivisions distinguishes provider "code"
+    // from "isoCode". Keep the existing ISO codes in settings and caches.
+    private static readonly (string Iso, string Provider)[] AustrianSubdivisions = [
+        ("AT-1", "AT-BL"), ("AT-2", "AT-KÄ"), ("AT-3", "AT-NÖ"),
+        ("AT-4", "AT-OÖ"), ("AT-5", "AT-SB"), ("AT-6", "AT-SM"),
+        ("AT-7", "AT-TI"), ("AT-8", "AT-VA"), ("AT-9", "AT-WI")
+    ];
+
+    internal static string ProviderSubdivisionCode(string country, string isoCode)
+    {
+        if (country == "AT")
+            foreach (var subdivision in AustrianSubdivisions)
+                if (subdivision.Iso == isoCode) return subdivision.Provider;
+        return isoCode;
+    }
+
+    private static string CanonicalSubdivisionCode(string country, string code)
+    {
+        code = code.Trim().ToUpperInvariant();
+        if (country == "AT")
+            foreach (var subdivision in AustrianSubdivisions)
+                if (subdivision.Provider == code) return subdivision.Iso;
+        return code;
+    }
+
+    private static bool KnownAustrianSubdivision(string code) =>
+        AustrianSubdivisions.Any(subdivision => subdivision.Iso == code);
+
+    private static bool ValidSubdivisionShape(string country, string code)
+    {
+        code = CanonicalSubdivisionCode(country, code);
+        return Regex.IsMatch(code, "^[A-Z0-9-]{1,64}$") &&
+            (country != "AT" || KnownAustrianSubdivision(code));
+    }
+
     internal static IReadOnlyList<HolidayEntry> Parse(JsonElement data, string kind, string country,
         string region, string regionName, string language) => Parse(data, kind, country,
             region, regionName, language, out _);
@@ -24,7 +59,7 @@ internal static class OpenHolidayData
         if (data.ValueKind != JsonValueKind.Array) return result;
         foreach (var item in data.EnumerateArray())
         {
-            complete &= CompleteShape(item);
+            complete &= CompleteShape(item, country);
             var fromText = Text(item, "startDate");
             var from = fromText[..Math.Min(10, fromText.Length)];
             var toText = Text(item, "endDate"); var to = toText.Length >= 10 ? toText[..10] : from;
@@ -35,7 +70,7 @@ internal static class OpenHolidayData
             { complete = false; to = from; }
             var nationwide = item.TryGetProperty("nationwide", out var whole) && whole.ValueKind == JsonValueKind.True;
             var regions = item.TryGetProperty("subdivisions", out var subdivisions) && subdivisions.ValueKind == JsonValueKind.Array
-                ? subdivisions.EnumerateArray().Select(value => Text(value, "code").Trim().ToUpperInvariant())
+                ? subdivisions.EnumerateArray().Select(value => CanonicalSubdivisionCode(country, Text(value, "code")))
                     .Where(value => Regex.IsMatch(value, "^[A-Z0-9-]{1,64}$")).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
                 : Array.Empty<string>();
             if (!nationwide && regions.Length == 0 && region.Length > 0) regions = [region];
@@ -50,6 +85,7 @@ internal static class OpenHolidayData
         string Canonical(string code) => code.Contains('-') || code == country ? code : country + "-" + code;
         return entries.All(item => StringComparer.Ordinal.Compare(item.von, to) <= 0 &&
             StringComparer.Ordinal.Compare(item.bis, from) >= 0 &&
+            (country != "AT" || item.regions.All(KnownAustrianSubdivision)) &&
             !item.regions.Any(code => code.Contains('-') && !code.StartsWith(country + "-", StringComparison.Ordinal)) &&
             (region.Length > 0 || item.nationwide || item.regions.Length > 0) &&
             (region.Length == 0 || item.nationwide || item.regions.Length == 0 || item.regions.Select(Canonical).Any(code =>
@@ -58,7 +94,7 @@ internal static class OpenHolidayData
 
     // A tolerated partial/malformed response can contribute valid rows, but
     // cannot authorize removal of previously cached records (Refs #855).
-    private static bool CompleteShape(JsonElement item)
+    private static bool CompleteShape(JsonElement item, string country)
     {
         if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("startDate", out var start) ||
             start.ValueKind != JsonValueKind.String || !item.TryGetProperty("name", out var names)) return false;
@@ -73,8 +109,7 @@ internal static class OpenHolidayData
         if (item.TryGetProperty("subdivisions", out var regions) &&
             (regions.ValueKind != JsonValueKind.Array || regions.EnumerateArray().Any(value =>
                 value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("code", out var code) ||
-                code.ValueKind != JsonValueKind.String || !Regex.IsMatch(
-                    (code.GetString() ?? "").Trim().ToUpperInvariant(), "^[A-Z0-9-]{1,64}$")))) return false;
+                code.ValueKind != JsonValueKind.String || !ValidSubdivisionShape(country, code.GetString() ?? "")))) return false;
         return true;
     }
 

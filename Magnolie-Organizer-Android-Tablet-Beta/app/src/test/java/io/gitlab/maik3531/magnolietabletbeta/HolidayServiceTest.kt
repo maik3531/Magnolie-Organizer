@@ -97,6 +97,96 @@ class HolidayServiceTest {
         assertFalse(fields(transport.requests.single()).containsKey("subdivisionCode"))
     }
 
+    // Refs #856: OpenHolidays /Subdivisions AT fixture, retrieved 2026-11-28.
+    // Provider codes are not ISO 3166-2; settings/cache identities remain ISO.
+    private val austrianProviders = linkedMapOf("AT-1" to "AT-BL", "AT-2" to "AT-KÄ",
+        "AT-3" to "AT-NÖ", "AT-4" to "AT-OÖ", "AT-5" to "AT-SB", "AT-6" to "AT-SM",
+        "AT-7" to "AT-TI", "AT-8" to "AT-VA", "AT-9" to "AT-WI")
+
+    @Test fun austrianQueriesTranslateAllNineIsoCodesAndEncodeProviderUnicode() {
+        for ((iso, provider) in austrianProviders) {
+            val transport = Transport { _, _ -> response(row().put("nationwide", true)) }
+            val q = HolidayService.Query("AT", listOf(HolidayService.Region(iso, "Fixture region")),
+                listOf(2028), true)
+            val result = HolidayService(transport).fetch(q)
+            assertEquals(listOf(iso), q.regions.map { it.code })
+            assertEquals(2, transport.requests.size)
+            for (request in transport.requests) {
+                assertEquals(provider, fields(request).getValue("subdivisionCode"))
+                assertTrue(request.uri.rawQuery.contains("subdivisionCode=" + java.net.URLEncoder.encode(provider, "UTF-8")))
+                assertTrue(request.uri.toASCIIString().all { it.code < 128 })
+            }
+            assertEquals(listOf(iso, iso), result.coverage.map { it.region })
+            assertTrue(result.entries.all { it.selectedRegions == listOf(iso) })
+        }
+    }
+
+    @Test fun austrianProviderRepliesBecomeCanonicalIsoBeforeCoverageChecks() {
+        for ((iso, provider) in austrianProviders) for (returned in listOf(provider, iso)) {
+            val transport = Transport { _, _ -> response(row().put("subdivisions",
+                JSONArray().put(JSONObject().put("code", returned)))) }
+            val result = HolidayService(transport).fetch(HolidayService.Query("AT",
+                listOf(HolidayService.Region(iso, "Fixture region")), listOf(2028), false))
+            assertEquals(listOf(iso), result.entries.single().regions)
+            assertEquals(listOf(iso), result.entries.single().selectedRegions)
+            assertEquals(iso, result.coverage.single().region)
+            assertEquals(iso, result.callbackValue().getJSONArray("feiertage").getJSONObject(0)
+                .getJSONArray("regions").getString(0))
+        }
+    }
+
+    @Test fun austrianSharedPeriodsKeepAllCanonicalRegionsAndDeduplicateSelections() {
+        val transport = Transport { _, _ -> response(row().put("subdivisions", JSONArray()
+            .put(JSONObject().put("code", "AT-NÖ")).put(JSONObject().put("code", "AT-WI")))) }
+        val q = HolidayService.Query("AT", listOf(HolidayService.Region("AT-3", "Lower Austria"),
+            HolidayService.Region("AT-9", "Vienna")), listOf(2028), true)
+        val result = HolidayService(transport).fetch(q)
+        assertEquals(2, result.entries.size)
+        assertTrue(result.entries.all { it.regions == listOf("AT-3", "AT-9") &&
+            it.selectedRegions == listOf("AT-3", "AT-9") })
+        assertEquals(listOf("AT-3", "AT-9", "AT-3", "AT-9"), result.coverage.map { it.region })
+    }
+
+    @Test fun unknownAustrianQueryNeverStartsHttp() {
+        for (code in listOf("AT-0", "AT-10", "AT-UNKNOWN", "AT-WI", "DE-SN")) {
+            val transport = Transport { _, _ -> response() }
+            expect("holiday_invalid_query") {
+                HolidayService(transport).fetch(HolidayService.Query("AT",
+                    listOf(HolidayService.Region(code, "Unknown")), listOf(2028), true))
+            }
+            assertTrue(transport.requests.isEmpty())
+        }
+    }
+
+    @Test fun unknownAndForeignAustrianReplyCodesNeverCertifyCacheReplacement() {
+        for (code in listOf("AT-UNKNOWN", "AT-10", "AT-9-UNKNOWN", "DE-SN", "UNKNOWN")) {
+            val result = HolidayService(Transport { _, _ -> response(row().put("subdivisions",
+                JSONArray().put(JSONObject().put("code", "AT-9")).put(JSONObject().put("code", code)))) }).fetch(HolidayService.Query("AT",
+                listOf(HolidayService.Region("AT-9", "Vienna")), listOf(2028), false))
+            assertTrue(result.coverage.isEmpty())
+        }
+        expect("holiday_invalid_response") {
+            HolidayService(Transport { _, _ -> response(row().put("subdivisions",
+                JSONArray().put(JSONObject().put("code", "AT-ÄUNKNOWN")))) }).fetch(HolidayService.Query("AT",
+                listOf(HolidayService.Region("AT-9", "Vienna")), listOf(2028), false))
+        }
+    }
+
+    @Test fun austrianEmptyOptOutCountryAndSwissQueriesKeepTheirCoverageBoundaries() {
+        for ((country, selected) in listOf("AT" to "AT-2", "AT" to "", "CH" to "CH-ZH")) {
+            val transport = Transport { _, _ -> response() }
+            val result = HolidayService(transport).fetch(HolidayService.Query(country,
+                if (selected.isEmpty()) emptyList() else listOf(HolidayService.Region(selected, "Fixture")),
+                listOf(2028), false))
+            assertEquals(1, transport.requests.size)
+            assertEquals("/PublicHolidays", transport.requests.single().uri.path)
+            assertEquals(selected, result.coverage.single().region)
+            assertEquals("public-holiday", result.coverage.single().kind)
+            assertEquals(when (selected) { "" -> null; "AT-2" -> "AT-KÄ"; else -> selected },
+                fields(transport.requests.single())["subdivisionCode"])
+        }
+    }
+
     @Test fun successfulEmptyResponsesCertifyOnlyTheirActualRequestedScopes() {
         val transport = Transport { _, _ -> response() }
         val q = HolidayService.Query("DE", listOf(HolidayService.Region("DE-BE", "Berlin"),

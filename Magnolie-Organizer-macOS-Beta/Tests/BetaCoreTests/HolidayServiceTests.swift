@@ -188,6 +188,116 @@ final class HolidayServiceTests: XCTestCase {
             } catch { /* Native caller reports failure; no partial Entry array exists. */ }
         }
     }
+    func testAustrianProviderIdentifiersRoundTripAllNineRegions() async throws {
+        // Refs #856: pairs from the actual OpenHolidays AT Subdivisions response.
+        let pairs = [("AT-1", "AT-BL"), ("AT-2", "AT-KÄ"), ("AT-3", "AT-NÖ"),
+                     ("AT-4", "AT-OÖ"), ("AT-5", "AT-SB"), ("AT-6", "AT-SM"),
+                     ("AT-7", "AT-TI"), ("AT-8", "AT-VA"), ("AT-9", "AT-WI")]
+        let encoded = ["AT-KÄ": "AT-K%C3%84", "AT-NÖ": "AT-N%C3%96", "AT-OÖ": "AT-O%C3%96"]
+        for (iso, provider) in pairs {
+            let transport = Transport { request in
+                let fields = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!.queryItems!
+                XCTAssertEqual(fields.first(where: { $0.name == "subdivisionCode" })?.value, provider, iso)
+                if let escaped = encoded[provider] {
+                    XCTAssertTrue(request.url.absoluteString.contains("subdivisionCode=" + escaped), iso)
+                }
+                return BoundedHTTPResponse(status: 200, body: try self.body([
+                    ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Regional period",
+                     "nationwide": false, "subdivisions": [["code": provider]]]
+                ]))
+            }
+            let query = try HolidayService.Query(country: "AT", regions: [.init(code: iso, name: iso)],
+                years: [2026], includeSchool: true, regionRequired: true)
+            do {
+                let result = try await HolidayService(transport: transport).fetchResult(query)
+                XCTAssertEqual(result.entries.count, 2, iso)
+                XCTAssertEqual(result.coverage.count, 2, iso)
+                XCTAssertEqual(Set(result.coverage.map { $0.kind }), ["public-holiday", "school-holiday"], iso)
+                XCTAssertTrue(result.coverage.allSatisfy { $0.country == "AT" && $0.region == iso }, iso)
+                XCTAssertTrue(result.entries.allSatisfy { $0.regions == [iso] && $0.selectedRegions == [iso] }, iso)
+                XCTAssertTrue(result.entries.allSatisfy {
+                    $0.organizerValue["regions"] as? [String] == [iso] && $0.organizerValue["region"] as? String == iso
+                }, iso)
+            } catch { XCTFail("\(iso) failed instead of normalizing its verified provider code: \(error)") }
+            XCTAssertEqual(transport.requests.count, 2, iso)
+        }
+    }
+    func testAustrianGroupedResponseUsesOnlyCanonicalISOScope() async throws {
+        let transport = Transport { _ in
+            BoundedHTTPResponse(status: 200, body: try self.body([
+                ["startDate": "2026-07-04", "endDate": "2026-09-06", "name": "Shared period",
+                 "nationwide": false, "subdivisions": [["code": "AT-KÄ"], ["code": "AT-NÖ"],
+                    ["code": "AT-OÖ"], ["code": "AT-3"]]]
+            ]))
+        }
+        let query = try HolidayService.Query(country: "AT", regions: [.init(code: "AT-2", name: "Kärnten"),
+            .init(code: "AT-3", name: "Niederösterreich"), .init(code: "AT-4", name: "Oberösterreich")],
+            years: [2026], includeSchool: false, language: "DE")
+        let result = try await HolidayService(transport: transport).fetchResult(query)
+        XCTAssertEqual(result.entries.count, 1)
+        XCTAssertEqual(result.entries[0].regions, ["AT-2", "AT-3", "AT-4"])
+        XCTAssertEqual(result.entries[0].selectedRegions, ["AT-2", "AT-3", "AT-4"])
+        XCTAssertEqual(result.entries[0].organizerValue["region"] as? String, "AT-2,AT-3,AT-4")
+        XCTAssertEqual(result.entries[0].regionLabel, "alle Bundesländer")
+        XCTAssertEqual(result.coverage.map { $0.region }, ["AT-2", "AT-3", "AT-4"])
+    }
+    func testUnknownAustrianSelectionRejectsBeforeHTTP() throws {
+        for code in ["AT-10", "AT-UNKNOWN", "AT-WI", "DE-BE"] {
+            XCTAssertThrowsError(try HolidayService.Query(country: "AT", regions: [.init(code: code, name: code)],
+                years: [2026], includeSchool: true), code)
+        }
+        XCTAssertNoThrow(try HolidayService.Query(country: "at", regions: [.init(code: " at-9 ", name: "Wien")],
+            years: [2026], includeSchool: true))
+    }
+    func testUnknownAustrianAndForeignResponseCodesNeverCertifyCoverage() async throws {
+        for selected in [[], [HolidayService.Region(code: "AT-9", name: "Wien")]] {
+            for code in ["AT-UNKNOWN", "AT-10", "WI", "DE-BE"] {
+                for nationwide in [false, true] {
+                    let query = try HolidayService.Query(country: "AT", regions: selected,
+                        years: [2026], includeSchool: false)
+                    let result = try await HolidayService(transport: Transport { _ in
+                        BoundedHTTPResponse(status: 200, body: try self.body([
+                            ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Unknown regional period",
+                             "nationwide": nationwide, "subdivisions": [["code": code]]]
+                        ]))
+                    }).fetchResult(query)
+                    XCTAssertEqual(result.entries.count, 1, code)
+                    XCTAssertTrue(result.coverage.isEmpty, "\(code), nationwide=\(nationwide), selected=\(selected.count)")
+                }
+            }
+        }
+    }
+    func testUnknownUnicodeRegionCodesKeepStrictParserFailure() async throws {
+        for code in ["AT-ÜNBEKANNT", "AT-WI/../", "DE-Ä"] {
+            let query = try HolidayService.Query(country: "AT", regions: [.init(code: "AT-9", name: "Wien")],
+                years: [2026], includeSchool: false)
+            do {
+                _ = try await HolidayService(transport: Transport { _ in
+                    BoundedHTTPResponse(status: 200, body: try self.body([
+                        ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Invalid scope",
+                         "nationwide": false, "subdivisions": [["code": code]]]
+                    ]))
+                }).fetchResult(query)
+                XCTFail("An unverified malformed code must still reject: \(code)")
+            } catch { }
+        }
+    }
+    func testGermanSwissAndCanonicalAustrianResponseScopesRemainValid() async throws {
+        for (country, iso, provider) in [("DE", "DE-BE", "DE-BE"), ("CH", "CH-ZH", "CH-ZH"), ("AT", "AT-9", "AT-WI")] {
+            let query = try HolidayService.Query(country: country, regions: [.init(code: iso, name: iso)],
+                years: [2026], includeSchool: false)
+            let result = try await HolidayService(transport: Transport { request in
+                let fields = URLComponents(url: request.url, resolvingAgainstBaseURL: false)!.queryItems!
+                XCTAssertEqual(fields.first(where: { $0.name == "subdivisionCode" })?.value, provider)
+                return BoundedHTTPResponse(status: 200, body: try self.body([
+                    ["startDate": "2026-02-02", "endDate": "2026-02-08", "name": "Canonical period",
+                     "nationwide": false, "subdivisions": [["code": iso]]]
+                ]))
+            }).fetchResult(query)
+            XCTAssertEqual(result.entries.first?.regions, [iso])
+            XCTAssertEqual(result.coverage.map { $0.region }, [iso])
+        }
+    }
     func testLivePublicHolidayServiceWhenRequested() async throws {
         guard ProcessInfo.processInfo.environment["MACOS_BETA_LIVE_HOLIDAYS"] == "1" else {
             throw XCTSkip("Enable the explicit read-only public holiday integration check on a network-enabled Mac runner.")

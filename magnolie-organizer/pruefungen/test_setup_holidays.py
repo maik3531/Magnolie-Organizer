@@ -161,7 +161,8 @@ def test_all_catalog_artifacts_and_placeholders():
 def test_actual_provider_url_and_empty_availability(country, region):
     # Compile actual provider functions only: importing the application would initialize host services.
     source = ast.parse((ROOT / "bin/magnolie-organizer").read_text())
-    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache"}
+    names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache",
+             "_openholidays_region_code"}
     code = ast.Module(body=[node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names], type_ignores=[])
     scope = dict(json=json, _=lambda x: x, ngettext=lambda one, many, n: one if n == 1 else many,
                  _REGIONAL={"language": "en"}, _ist_iso=lambda x: bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", x)),
@@ -176,7 +177,8 @@ def test_actual_provider_url_and_empty_availability(country, region):
     assert result["feiertage"] == []
     assert result["bericht"] == "The service returned no entries for this selection."
     assert len(urls) == 2 and "/SchoolHolidays?" in urls[1]
-    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + region in url for url in urls)
+    provider_region = "AT-WI" if region == "AT-9" else region
+    assert all("countryIsoCode=" + country in url and "subdivisionCode=" + provider_region in url for url in urls)
     urls.clear()
     scope["feiertage_abrufen"](country, region, [2026], False, fetch)
     assert len(urls) == 1 and "SchoolHolidays" not in urls[0]
