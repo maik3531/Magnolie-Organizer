@@ -18537,7 +18537,14 @@ def _openholidays_region_code(code, zum_dienst=False):
     return next((iso for iso, provider in austria.items() if provider == code), None)
 
 
-def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
+def _openholidays_schulgruppen(land):
+    # OpenHolidays groups are not ISO administrative subdivisions (Refs #854).
+    return {"BE": frozenset(("BE-DE", "BE-FR", "BE-NL")),
+            "NL": frozenset(("NL-NO", "NL-MI", "NL-ZU"))}.get(land, frozenset())
+
+
+def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False,
+                           schulgruppen=frozenset(), schulgruppe=""):
     """Wertet die Antwort des Feiertagsdienstes aus und liefert Einträge
     der Form {von, bis, name, art}."""
     try:
@@ -18586,6 +18593,41 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
             bis = von
         regionen = sorted({code for code in region_codes if isinstance(code, str)
                            and re.fullmatch(r"[A-Z0-9-]{1,64}", code)})
+        if schulgruppen and art == "school-holiday":
+            # Only the six verified provider group identities can represent
+            # whole school regions. Never infer a group from the request.
+            if "regionalScope" in satz and satz["regionalScope"] not in ("National", "Regional", "Local"):
+                vollstaendig = False
+            gruppen = satz.get("groups", [])
+            codes = [wert["code"] if isinstance(wert, dict) and
+                     isinstance(wert.get("code"), str) else None
+                     for wert in gruppen] if isinstance(gruppen, list) else []
+            if not isinstance(gruppen, list) or any(code not in schulgruppen for code in codes):
+                vollstaendig = False
+                continue
+            # Refs #857: the provider expands explicit groups into their
+            # administrative subdivisions. Validate both arrays, but retain
+            # only the explicit school-group identities in that case.
+            gruppenland = next(iter(schulgruppen)).split("-", 1)[0]
+            if (not regionenform or any(not code.startswith(gruppenland + "-")
+                    for code in regionen)):
+                vollstaendig = False
+                continue
+            # Explicitly local and subdivision-only records cannot establish
+            # group-wide coverage. A country query may retain their local scope.
+            if satz.get("regionalScope") == "Local" or (not codes and unterregionen):
+                vollstaendig = False
+                if schulgruppe or not unterregionen or satz.get("nationwide") is True:
+                    continue
+            else:
+                if satz.get("nationwide") is True:
+                    if codes and set(codes) != schulgruppen:
+                        vollstaendig = False
+                        continue
+                elif not codes or (schulgruppe and schulgruppe not in codes):
+                    vollstaendig = False
+                    continue
+                regionen = sorted(set(codes))
         eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
                           "nationwide": satz.get("nationwide") is True, "regions": regionen})
     return (eintraege, vollstaendig) if mit_vollstaendigkeit else eintraege
@@ -18627,9 +18669,14 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
         ferien = False  # Country-wide public holidays remain available without a subdivision.
 
     ziele = [(region, "")] if region else (regions_liste or [("", "")])
+    schulgruppen = _openholidays_schulgruppen(land)
+    gruppenwahl = any(code in schulgruppen for code, _name in ziele)
+    if gruppenwahl and not all(code in schulgruppen for code, _name in ziele):
+        raise RuntimeError(_("School holidays are not available for this region."))
     from magnolie_setup_ui import REGIONS_BY_COUNTRY, school_holiday_region
     if land in REGIONS_BY_COUNTRY and any(
-            code and school_holiday_region(land, code)[0] != code for code, _name in ziele):
+            code and code not in schulgruppen and school_holiday_region(land, code)[0] != code
+            for code, _name in ziele):
         raise RuntimeError(_("School holidays are not available for this region."))
     gesammelt = []
     abrufbereiche = []
@@ -18639,7 +18686,10 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
         if ferien:
             wege.append(("SchoolHolidays", "school-holiday"))
         for pfad, art in wege:
-            for region_code, region_name in ziele:
+            # The PublicHolidays endpoint has no group filter. Request it once
+            # for the country, never as a pseudo-administrative subdivision.
+            abrufziele = [("", "")] if gruppenwahl and art == "public-holiday" else ziele
+            for region_code, region_name in abrufziele:
                 felder = [
                     ("countryIsoCode", land),
                     ("languageIsoCode", _feiertag_sprache()),
@@ -18650,7 +18700,8 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                                        if land == "AT" else region_code)
                     if not provider_region:
                         raise RuntimeError(_("School holidays are not available for this region."))
-                    felder.append(("subdivisionCode", provider_region))
+                    felder.append(("groupCode" if gruppenwahl and art == "school-holiday"
+                                   else "subdivisionCode", provider_region))
                 url = "%s/%s?%s" % (
                     FEIERTAG_DIENST, pfad, urlencode(felder))
                 try:
@@ -18660,7 +18711,9 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                         raise GroessenFehler(
                             _("The holiday service returned too much data."))
                     eintraege, vollstaendig = _openholidays_auswerten(
-                        rohtext, art, mit_vollstaendigkeit=True)
+                        rohtext, art, mit_vollstaendigkeit=True,
+                        schulgruppen=schulgruppen if gruppenwahl or not region_code else frozenset(),
+                        schulgruppe=region_code if gruppenwahl and art == "school-holiday" else "")
                 except GroessenFehler:
                     raise
                 except RuntimeError:
@@ -18685,7 +18738,15 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                     return any(code == region_code or code.startswith(region_code + "-")
                         or region_code.startswith(code + "-") for code in
                         (code if "-" in code or code == land else land + "-" + code for code in codes))
-                if vollstaendig and all(passt_zum_abruf(eintrag) for eintrag in eintraege):
+                # Empty or nationwide-only data does not prove the availability
+                # of a group calendar. A country query must show all known groups.
+                gruppen_abdeckung = True
+                if schulgruppen and art == "school-holiday" and (gruppenwahl or not region_code):
+                    belegte_gruppen = {code for eintrag in eintraege for code in eintrag["regions"]}
+                    gruppen_abdeckung = (region_code in belegte_gruppen if gruppenwahl
+                                         else schulgruppen <= belegte_gruppen)
+                if (vollstaendig and gruppen_abdeckung
+                        and all(passt_zum_abruf(eintrag) for eintrag in eintraege)):
                     abrufbereiche.append({"country": land, "region": region_code,
                         "art": art, "von": anfang, "bis": ende})
                 for eintrag in eintraege:
@@ -18719,7 +18780,9 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
         codes = sorted(gruppe.pop("codes"))
         gruppe["regions"] = sorted(gruppe.pop("scopes"))
         if regions_liste and namen:
-            if len(namen) == len(alle_namen):
+            if gruppenwahl:
+                zusatz = ", ".join(namen)
+            elif len(namen) == len(alle_namen):
                 zusatz = (_("all cantons") if land == "CH" else _("all states"))
             elif len(namen) > len(alle_namen) / 2:
                 fehlen = [n for n in alle_namen if n not in namen]
@@ -18732,7 +18795,7 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
             gruppe["region"] = ",".join(codes)
         else:
             gruppe["regionName"] = namen[0] if namen else ""
-            gruppe["region"] = codes[0] if codes else region
+            gruppe["region"] = codes[0] if codes else ("" if gruppenwahl else region)
         sauber.append(gruppe)
     sauber.sort(key=lambda e: (e["von"], e["name"]))
 

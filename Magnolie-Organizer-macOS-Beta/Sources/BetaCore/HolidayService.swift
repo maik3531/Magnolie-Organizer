@@ -12,6 +12,14 @@ public struct HolidayService {
     ]
     private static let austrianISORegions = Dictionary(uniqueKeysWithValues:
         austrianProviderRegions.map { ($0.value, $0.key) })
+    // Refs #854: school groups are not administrative subdivisions.
+    private static func schoolGroups(_ country: String) -> Set<String> {
+        switch country {
+        case "BE": return ["BE-DE", "BE-FR", "BE-NL"]
+        case "NL": return ["NL-NO", "NL-MI", "NL-ZU"]
+        default: return []
+        }
+    }
     public struct Region: Hashable, Sendable {
         public let code: String
         public let name: String
@@ -112,6 +120,11 @@ public struct HolidayService {
     }
     public func fetchResult(_ query: Query) async throws -> Result {
         let selections: [Region?] = query.regions.isEmpty ? [nil] : query.regions.map { Optional($0) }
+        let schoolGroups = Self.schoolGroups(query.country)
+        let groupSelection = query.regions.contains { schoolGroups.contains($0.code) }
+        if groupSelection && !query.regions.allSatisfy({ schoolGroups.contains($0.code) }) {
+            throw BetaError("The selected holiday region is invalid.")
+        }
         let kinds = query.includeSchool ? [("PublicHolidays", "public-holiday"), ("SchoolHolidays", "school-holiday")]
                                        : [("PublicHolidays", "public-holiday")]
         var groups: [GroupKey: Group] = [:]
@@ -120,7 +133,10 @@ public struct HolidayService {
         let deadline = ProcessInfo.processInfo.systemUptime + 90
         for year in query.years {
             for (endpoint, kind) in kinds {
-                for region in selections {
+                // Public holidays have no school-group filter.
+                let targets: [Region?] = groupSelection && kind == "public-holiday" ? [nil] : selections
+                for region in targets {
+                    let groupScope = kind == "school-holiday" && !schoolGroups.isEmpty && (groupSelection || region == nil)
                     try Task.checkCancellation()
                     let remaining = deadline - ProcessInfo.processInfo.systemUptime
                     guard remaining > 0 else { throw BetaError("Holiday retrieval timed out; no partial result was applied.") }
@@ -132,7 +148,7 @@ public struct HolidayService {
                     if let region {
                         let providerCode = query.country == "AT" ? Self.austrianProviderRegions[region.code] : region.code
                         guard let providerCode else { throw BetaError("The selected holiday region is invalid.") }
-                        url.queryItems!.append(URLQueryItem(name: "subdivisionCode", value: providerCode))
+                        url.queryItems!.append(URLQueryItem(name: groupScope ? "groupCode" : "subdivisionCode", value: providerCode))
                     }
                     let response = try await transport.send(BoundedHTTPRequest(url: url.url!,
                         headers: ["Accept": "application/json", "User-Agent": "Magnolie-Organizer-macOS/2.0.30"],
@@ -147,6 +163,7 @@ public struct HolidayService {
                     let rows = (document as? [[String: Any]]) ?? ((document as? [String: Any])?["data"] as? [[String: Any]])
                     guard let rows, rows.count <= 10_000 else { throw BetaError("The holiday service returned an unreadable response.") }
                     var complete = true
+                    var observedGroups = Set<String>()
                     for row in rows {
                         try Task.checkCancellation()
                         guard ProcessInfo.processInfo.systemUptime < deadline else { throw BetaError("Holiday retrieval timed out; no partial result was applied.") }
@@ -188,6 +205,36 @@ public struct HolidayService {
                                 rowRegions.insert(code)
                             }
                         }
+                        if groupScope {
+                            // Refs #857: explicit groups are expanded into administrative
+                            // subdivisions by the provider. Both arrays are normal.
+                            if row["regionalScope"] != nil && !["National", "Regional", "Local"].contains(row["regionalScope"] as? String ?? "") {
+                                complete = false
+                            }
+                            let rawGroups = row["groups"] ?? []
+                            guard let refs = rawGroups as? [[String: Any]] else { complete = false; continue }
+                            let codes = Set(refs.compactMap { $0["code"] as? String })
+                            guard refs.allSatisfy({ ($0["code"] as? String).map { schoolGroups.contains($0) } == true }) else {
+                                complete = false; continue
+                            }
+                            let hasSubdivisions = !rowRegions.isEmpty
+                            if (row["subdivisions"] != nil && !(row["subdivisions"] is [[String: Any]])) ||
+                                rowRegions.contains(where: { !$0.hasPrefix(query.country + "-") }) { complete = false; continue }
+                            // Local/subdivision-only rows may survive a country query,
+                            // without authorizing replacement of a school group.
+                            if row["regionalScope"] as? String == "Local" || (codes.isEmpty && hasSubdivisions) {
+                                complete = false
+                                if region != nil || rowNationwide || !hasSubdivisions { continue }
+                            } else {
+                                if rowNationwide {
+                                    if !codes.isEmpty && codes != schoolGroups { complete = false; continue }
+                                } else if codes.isEmpty || (region.map { !codes.contains($0.code) } ?? false) {
+                                    complete = false; continue
+                                }
+                                rowRegions = codes
+                                observedGroups.formUnion(codes)
+                            }
+                        }
                         if rowRegions.contains(where: { $0.contains("-") && !$0.hasPrefix(query.country + "-") }) { complete = false }
                         if !rowNationwide && region == nil && rowRegions.isEmpty { complete = false }
                         if !rowNationwide, let region, !rowRegions.isEmpty, !rowRegions.contains(where: {
@@ -197,11 +244,17 @@ public struct HolidayService {
                         if let region {
                             group.selected.insert(region.code)
                             if !region.name.isEmpty { group.names.insert(region.name) }
-                            if !rowNationwide && rowRegions.isEmpty { rowRegions.insert(region.code) }
+                            if !groupScope && !rowNationwide && rowRegions.isEmpty { rowRegions.insert(region.code) }
                         }
                         group.regions.formUnion(rowRegions)
                         groups[key] = group
                         guard groups.count <= 20_000 else { throw BetaError("The holiday service returned too many entries.") }
+                    }
+                    // A successful HTTP response alone is not evidence that all
+                    // requested school calendars were supplied.
+                    if groupScope {
+                        let required = region.map { Set([$0.code]) } ?? schoolGroups
+                        if !required.isSubset(of: observedGroups) { complete = false }
                     }
                     if complete {
                         coverage.append(Coverage(country: query.country, region: region?.code ?? "", kind: kind,
@@ -217,7 +270,9 @@ public struct HolidayService {
             if query.regions.count > 1 && !names.isEmpty {
                 let allNames = Set(query.regions.map { $0.name })
                 let label: String
-                if value.names == allNames {
+                if groupSelection {
+                    label = names.joined(separator: ", ")
+                } else if value.names == allNames {
                     label = query.language == "DE" ? (query.country == "CH" ? "alle Kantone" : "alle Bundesländer")
                         : (query.country == "CH" ? "all cantons" : "all states")
                 } else if names.count > allNames.count / 2 {

@@ -1,0 +1,348 @@
+using System.Net;
+using System.Text;
+
+namespace MagnolieOrganizer.Windows;
+
+// Actual FetchHolidaysAsync/AddHolidayEntriesAsync/Text/Boolean are supplied
+// verbatim by holiday-school-groups.py. Only HTTP, callback and gettext are doubles.
+public sealed partial class HolidayFetchCoverageHost
+{
+    private readonly HttpClient http;
+    private readonly Callback form = new();
+    private HolidayFetchCoverageHost(HttpMessageHandler handler) => http = new(handler);
+    private static string T(string value) => value;
+    private sealed class Callback
+    {
+        internal JsonElement Result;
+        internal Task SendAsync(string name, object payload)
+        {
+            if (name != "App.feiertageErgebnis") throw new InvalidOperationException(name);
+            Result = JsonSerializer.SerializeToElement(payload);
+            return Task.CompletedTask;
+        }
+    }
+    private sealed record Request(string Path, Dictionary<string, string> Fields, string EscapedQuery);
+    private sealed record Result(JsonElement Value, List<Request> Requests);
+    private sealed class OfflineHttp(Func<Request, HttpResponseMessage> responder) : HttpMessageHandler
+    {
+        internal readonly List<Request> Requests = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            var uri = request.RequestUri!;
+            if (uri.Scheme != "https" || uri.Host != "openholidaysapi.org") throw new InvalidOperationException("Unexpected HTTP origin");
+            var fields = uri.Query.TrimStart('?').Split('&').Select(part => part.Split('=', 2))
+                .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
+            var recorded = new Request(uri.AbsolutePath, fields, uri.Query); Requests.Add(recorded);
+            return Task.FromResult(responder(recorded));
+        }
+    }
+    private static HttpResponseMessage Raw(string data, HttpStatusCode status = HttpStatusCode.OK) =>
+        new(status) { Content = new StringContent(data, Encoding.UTF8, "application/json") };
+    private static HttpResponseMessage Data(object? data) => Raw(JsonSerializer.Serialize(data));
+    private static Dictionary<string, object?> Row() => new() { ["startDate"] = "2026-06-01", ["endDate"] = "2026-06-02", ["name"] = "Synthetic holiday", ["nationwide"] = false };
+    // Refs #856: frozen from /Subdivisions?countryIsoCode=AT, 2026-11-28.
+    // The public API's provider code is distinct from its isoCode.
+    private static readonly (string Iso, string Provider, string Escaped)[] AustrianRegions = [
+        ("AT-1", "AT-BL", "AT-BL"), ("AT-2", "AT-KÄ", "AT-K%C3%84"),
+        ("AT-3", "AT-NÖ", "AT-N%C3%96"), ("AT-4", "AT-OÖ", "AT-O%C3%96"),
+        ("AT-5", "AT-SB", "AT-SB"), ("AT-6", "AT-SM", "AT-SM"),
+        ("AT-7", "AT-TI", "AT-TI"), ("AT-8", "AT-VA", "AT-VA"),
+        ("AT-9", "AT-WI", "AT-WI")
+    ];
+    private static Dictionary<string, object?> AustrianRow(params string[] codes)
+    {
+        var row = Row(); row["subdivisions"] = codes.Select(code => new { code }).ToArray();
+        return row;
+    }
+    private static async Task<Result> Fetch(Func<Request, HttpResponseMessage>? reply = null, string country = "DE", string region = "DE-SN",
+        int[]? years = null, bool school = true, string[][]? regions = null, bool regionRequired = false)
+    {
+        using var handler = new OfflineHttp(reply ?? (_ => Data(Array.Empty<object>())));
+        var host = new HolidayFetchCoverageHost(handler); using var client = host.http;
+        await host.FetchHolidaysAsync(JsonSerializer.SerializeToElement(new {
+            requestId = "synthetic-coverage", land = country, region, jahre = years ?? [2026], ferien = school,
+            regionen = regions ?? [], regionErforderlich = regionRequired }));
+        return new Result(host.form.Result, handler.Requests);
+    }
+    private static string Scope(string kind = "public-holiday", string region = "DE-SN", int year = 2026, string country = "DE") =>
+        $"{country}|{region}|{kind}|{year}-01-01|{year}-12-31";
+    private static HashSet<string> Scopes(Result result) => result.Value.TryGetProperty("abrufbereiche", out var scopes)
+        ? scopes.EnumerateArray().Select(scope => string.Join("|", new[] { "country", "region", "art", "von", "bis" }
+            .Select(key => scope.GetProperty(key).GetString()))).ToHashSet(StringComparer.Ordinal) : [];
+    private static void EqualScopes(Result result, params string[] expected)
+    {
+        var actual = Scopes(result);
+        Check(actual.SetEquals(expected), $"Scopes differ: actual={string.Join(';', actual)} expected={string.Join(';', expected)}");
+        Check(!result.Value.TryGetProperty("fehler", out _), "Unexpected whole-operation failure");
+    }
+    private static void Check(bool condition, string message)
+    { if (!condition) throw new InvalidOperationException(message); }
+    private static int Count(Result result) => result.Value.GetProperty("feiertage").GetArrayLength();
+
+    private static Dictionary<string, object?> GroupRow(params string[] codes)
+    {
+        var row = Row(); row["groups"] = codes.Select(code => new { code }).ToArray(); return row;
+    }
+    private static Dictionary<string, object?> PublicRow()
+    {
+        var row = Row(); row["name"] = "Synthetic public holiday"; row["nationwide"] = true; return row;
+    }
+    private static JsonElement[] SchoolRows(Result result) => result.Value.GetProperty("feiertage").EnumerateArray()
+        .Where(row => row.GetProperty("art").GetString() == "school-holiday").ToArray();
+    private static string[] Regions(JsonElement row) => row.GetProperty("regions").EnumerateArray()
+        .Select(code => code.GetString()!).Order(StringComparer.Ordinal).ToArray();
+    private static string[] GroupCodes(string country) => country == "BE" ? ["BE-DE", "BE-FR", "BE-NL"] : ["NL-NO", "NL-MI", "NL-ZU"];
+    private static Func<Request, HttpResponseMessage> Reply(object[] school) => request =>
+        Data(request.Path == "/PublicHolidays" ? new object[] { PublicRow() } : school);
+
+    private static string Frozen(string name) => File.ReadAllText(Path.Combine(
+        Environment.GetEnvironmentVariable("MAGNOLIE_HOLIDAY_GROUP_FIXTURES") ?? throw new InvalidOperationException("Fixture directory missing"), name));
+    private static string FrozenName(JsonElement item) => item.GetProperty("name").EnumerateArray()
+        .First(name => name.GetProperty("language").GetString() == "EN").GetProperty("text").GetString()!;
+    private static void EqualFrozenSchoolRows(Result result, string captured)
+    {
+        using var document = JsonDocument.Parse(captured);
+        var expected = document.RootElement.EnumerateArray().GroupBy(row => (
+            From: row.GetProperty("startDate").GetString(), To: row.GetProperty("endDate").GetString(), Name: FrozenName(row)))
+            .ToDictionary(group => group.Key, group => group.SelectMany(row => row.GetProperty("groups").EnumerateArray()
+                .Select(code => code.GetProperty("code").GetString()!)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray());
+        var actual = SchoolRows(result);
+        Check(actual.Length == expected.Count, $"Captured school rows lost: {actual.Length}/{expected.Count}");
+        foreach (var row in actual)
+        {
+            var key = (row.GetProperty("von").GetString(), row.GetProperty("bis").GetString(), row.GetProperty("name").GetString()!);
+            Check(expected.TryGetValue(key, out var codes) && Regions(row).SequenceEqual(codes), "Captured boundaries, title or group identities changed");
+        }
+    }
+
+    public static async Task<int> Main()
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en");
+        var cases = new List<(string Name, Func<Task> Run)>();
+        foreach (var country in new[] { "BE", "NL" })
+        {
+            var known = GroupCodes(country);
+            cases.Add(($"{country}: captured 2026 country HTTP JSON preserves every school period and group", async () => {
+                var schoolCapture = Frozen(country + "-SchoolHolidays.json");
+                var result = await Fetch(request => Raw(request.Path == "/PublicHolidays" ? Frozen(country + "-PublicHolidays.json") : schoolCapture),
+                    country: country, region: "");
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: ""));
+                EqualFrozenSchoolRows(result, schoolCapture);
+            }));
+            foreach (var code in known)
+            {
+                cases.Add(($"{code}: captured groupCode HTTP JSON preserves every school period", async () => {
+                    var schoolCapture = Frozen(code + "-SchoolHolidays.json");
+                    var result = await Fetch(request => Raw(request.Path == "/PublicHolidays" ? Frozen(country + "-PublicHolidays.json") : schoolCapture),
+                        country: country, region: code);
+                    EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: code));
+                    EqualFrozenSchoolRows(result, schoolCapture);
+                }));
+                cases.Add(($"{code}: group endpoint, country public scope and explicit row identity", async () => {
+                    var result = await Fetch(Reply([GroupRow(code)]), country: country, region: code);
+                    Check(result.Requests.Count == 2, "Expected exactly two endpoints");
+                    var school = result.Requests.Single(request => request.Path == "/SchoolHolidays");
+                    Check(school.Fields.GetValueOrDefault("groupCode") == code && !school.Fields.ContainsKey("subdivisionCode"), "School group sent as subdivision");
+                    var publicRequest = result.Requests.Single(request => request.Path == "/PublicHolidays");
+                    Check(!publicRequest.Fields.ContainsKey("groupCode") && !publicRequest.Fields.ContainsKey("subdivisionCode"), "Public holidays narrowed by school group");
+                    EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: code));
+                    var row = SchoolRows(result).Single(); Check(Regions(row).SequenceEqual([code]), "Group identity lost");
+                    Check(row.GetProperty("region").GetString() == code && row.GetProperty("country").GetString() == country, "Selection geography changed");
+                    Check(result.Value.GetProperty("feiertage").EnumerateArray().Single(row => row.GetProperty("art").GetString() == "public-holiday")
+                        .GetProperty("region").GetString() == "", "Public scope misrepresented as school group");
+                }));
+            }
+            cases.Add(($"{country}: all groups request public holidays once and aggregate explicit names", async () => {
+                var result = await Fetch(request => request.Path == "/PublicHolidays" ? Data(new[] { PublicRow() }) :
+                    Data(new[] { GroupRow(request.Fields.GetValueOrDefault("groupCode", request.Fields.GetValueOrDefault("subdivisionCode", ""))) }),
+                    country: country, region: "", regions: known.Select(code => new[] { code, "Group " + code }).ToArray());
+                Check(result.Requests.Count(request => request.Path == "/PublicHolidays") == 1 && result.Requests.Count == 4, "Duplicated public request");
+                EqualScopes(result, new[] { Scope(country: country, region: "") }.Concat(known.Select(code => Scope("school-holiday", country: country, region: code))).ToArray());
+                var row = SchoolRows(result).Single();
+                Check(Regions(row).SequenceEqual(known.Order(StringComparer.Ordinal)), "Aggregation lost explicit groups");
+                Check(known.All(code => row.GetProperty("regionName").GetString()!.Contains("Group " + code, StringComparison.Ordinal)), "Group labels replaced by all states");
+            }));
+            cases.Add(($"{country}: country request preserves and certifies all explicit groups", async () => {
+                var result = await Fetch(Reply(known.Select(code => (object)GroupRow(code)).ToArray()), country: country, region: "");
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: ""));
+                Check(result.Requests.All(request => !request.Fields.ContainsKey("groupCode") && !request.Fields.ContainsKey("subdivisionCode")), "Country query narrowed");
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual(known.Order(StringComparer.Ordinal)), "Country response lost groups");
+            }));
+            cases.Add(($"{country}: partial country response keeps rows without replacement authority", async () => {
+                var result = await Fetch(Reply([GroupRow(known[0], known[1])]), country: country, region: "");
+                EqualScopes(result, Scope(country: country, region: ""));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual(known.Take(2).Order(StringComparer.Ordinal)), "Partial country rows lost");
+            }));
+            cases.Add(($"{country}: missing group identities cannot be inferred from selected group", async () => {
+                var result = await Fetch(Reply([Row()]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Invented requested group");
+            }));
+            cases.Add(($"{country}: empty school response cannot authorize replacement", async () => {
+                foreach (var region in new[] { "", known[0] })
+                    EqualScopes(await Fetch(Reply([]), country: country, region: region), Scope(country: country, region: ""));
+            }));
+            cases.Add(($"{country}: national-only school rows do not prove group coverage", async () => {
+                foreach (var region in new[] { "", known[0] }) {
+                    var row = Row(); row["nationwide"] = true;
+                    var result = await Fetch(Reply([row]), country: country, region: region);
+                    EqualScopes(result, Scope(country: country, region: ""));
+                    Check(Regions(SchoolRows(result).Single()).Length == 0, "Invented groups for national row");
+                }
+            }));
+            cases.Add(($"{country}: nationwide row with every explicit group may certify school", async () => {
+                var row = GroupRow(known); row["nationwide"] = true;
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]));
+            }));
+            cases.Add(($"{country}: nationwide all-group row allows derived subdivision enumeration", async () => {
+                var row = GroupRow(known); row["nationwide"] = true;
+                row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } };
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual(known.Order(StringComparer.Ordinal)), "National derived enumeration erased groups");
+            }));
+            cases.Add(($"{country}: nationwide plus partial group claim is contradictory", async () => {
+                var row = GroupRow(known[0]); row["nationwide"] = true;
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Contradictory group row retained");
+            }));
+            cases.Add(($"{country}: another known group cannot be attributed to requested group", async () => {
+                var result = await Fetch(Reply([GroupRow(known[1])]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Unrequested group relabeled");
+            }));
+            cases.Add(($"{country}: multi-group response preserves every explicit group", async () => {
+                var row = GroupRow(known[0], known[1], known[0]);
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual(known.Take(2).Order(StringComparer.Ordinal)), "Multi-group response narrowed or duplicated");
+            }));
+            var malformed = new (string Name, object? Groups)[] {
+                ("null", null), ("string", known[0]), ("number", 42), ("object", new { code = known[0] }),
+                ("scalar element", new object[] { known[0] }), ("missing code", new object[] { new { label = known[0] } }),
+                ("non-string code", new object[] { new { code = 42 } }), ("unknown", new object[] { new { code = country + "-UNKNOWN" } }),
+                ("foreign", new object[] { new { code = country == "BE" ? "NL-NO" : "BE-DE" } }),
+                ("prefixless", new object[] { new { code = known[0][3..] } }),
+                ("lowercase", new object[] { new { code = known[0].ToLowerInvariant() } }),
+                ("known plus foreign", new object[] { new { code = known[0] }, new { code = "DE-SN" } }),
+                ("empty", Array.Empty<object>())
+            };
+            foreach (var invalid in malformed)
+            {
+                cases.Add(($"{country}: malformed groups {invalid.Name} neither relabel nor authorize", async () => {
+                    var row = Row(); row["groups"] = invalid.Groups;
+                    var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                    EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Malformed groups accepted");
+                }));
+            }
+            cases.Add(($"{country}: accompanying subdivision enumeration preserves explicit group", async () => {
+                var row = GroupRow(known[0]); row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } };
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual([known[0]]), "Explicit group erased by derived subdivision enumeration");
+            }));
+            cases.Add(($"{country}: country request uses explicit group identities over enumerated subdivisions", async () => {
+                var row = GroupRow(known[0]); row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } };
+                var result = await Fetch(Reply([row]), country: country, region: "");
+                EqualScopes(result, Scope(country: country, region: ""));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual([known[0]]), "Country response lost school-group identity");
+            }));
+            cases.Add(($"{country}: subdivision-only country rows stay local without group coverage", async () => {
+                var row = Row(); row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } };
+                var countryResult = await Fetch(Reply([row]), country: country, region: "");
+                EqualScopes(countryResult, Scope(country: country, region: ""));
+                Check(Regions(SchoolRows(countryResult).Single()).SequenceEqual([country + "-MUNICIPAL"]), "Local scope was discarded or widened");
+                var groupResult = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(groupResult, Scope(country: country, region: "")); Check(SchoolRows(groupResult).Length == 0, "Missing groups inferred from query");
+            }));
+            cases.Add(($"{country}: explicitly Local records cannot authorize a whole school group", async () => {
+                var row = GroupRow(known[0]); row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } }; row["regionalScope"] = "Local";
+                var countryResult = await Fetch(Reply([row]), country: country, region: "");
+                EqualScopes(countryResult, Scope(country: country, region: ""));
+                Check(Regions(SchoolRows(countryResult).Single()).SequenceEqual([country + "-MUNICIPAL"]), "Explicit local exception widened to group");
+                var groupResult = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(groupResult, Scope(country: country, region: "")); Check(SchoolRows(groupResult).Length == 0, "Local exception accepted as whole-group period");
+            }));
+            cases.Add(($"{country}: Exception tag alone does not erase an explicit regional group", async () => {
+                var row = GroupRow(known[0]); row["subdivisions"] = new[] { new { code = country + "-MUNICIPAL" } };
+                row["regionalScope"] = "Regional"; row["tags"] = new[] { "Exception" };
+                var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]));
+                Check(Regions(SchoolRows(result).Single()).SequenceEqual([known[0]]), "Tag was reinterpreted as undocumented scope restriction");
+            }));
+            cases.Add(($"{country}: malformed or future regional scope cannot authorize replacement", async () => {
+                foreach (var scope in new object?[] { null, 42, "FutureScope" }) {
+                    var row = GroupRow(known[0]); row["regionalScope"] = scope;
+                    var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                    EqualScopes(result, Scope(country: country, region: ""));
+                    Check(Regions(SchoolRows(result).Single()).SequenceEqual([known[0]]), "Explicit valid group lost on tolerant scope parsing");
+                }
+            }));
+            cases.Add(($"{country}: malformed subdivision metadata cannot be hidden by valid group", async () => {
+                foreach (var subdivision in new object?[] { null, "invalid", new object[] { new { code = known[0] }, 42 } }) {
+                    var row = GroupRow(known[0]); row["subdivisions"] = subdivision;
+                    var result = await Fetch(Reply([row]), country: country, region: known[0]);
+                    EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Invalid mixed metadata accepted");
+                }
+            }));
+            cases.Add(($"{country}: foreign and prefixless municipal scopes are not assigned to country", async () => {
+                foreach (var subdivision in new[] { country == "BE" ? "NL-MUNICIPAL" : "BE-MUNICIPAL", "MUNICIPAL" }) {
+                    var row = GroupRow(known[0]); row["subdivisions"] = new[] { new { code = subdivision } };
+                    var result = await Fetch(Reply([row]), country: country, region: "");
+                    EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Foreign or ambiguous municipality relabeled");
+                }
+            }));
+            cases.Add(($"{country}: group and subdivision selections are rejected before HTTP", async () => {
+                var result = await Fetch(country: country, region: "", regions: [[known[0], "School group"], [country + "-ADMIN", "Administrative"]]);
+                Check(result.Value.TryGetProperty("fehler", out _) && result.Requests.Count == 0, "Mixed query reached provider");
+            }));
+            cases.Add(($"{country}: school opt-out retains one nationwide public request", async () => {
+                var result = await Fetch(Reply([]), country: country, region: "", school: false, regions: known.Select(code => new[] { code, code }).ToArray());
+                EqualScopes(result, Scope(country: country, region: "")); Check(result.Requests.Count == 1, "Opt-out duplicates requests or fetches school");
+            }));
+            cases.Add(($"{country}: school HTTP failure cannot certify group", async () => {
+                var result = await Fetch(request => request.Path == "/SchoolHolidays" ? Raw("", HttpStatusCode.ServiceUnavailable) : Data(new[] { PublicRow() }), country: country, region: known[0]);
+                EqualScopes(result, Scope(country: country, region: "")); Check(SchoolRows(result).Length == 0, "Failure returned school rows");
+            }));
+            cases.Add(($"{country}: cross-year group periods retain both boundaries", async () => {
+                var row = GroupRow(known[0]); row["startDate"] = "2026-12-19"; row["endDate"] = "2027-01-03";
+                var result = await Fetch(Reply([row]), country: country, region: known[0], years: [2026, 2027]);
+                // Public fixture is only in 2026, so its 2027 response grants no coverage.
+                EqualScopes(result, Scope(country: country, region: ""), Scope("school-holiday", country: country, region: known[0]),
+                    Scope("school-holiday", country: country, region: known[0], year: 2027));
+                var actual = SchoolRows(result).Single();
+                Check(actual.GetProperty("von").GetString() == "2026-12-19" && actual.GetProperty("bis").GetString() == "2027-01-03", "Cross-year school period clipped");
+                Check(result.Requests.Count(request => request.Path == "/PublicHolidays") == 2, "Public query duplicated per year");
+            }));
+            cases.Add(($"{country}: unrelated public group metadata cannot invent public group scope", async () => {
+                var row = PublicRow(); row["groups"] = new[] { new { code = known[0] } };
+                var result = await Fetch(_ => Data(new[] { row }), country: country, region: known[0], school: false);
+                EqualScopes(result, Scope(country: country, region: ""));
+                Check(result.Value.GetProperty("feiertage")[0].GetProperty("regions").GetArrayLength() == 0, "Public groups invented");
+            }));
+        }
+        cases.Add(("Austrian aliases retain provider encoding and ISO identities", async () => {
+            foreach (var mapping in AustrianRegions) {
+                var result = await Fetch(_ => Data(new[] { AustrianRow(mapping.Provider) }), country: "AT", region: mapping.Iso);
+                Check(result.Requests.All(request => request.Fields.GetValueOrDefault("subdivisionCode") == mapping.Provider &&
+                    !request.Fields.ContainsKey("groupCode") && request.EscapedQuery.Contains("subdivisionCode=" + mapping.Escaped, StringComparison.Ordinal)), "Austrian request changed");
+                EqualScopes(result, Scope(country: "AT", region: mapping.Iso), Scope("school-holiday", country: "AT", region: mapping.Iso));
+                Check(result.Value.GetProperty("feiertage").EnumerateArray().All(row => Regions(row).SequenceEqual([mapping.Iso])), "Austrian canonical identity changed");
+            }
+        }));
+        cases.Add(("German and Swiss subdivision behavior remains compatible", async () => {
+            foreach (var pair in new[] { (Country: "DE", Region: "DE-SN"), (Country: "CH", Region: "CH-ZH") }) {
+                var result = await Fetch(_ => Data(new[] { AustrianRow(pair.Region) }), country: pair.Country, region: pair.Region);
+                EqualScopes(result, Scope(country: pair.Country, region: pair.Region), Scope("school-holiday", country: pair.Country, region: pair.Region));
+                Check(result.Requests.All(request => request.Fields.GetValueOrDefault("subdivisionCode") == pair.Region && !request.Fields.ContainsKey("groupCode")), "Subdivision wire contract changed");
+            }
+        }));
+        var failed = 0;
+        foreach (var test in cases) {
+            try { await test.Run(); Console.WriteLine("PASS " + test.Name); }
+            catch (Exception error) { failed++; Console.WriteLine("FAIL " + test.Name + ": " + error.Message); }
+        }
+        Console.WriteLine(JsonSerializer.Serialize(new { total = cases.Count, passed = cases.Count - failed, failed,
+            runtime = Environment.Version.ToString(), scope = "actual C# methods and full parser / offline HTTP / host runtime" }));
+        return failed == 0 ? 0 : 1;
+    }
+}

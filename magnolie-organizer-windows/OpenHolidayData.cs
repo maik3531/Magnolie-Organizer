@@ -11,6 +11,19 @@ internal sealed record HolidayFetchScope(string country, string region, string a
 
 internal static class OpenHolidayData
 {
+    // Refs #854/#857: these school groups are provider identities, not ISO
+    // administrative subdivisions. Keep the two request scopes separate.
+    private static readonly HashSet<string> BelgianSchoolGroups = ["BE-DE", "BE-FR", "BE-NL"];
+    private static readonly HashSet<string> DutchSchoolGroups = ["NL-NO", "NL-MI", "NL-ZU"];
+    private static readonly HashSet<string> NoSchoolGroups = [];
+
+    internal static IReadOnlySet<string> SchoolHolidayGroups(string country) => country switch
+    {
+        "BE" => BelgianSchoolGroups,
+        "NL" => DutchSchoolGroups,
+        _ => NoSchoolGroups
+    };
+
     // Refs #856: OpenHolidays /Subdivisions distinguishes provider "code"
     // from "isoCode". Keep the existing ISO codes in settings and caches.
     private static readonly (string Iso, string Provider)[] AustrianSubdivisions = [
@@ -57,6 +70,9 @@ internal static class OpenHolidayData
         var result = new List<HolidayEntry>();
         complete = data.ValueKind == JsonValueKind.Array;
         if (data.ValueKind != JsonValueKind.Array) return result;
+        var schoolGroups = SchoolHolidayGroups(country);
+        var groupRequest = schoolGroups.Contains(region);
+        var groupScope = kind == "school-holiday" && schoolGroups.Count > 0 && (groupRequest || region.Length == 0);
         foreach (var item in data.EnumerateArray())
         {
             complete &= CompleteShape(item, country);
@@ -73,10 +89,69 @@ internal static class OpenHolidayData
                 ? subdivisions.EnumerateArray().Select(value => CanonicalSubdivisionCode(country, Text(value, "code")))
                     .Where(value => Regex.IsMatch(value, "^[A-Z0-9-]{1,64}$")).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()
                 : Array.Empty<string>();
-            if (!nationwide && regions.Length == 0 && region.Length > 0) regions = [region];
+            if (groupScope)
+            {
+                // Unknown future/malformed scope metadata may contribute
+                // explicit rows, but cannot certify replacement coverage.
+                if (item.TryGetProperty("regionalScope", out var regionalScope) &&
+                    (regionalScope.ValueKind != JsonValueKind.String ||
+                     regionalScope.GetString() is not ("National" or "Regional" or "Local"))) complete = false;
+                var groupCodes = Array.Empty<string>();
+                if (item.TryGetProperty("groups", out var groups))
+                {
+                    if (groups.ValueKind != JsonValueKind.Array || groups.EnumerateArray().Any(value =>
+                        value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("code", out var code) ||
+                        code.ValueKind != JsonValueKind.String || !schoolGroups.Contains(code.GetString() ?? "")))
+                    { complete = false; continue; }
+                    groupCodes = groups.EnumerateArray().Select(value => Text(value, "code"))
+                        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                }
+                var subdivisionShape = subdivisions.ValueKind == JsonValueKind.Undefined ||
+                    subdivisions.ValueKind == JsonValueKind.Array && subdivisions.EnumerateArray().All(value =>
+                        value.ValueKind == JsonValueKind.Object && value.TryGetProperty("code", out var code) &&
+                        code.ValueKind == JsonValueKind.String && ValidSubdivisionShape(country, code.GetString() ?? ""));
+                if (!subdivisionShape || regions.Any(code => !code.StartsWith(country + "-", StringComparison.Ordinal)))
+                { complete = false; continue; }
+                var hasSubdivisions = subdivisions.ValueKind == JsonValueKind.Array && subdivisions.GetArrayLength() > 0;
+                var explicitlyLocal = Text(item, "regionalScope") == "Local";
+                if (explicitlyLocal || groupCodes.Length == 0 && hasSubdivisions)
+                {
+                    // A genuinely local/subdivision-only row cannot prove a
+                    // school group's coverage. Keep local country data without
+                    // replacement authority; never infer a requested group.
+                    complete = false;
+                    if (groupRequest || !hasSubdivisions || nationwide) continue;
+                }
+                else
+                {
+                    if (nationwide)
+                    {
+                        if (groupCodes.Length > 0 && !schoolGroups.SetEquals(groupCodes))
+                        { complete = false; continue; }
+                    }
+                    else if (groupCodes.Length == 0 || groupRequest && !groupCodes.Contains(region, StringComparer.Ordinal))
+                    { complete = false; continue; }
+                    // The provider expands groups into subdivisions. Both
+                    // arrays are normal (not evidence of a municipal-only
+                    // restriction); explicit groups carry school identity.
+                    regions = groupCodes;
+                }
+            }
+            // Only legacy subdivision paths may infer the requested scope.
+            if (!groupScope && !nationwide && regions.Length == 0 && region.Length > 0) regions = [region];
             result.Add(new HolidayEntry(from, to, name, kind, region, regionName, country, nationwide, regions));
         }
         return result;
+    }
+
+    internal static bool HasSchoolGroupCoverage(IReadOnlyList<HolidayEntry> entries, string kind, string country, string region)
+    {
+        var groups = SchoolHolidayGroups(country);
+        if (kind != "school-holiday" || groups.Count == 0 || region.Length > 0 && !groups.Contains(region)) return true;
+        var evidenced = entries.SelectMany(item => item.regions).ToHashSet(StringComparer.Ordinal);
+        // Empty and nationwide-only responses do not prove that a school's
+        // group calendar exists. Country coverage requires all known groups.
+        return region.Length > 0 ? evidenced.Contains(region) : groups.IsSubsetOf(evidenced);
     }
 
     internal static bool ReturnedRowsMatchQuery(IReadOnlyList<HolidayEntry> entries, string country, string region, int year)

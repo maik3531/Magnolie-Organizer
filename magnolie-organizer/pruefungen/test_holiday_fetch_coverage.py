@@ -23,7 +23,7 @@ def product_functions():
     source = ast.parse(SOURCE.read_text())
     names = {"_ist_iso", "kanonischer_text", "_feiertag_sprache", "_name_waehlen",
              "_openholidays_auswerten", "feiertage_abrufen"}
-    optional_helpers = {"_openholidays_region_code"}  # Absent on the immutable #855 baseline.
+    optional_helpers = {"_openholidays_region_code", "_openholidays_schulgruppen"}  # Absent on earlier bases.
     nodes = [node for node in source.body if isinstance(node, ast.FunctionDef)
              and node.name in names | optional_helpers]
     assert names <= {node.name for node in nodes}

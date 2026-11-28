@@ -7,6 +7,16 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):
+  Die Feiertagsdienste für Linux, Windows, macOS und Android-Tablet erkennen
+  sechs belgische und niederländische Schulgruppen. Bei gültigen Antworten
+  behalten Ferienzeilen mit Gruppen und ergänzenden Unterregionen ihre
+  Gruppenidentität; lokale oder unvollständige Antworten bestätigen keine
+  vollständige Abdeckung. Je 90 Gruppenfälle im Python- und C#-Host
+  bestanden; bytegleiche Swift-/Kotlin-Nachweise: 98 und 112 Fälle.
+  Normale Auswahl, Ersteinrichtung und Desktop-Importer bleiben in #854;
+  die native Paketabnahme bleibt in #113.
+
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten
   Geografie. Ein laufender Abruf wird nur seiner Auswahl zugeordnet;

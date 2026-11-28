@@ -162,7 +162,7 @@ def test_actual_provider_url_and_empty_availability(country, region):
     # Compile actual provider functions only: importing the application would initialize host services.
     source = ast.parse((ROOT / "bin/magnolie-organizer").read_text())
     names = {"feiertage_abrufen", "_openholidays_auswerten", "_name_waehlen", "_feiertag_sprache",
-             "_openholidays_region_code"}
+             "_openholidays_region_code", "_openholidays_schulgruppen"}
     code = ast.Module(body=[node for node in source.body if isinstance(node, ast.FunctionDef) and node.name in names], type_ignores=[])
     scope = dict(json=json, _=lambda x: x, ngettext=lambda one, many, n: one if n == 1 else many,
                  _REGIONAL={"language": "en"}, _ist_iso=lambda x: bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", x)),

@@ -2373,6 +2373,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var targets = region.Length > 0
                 ? new[] { new HolidayRegion(region, "") }
                 : regions.Count > 0 ? regions.ToArray() : new[] { new HolidayRegion("", "") };
+            var schoolGroups = OpenHolidayData.SchoolHolidayGroups(country);
+            var groupSelection = targets.Any(target => schoolGroups.Contains(target.Code));
+            if (groupSelection && targets.Any(target => !schoolGroups.Contains(target.Code)))
+                throw new ArgumentException(T("School holidays are not available for this region."));
             if (country is "DE" or "AT" or "CH" && targets.Any(target => target.Code.Length > 0 &&
                 FirstRunSetupSelectionNormalizer.SchoolHolidayRegion(country, target.Code) != target.Code))
                 throw new ArgumentException(T("School holidays are not available for this region."));
@@ -2381,10 +2385,18 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var downloadedBytes = 0;
             foreach (var year in years)
             {
+                var publicFetched = false;
                 foreach (var target in targets)
                 {
-                    downloadedBytes += await AddHolidayEntriesAsync(entries, coverage, "PublicHolidays", "public-holiday",
-                        country, target, year, HolidayDownloadMaxBytes - downloadedBytes);
+                    // Public holidays have no school-group filter. Query the
+                    // country once, with its own independent coverage scope.
+                    if (!groupSelection || !publicFetched)
+                    {
+                        downloadedBytes += await AddHolidayEntriesAsync(entries, coverage, "PublicHolidays", "public-holiday",
+                            country, groupSelection ? new HolidayRegion("", "") : target,
+                            year, HolidayDownloadMaxBytes - downloadedBytes);
+                        publicFetched = true;
+                    }
                     if (includeSchool)
                     {
                         try
@@ -2409,7 +2421,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     var scopes = group.SelectMany(item => item.regions).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
                     if (regions.Count == 0 || names.Length == 0) return first with { nationwide = nationwide, regions = scopes };
                     string suffix;
-                    if (names.Length == allRegionNames.Count) suffix = country == "CH" ? T("all cantons") : T("all states");
+                    if (groupSelection) suffix = string.Join(", ", names);
+                    else if (names.Length == allRegionNames.Count) suffix = country == "CH" ? T("all cantons") : T("all states");
                     else if (names.Length > allRegionNames.Count / 2)
                     {
                         var missing = allRegionNames.Except(names, StringComparer.CurrentCultureIgnoreCase)
@@ -2437,9 +2450,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         if (remainingBytes <= 0) throw new IOException(T("The holiday service returned too much data."));
         var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "DE" : "EN";
+        var groupQuery = kind == "school-holiday" && OpenHolidayData.SchoolHolidayGroups(country).Contains(region.Code);
+        var filter = groupQuery ? "groupCode" : "subdivisionCode";
         var query = $"countryIsoCode={Uri.EscapeDataString(country)}&languageIsoCode={language}" +
                     $"&validFrom={year}-01-01&validTo={year}-12-31" +
-                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(OpenHolidayData.ProviderSubdivisionCode(country, region.Code))}" : "");
+                    (region.Code.Length > 0 ? $"&{filter}={Uri.EscapeDataString(OpenHolidayData.ProviderSubdivisionCode(country, region.Code))}" : "");
         using var response = await http.GetAsync($"https://openholidaysapi.org/{path}?{query}", HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength > remainingBytes)
@@ -2459,7 +2474,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using var document = await JsonDocument.ParseAsync(buffer);
         var entries = OpenHolidayData.Parse(document.RootElement, kind, country, region.Code, region.Name, language, out var complete);
         target.AddRange(entries);
-        if (complete && OpenHolidayData.ReturnedRowsMatchQuery(entries, country, region.Code, year))
+        if (complete && OpenHolidayData.HasSchoolGroupCoverage(entries, kind, country, region.Code) &&
+            OpenHolidayData.ReturnedRowsMatchQuery(entries, country, region.Code, year))
             coverage.Add(new HolidayFetchScope(country, region.Code, kind, $"{year}-01-01", $"{year}-12-31"));
         return checked((int)buffer.Length);
     }
