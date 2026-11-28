@@ -1,0 +1,503 @@
+{
+  "main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "results": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha": "bd2df1c6dccf3de3012dfafe851be77cead3f765",
+      "hunks": 5,
+      "before": [
+        {
+          "name": "foreign-country",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "foreign-region",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "unknown-legacy-not-attributed",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "mixed-cache",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 3 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "national",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "short-code",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "multiple-regions",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "inferred-country",
+          "ok": false,
+          "actual": "In the organizer · Vienna: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Vienna: 1 public holiday."
+        },
+        {
+          "name": "no-country",
+          "ok": false,
+          "actual": "In the organizer: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "Choose a country first."
+        },
+        {
+          "name": "no-subdivision",
+          "ok": false,
+          "actual": "In the organizer: 1 public holiday and 2 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "all-regions",
+          "ok": false,
+          "actual": "In the organizer · all states: 1 public holiday and 2 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "cache-not-visibility",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "empty-cache",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "same-scope-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "Retrieving holidays …"
+        },
+        {
+          "name": "stale-scope-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "region-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Berlin: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "all-regions-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "school-toggle-invalidates-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-change-during-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        }
+      ],
+      "after": [
+        {
+          "name": "foreign-country",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "foreign-region",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "unknown-legacy-not-attributed",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "mixed-cache",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "national",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "short-code",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "multiple-regions",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "inferred-country",
+          "ok": true,
+          "actual": "In the organizer · Vienna: 1 public holiday.",
+          "expected": "In the organizer · Vienna: 1 public holiday."
+        },
+        {
+          "name": "no-country",
+          "ok": true,
+          "actual": "Choose a country first.",
+          "expected": "Choose a country first."
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": "In the organizer: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": "In the organizer · all states: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "cache-not-visibility",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "empty-cache",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "same-scope-pending",
+          "ok": true,
+          "actual": "Retrieving holidays …",
+          "expected": "Retrieving holidays …"
+        },
+        {
+          "name": "stale-scope-pending",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-handler",
+          "ok": true,
+          "actual": "In the organizer: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "region-handler",
+          "ok": true,
+          "actual": "In the organizer · Berlin: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Berlin: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "all-regions-handler",
+          "ok": true,
+          "actual": "In the organizer · all states: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "school-toggle-invalidates-pending",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-change-during-pending",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        }
+      ]
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha": "5d66c66cfc867fad3391a1d8f1992c0c04d0b9b2",
+      "hunks": 5,
+      "before": [
+        {
+          "name": "foreign-country",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "foreign-region",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "unknown-legacy-not-attributed",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "mixed-cache",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 3 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "national",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "short-code",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "multiple-regions",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "inferred-country",
+          "ok": false,
+          "actual": "In the organizer · Vienna: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Vienna: 1 public holiday."
+        },
+        {
+          "name": "no-country",
+          "ok": false,
+          "actual": "In the organizer: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "Choose a country first."
+        },
+        {
+          "name": "no-subdivision",
+          "ok": false,
+          "actual": "In the organizer: 1 public holiday and 2 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "all-regions",
+          "ok": false,
+          "actual": "In the organizer · all states: 1 public holiday and 2 holiday periods for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "cache-not-visibility",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "empty-cache",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "same-scope-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "Retrieving holidays …"
+        },
+        {
+          "name": "stale-scope-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "region-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Berlin: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "all-regions-handler",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "school-toggle-invalidates-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-change-during-pending",
+          "ok": false,
+          "actual": "In the organizer · Bavaria: 1 public holiday for 2025, 2026. Retrieved on GLOBAL-DATE.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        }
+      ],
+      "after": [
+        {
+          "name": "foreign-country",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "foreign-region",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "unknown-legacy-not-attributed",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "mixed-cache",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "national",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "short-code",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "multiple-regions",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "inferred-country",
+          "ok": true,
+          "actual": "In the organizer · Vienna: 1 public holiday.",
+          "expected": "In the organizer · Vienna: 1 public holiday."
+        },
+        {
+          "name": "no-country",
+          "ok": true,
+          "actual": "Choose a country first.",
+          "expected": "Choose a country first."
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": "In the organizer: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": "In the organizer · all states: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "cache-not-visibility",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · Bavaria: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "empty-cache",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        },
+        {
+          "name": "same-scope-pending",
+          "ok": true,
+          "actual": "Retrieving holidays …",
+          "expected": "Retrieving holidays …"
+        },
+        {
+          "name": "stale-scope-pending",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-handler",
+          "ok": true,
+          "actual": "In the organizer: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "region-handler",
+          "ok": true,
+          "actual": "In the organizer · Berlin: 0 public holidays and 1 holiday period.",
+          "expected": "In the organizer · Berlin: 0 public holidays and 1 holiday period."
+        },
+        {
+          "name": "all-regions-handler",
+          "ok": true,
+          "actual": "In the organizer · all states: 1 public holiday and 1 holiday period.",
+          "expected": "In the organizer · all states: 1 public holiday and 1 holiday period."
+        },
+        {
+          "name": "school-toggle-invalidates-pending",
+          "ok": true,
+          "actual": "In the organizer · Bavaria: 1 public holiday.",
+          "expected": "In the organizer · Bavaria: 1 public holiday."
+        },
+        {
+          "name": "country-change-during-pending",
+          "ok": true,
+          "actual": "There are no holidays in the organizer for this selection yet.",
+          "expected": "There are no holidays in the organizer for this selection yet."
+        }
+      ]
+    }
+  ]
+}

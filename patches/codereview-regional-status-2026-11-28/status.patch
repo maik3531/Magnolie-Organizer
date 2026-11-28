@@ -1,0 +1,178 @@
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -34157,11 +34157,13 @@
+         }
+         wirkung();
+         planeSpeichern();
++        ortStandAktualisieren();
+       });
+       alleHak.addEventListener("change", () => {
+         wendeOrtAuswahlDatenAn({ alleRegionen: alleHak.checked });
+         wirkung();
+         planeSpeichern();
++        ortStandAktualisieren();
+       });
+       regionZeile.append(formZeile(
+         land.code === "CH" ? _("Canton") : _("State"), wahl), alleZeile);
+@@ -34175,6 +34177,7 @@
+       wendeOrtAuswahlDatenAn({ land: landWahl.value });
+       planeSpeichern();
+       regionenZeigen();
++      ortStandAktualisieren();
+     });
+     regionenZeigen();
+     const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";
+@@ -34210,6 +34213,7 @@
+       wendeOrtAuswahlDatenAn({ ferien: ferienHak.checked });
+       planeSpeichern();
+       zeichneAlles();
++      ortStandAktualisieren();
+     });
+     const ferienZeile = el("label", "hak");
+     ferienZeile.append(ferienHak,
+@@ -34250,25 +34254,26 @@
+       holKnopf.disabled = true;
+     } else if (feiertageLaufen) {
+       holKnopf.disabled = true;
+-      stand.textContent = _("Retrieving holidays …");
+     }
+     wurzel.append(holen);
+   }
+ 
+   function ortStandText() {
+     const o = DATEN.einstellungen.ort;
+-    if (!DATEN.feiertage.length) {
+-      return o.land
+-        ? _("There are no holidays in the organizer for this selection yet.")
+-        : _("Choose a country first.");
++    if (feiertageLaufen && feiertageAnfrage && feiertageAnfrage.daten === DATEN &&
++      ["land", "region", "ferien", "alleRegionen"].every(key => feiertageAnfrage[key] === o[key])) {
++      return _("Retrieving holidays …");
+     }
+-    const feier = DATEN.feiertage.filter((f) => f.art === "public-holiday").length;
+-    const ferien = DATEN.feiertage.length - feier;
+-    const d = o.abgerufen ? new Date(o.abgerufen) : null;
+-    const wann = d
+-      ? " " + uebersetzt("Retrieved on %(date)s.", { date: datumText(d,
+-        { day: "2-digit", month: "2-digit", year: "numeric" }, true) })
+-      : "";
++    if (!o.land) return _("Choose a country first.");
++    // Only attribute cached records with a verifiable country/region to this selection.
++    // The historical retrieval date and years are global, not bound to a selection.
++    const norm = code => code.includes("-") ? code : o.land + "-" + code;
++    const records = DATEN.feiertage.filter(f => feiertagLand(f) === o.land &&
++      (o.alleRegionen || !o.region || f.nationwide === true ||
++        feiertagRegionen(f).some(code => norm(code) === norm(o.region))));
++    if (!records.length) return _("There are no holidays in the organizer for this selection yet.");
++    const feier = records.filter(f => f.art === "public-holiday").length;
++    const ferien = records.filter(f => f.art === "school-holiday").length;
+     const auswahl = o.alleRegionen
+       ? " · " + (o.land === "CH" ? _("all cantons") : _("all states"))
+       : (o.regionName ? " · " + o.regionName : "");
+@@ -34276,9 +34281,12 @@
+       "%(count)s public holiday", "%(count)s public holidays", feier)];
+     if (ferien) teile.push(uebersetztMehrzahl(
+       "%(count)s holiday period", "%(count)s holiday periods", ferien));
+-    const jahre = o.jahre.length
+-      ? uebersetzt(" for %(years)s", { years: o.jahre.join(", ") }) : "";
+     return uebersetzt("In the organizer%(selection)s: %(items)s%(years)s.", {
+-      selection: auswahl, items: teile.join(" " + _("and") + " "), years: jahre
+-    }) + wann;
++      selection: auswahl, items: teile.join(" " + _("and") + " "), years: ""
++    });
+   }
++
++  function ortStandAktualisieren() {
++    const stand = $("#ort-stand");
++    if (stand) stand.textContent = ortStandText();
++  }
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -32900,11 +32900,13 @@
+         }
+         wirkung();
+         planeSpeichern();
++        ortStandAktualisieren();
+       });
+       alleHak.addEventListener("change", () => {
+         wendeOrtAuswahlDatenAn({ alleRegionen: alleHak.checked });
+         wirkung();
+         planeSpeichern();
++        ortStandAktualisieren();
+       });
+       regionZeile.append(formZeile(
+         land.code === "CH" ? _("Canton") : _("State"), wahl), alleZeile);
+@@ -32918,6 +32920,7 @@
+       wendeOrtAuswahlDatenAn({ land: landWahl.value });
+       planeSpeichern();
+       regionenZeigen();
++      ortStandAktualisieren();
+     });
+     regionenZeigen();
+     const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";
+@@ -32953,6 +32956,7 @@
+       wendeOrtAuswahlDatenAn({ ferien: ferienHak.checked });
+       planeSpeichern();
+       zeichneAlles();
++      ortStandAktualisieren();
+     });
+     const ferienZeile = el("label", "hak");
+     ferienZeile.append(ferienHak,
+@@ -32993,25 +32997,26 @@
+       holKnopf.disabled = true;
+     } else if (feiertageLaufen) {
+       holKnopf.disabled = true;
+-      stand.textContent = _("Retrieving holidays …");
+     }
+     wurzel.append(holen);
+   }
+ 
+   function ortStandText() {
+     const o = DATEN.einstellungen.ort;
+-    if (!DATEN.feiertage.length) {
+-      return o.land
+-        ? _("There are no holidays in the organizer for this selection yet.")
+-        : _("Choose a country first.");
++    if (feiertageLaufen && feiertageAnfrage && feiertageAnfrage.daten === DATEN &&
++      ["land", "region", "ferien", "alleRegionen"].every(key => feiertageAnfrage[key] === o[key])) {
++      return _("Retrieving holidays …");
+     }
+-    const feier = DATEN.feiertage.filter((f) => f.art === "public-holiday").length;
+-    const ferien = DATEN.feiertage.length - feier;
+-    const d = o.abgerufen ? new Date(o.abgerufen) : null;
+-    const wann = d
+-      ? " " + uebersetzt("Retrieved on %(date)s.", { date: datumText(d,
+-        { day: "2-digit", month: "2-digit", year: "numeric" }, true) })
+-      : "";
++    if (!o.land) return _("Choose a country first.");
++    // Only attribute cached records with a verifiable country/region to this selection.
++    // The historical retrieval date and years are global, not bound to a selection.
++    const norm = code => code.includes("-") ? code : o.land + "-" + code;
++    const records = DATEN.feiertage.filter(f => feiertagLand(f) === o.land &&
++      (o.alleRegionen || !o.region || f.nationwide === true ||
++        feiertagRegionen(f).some(code => norm(code) === norm(o.region))));
++    if (!records.length) return _("There are no holidays in the organizer for this selection yet.");
++    const feier = records.filter(f => f.art === "public-holiday").length;
++    const ferien = records.filter(f => f.art === "school-holiday").length;
+     const auswahl = o.alleRegionen
+       ? " · " + (o.land === "CH" ? _("all cantons") : _("all states"))
+       : (o.regionName ? " · " + o.regionName : "");
+@@ -33019,9 +33024,12 @@
+       "%(count)s public holiday", "%(count)s public holidays", feier)];
+     if (ferien) teile.push(uebersetztMehrzahl(
+       "%(count)s holiday period", "%(count)s holiday periods", ferien));
+-    const jahre = o.jahre.length
+-      ? uebersetzt(" for %(years)s", { years: o.jahre.join(", ") }) : "";
+     return uebersetzt("In the organizer%(selection)s: %(items)s%(years)s.", {
+-      selection: auswahl, items: teile.join(" " + _("and") + " "), years: jahre
+-    }) + wann;
++      selection: auswahl, items: teile.join(" " + _("and") + " "), years: ""
++    });
+   }
++
++  function ortStandAktualisieren() {
++    const stand = $("#ort-stand");
++    if (stand) stand.textContent = ortStandText();
++  }
