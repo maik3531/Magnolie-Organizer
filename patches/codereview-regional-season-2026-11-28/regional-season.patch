@@ -1,0 +1,197 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -73,7 +73,10 @@
+   }
+-  function season(iso) {
+-    const value = dateParts(iso); if (!value) return "none";
+-    if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
+-    return value.month === 12 && value.day >= 6 ? "crystals" : "none";
+-  }
++  // Decorative northern winter convention, not a forecast. Countries with mixed
++  // climates and no regional selection are deliberately left without crystals.
++  const winterCrystalCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "PL", "CZ"]);
++  function season(iso, country = "") {
++    const value = dateParts(iso); if (!value) return "none";
++    if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
++    return winterCrystalCountries.has(country) && value.month === 12 && value.day >= 6 ? "crystals" : "none";
++  }
+   function holiday(iso) {
+@@ -133,3 +136,3 @@
+   }
+-  let context = { today: "", developer: false, locked: true };
++  let context = { today: "", country: "", developer: false, locked: true };
+   const defaults = () => ({ connected: "auto", mode: "auto", sync: false, season: "auto", holiday: "auto", date: "" });
+@@ -155,3 +158,3 @@
+     const test = simulated(), date = test && preview.date || context.today;
+-    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date);
++    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date, context.country);
+     const desktop = document.querySelector("#schreibtisch");
+@@ -194,4 +197,4 @@
+   }
+-  function update({ today, developer, locked }) {
+-    context = { today: dateParts(today) ? today : "", developer: developer === true, locked: locked !== false };
++  function update({ today, country = "", developer, locked }) {
++    context = { today: dateParts(today) ? today : "", country, developer: developer === true, locked: locked !== false };
+     if (!context.developer || context.locked) { stopNative(); nativeSender = null; preview = defaults(); panel = null; }
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -73,7 +73,10 @@
+   }
+-  function season(iso) {
+-    const value = dateParts(iso); if (!value) return "none";
+-    if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
+-    return value.month === 12 && value.day >= 6 ? "crystals" : "none";
+-  }
++  // Decorative northern winter convention, not a forecast. Countries with mixed
++  // climates and no regional selection are deliberately left without crystals.
++  const winterCrystalCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "PL", "CZ"]);
++  function season(iso, country = "") {
++    const value = dateParts(iso); if (!value) return "none";
++    if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
++    return winterCrystalCountries.has(country) && value.month === 12 && value.day >= 6 ? "crystals" : "none";
++  }
+   function holiday(iso) {
+@@ -133,3 +136,3 @@
+   }
+-  let context = { today: "", developer: false, locked: true };
++  let context = { today: "", country: "", developer: false, locked: true };
+   const defaults = () => ({ connected: "auto", mode: "auto", sync: false, season: "auto", holiday: "auto", date: "" });
+@@ -155,3 +158,3 @@
+     const test = simulated(), date = test && preview.date || context.today;
+-    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date);
++    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date, context.country);
+     const desktop = document.querySelector("#schreibtisch");
+@@ -194,4 +197,4 @@
+   }
+-  function update({ today, developer, locked }) {
+-    context = { today: dateParts(today) ? today : "", developer: developer === true, locked: locked !== false };
++  function update({ today, country = "", developer, locked }) {
++    context = { today: dateParts(today) ? today : "", country, developer: developer === true, locked: locked !== false };
+     if (!context.developer || context.locked) { stopNative(); nativeSender = null; preview = defaults(); panel = null; }
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -15674,3 +15674,3 @@
+     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+     stabilisiereAktiveOrtszeiten();
+@@ -27008,3 +27008,3 @@
+     const ab = abschnitt(_("Developer options"));
+-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
++    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: true, locked: gesperrt });
+     window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
+@@ -27030,3 +27030,3 @@
+       DATEN.einstellungen.allgemein.entwicklermodus = false;
+-      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
++      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: false, locked: gesperrt });
+       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
+@@ -34172,8 +34172,9 @@
+ 
+-    landWahl.addEventListener("change", () => {
+-      aktualisiereLandFlagge(landFlagge, landWahl.value);
+-      wendeOrtAuswahlDatenAn({ land: landWahl.value });
+-      planeSpeichern();
+-      regionenZeigen();
+-    });
++    landWahl.addEventListener("change", () => {
++      aktualisiereLandFlagge(landFlagge, landWahl.value);
++      wendeOrtAuswahlDatenAn({ land: landWahl.value });
++      planeSpeichern();
++      regionenZeigen();
++      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++    });
+     regionenZeigen();
+@@ -44622,3 +44623,3 @@
+       if (heute !== letzterTag) {
+-        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++        window.MagnolieAppearance?.update({ today: heute, country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+         if (editorIstGeaendert()) return;
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -15387,3 +15387,3 @@
+     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+     stabilisiereAktiveOrtszeiten();
+@@ -26683,3 +26683,3 @@
+     const ab = abschnitt(_("Developer options"));
+-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
++    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: true, locked: gesperrt });
+     window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
+@@ -26705,3 +26705,3 @@
+       DATEN.einstellungen.allgemein.entwicklermodus = false;
+-      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
++      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: false, locked: gesperrt });
+       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
+@@ -32915,8 +32915,9 @@
+ 
+-    landWahl.addEventListener("change", () => {
+-      aktualisiereLandFlagge(landFlagge, landWahl.value);
+-      wendeOrtAuswahlDatenAn({ land: landWahl.value });
+-      planeSpeichern();
+-      regionenZeigen();
+-    });
++    landWahl.addEventListener("change", () => {
++      aktualisiereLandFlagge(landFlagge, landWahl.value);
++      wendeOrtAuswahlDatenAn({ land: landWahl.value });
++      planeSpeichern();
++      regionenZeigen();
++      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++    });
+     regionenZeigen();
+@@ -43443,3 +43444,3 @@
+       if (heute !== letzterTag) {
+-        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
++        window.MagnolieAppearance?.update({ today: heute, country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+         if (editorIstGeaendert()) return;
+diff --git a/magnolie-organizer/pruefungen/appearance-model.cjs b/magnolie-organizer/pruefungen/appearance-model.cjs
+--- a/magnolie-organizer/pruefungen/appearance-model.cjs
++++ b/magnolie-organizer/pruefungen/appearance-model.cjs
+@@ -11,3 +11,4 @@
+   assert.equal(appearance.connection("paired", 1), "none", "Pairing/truthy values must never count as a native connection");
+-  for (const [date, expected] of [["2026-12-05", "none"], ["2026-12-06", "crystals"], ["2026-12-29", "crystals"], ["2026-12-30", "stars"], ["2026-12-31", "stars"], ["2027-01-01", "stars"], ["2027-01-02", "none"], ["2026-02-30", "none"]]) assert.equal(appearance.season(date), expected, date);
++  for (const [date, expected] of [["2026-12-05", "none"], ["2026-12-06", "crystals"], ["2026-12-29", "crystals"], ["2026-12-30", "stars"], ["2026-12-31", "stars"], ["2027-01-01", "stars"], ["2027-01-02", "none"], ["2026-02-30", "none"]]) assert.equal(appearance.season(date, "DE"), expected, date);
++  for (const country of ["", "ES", "FR", "IT", "AU", "CN", "ZZ"]) assert.equal(appearance.season("2026-12-10", country), "none", country);
+   for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date), expected, date);
+@@ -62,3 +63,3 @@
+   for (const [today, expected] of [["2026-12-05", null], ["2026-12-06", "crystals"], ["2026-12-30", "stars"], ["2027-01-01", "stars"], ["2027-01-02", null]]) {
+-    appearance.update({ today, developer: false, locked: false });
++    appearance.update({ today, country: "DE", developer: false, locked: false });
+     const layer = desktop.querySelector("#magnolie-saison");
+@@ -78,3 +79,3 @@
+       assert.equal(new Set(motifs.map(motif => motif.style.left + ":" + motif.style.top)).size, 34);
+-      appearance.update({ today, developer: false, locked: false });
++      appearance.update({ today, country: "DE", developer: false, locked: false });
+       assert.equal(desktop.querySelector("#magnolie-saison"), layer, "Repeated status updates must not redraw motifs");
+@@ -84,3 +85,13 @@
+   }
+-  const day = dom.window.document.createElement("div");
++  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
++  assert.equal(desktop.querySelector("#magnolie-saison")?.dataset.season, "crystals");
++  appearance.update({ today: "2026-12-10", country: "ES", developer: false, locked: false });
++  assert.equal(desktop.querySelector("#magnolie-saison"), null);
++  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
++  assert.equal(desktop.querySelector("#magnolie-saison")?.dataset.season, "crystals");
++  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: true });
++  assert.equal(desktop.querySelector("#magnolie-saison"), null);
++  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
++  assert.equal(draft.value, "Unsaved original");
++  const day = dom.window.document.createElement("div");
+   appearance.day(day, "2026-12-06");
+diff --git a/contracts/appearance-v1.md b/contracts/appearance-v1.md
+--- a/contracts/appearance-v1.md
++++ b/contracts/appearance-v1.md
+@@ -9,3 +9,8 @@
+ 
+-- 6.–29. Dezember: dezente sechsarmige Eiskristalle auf dem grünen Hintergrund.
++- 6.–29. Dezember: dezente sechsarmige Eiskristalle auf dem grünen Hintergrund
++  nur bei explizit ausgewähltem Land DE, AT, CH, LI, LU, BE, NL, PL oder CZ.
++  Ohne Auswahl und bei klimatisch gemischten Ländern ohne regionale Auswahl
++  (FR, IT, ES) sowie anderen Ländern keine Eiskristalle. Diese konservative
++  Dekorationsregel ist keine Wettervorhersage; weder Sprache noch Standortdienste
++  bestimmen sie. Die bestehende explizite Entwicklervorschau bleibt möglich.
+ - 30. Dezember–1. Januar: Sterne; sie haben am überlappenden 30. Dezember Vorrang.

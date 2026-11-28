@@ -1,0 +1,532 @@
+{
+  "main": "bc4730414b1b44fd07f156ef98698b39ec21b475",
+  "base": [
+    {
+      "label": "winter DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter AT",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter CH",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter LI",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter LU",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter BE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter NL",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter PL",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter CZ",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "no snow ",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow ES",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow FR",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow IT",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow AU",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow CN",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow ZA",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow ZZ",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "no snow null",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "boundary 2026-12-05",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-06",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-29",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-30",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-31",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2027-01-01",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2027-01-02",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-02-30",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "neutral stars ES",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "initial DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "unchanged 34 motifs",
+      "actual": 34,
+      "expected": 34,
+      "pass": true
+    },
+    {
+      "label": "no unnecessary redraw",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "label": "switch DE to ES",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "switch ES to DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "locked",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "new unspecified book",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "unsaved editor retained",
+      "actual": "unsaved",
+      "expected": "unsaved",
+      "pass": true
+    },
+    {
+      "label": "Linux country event redraw",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "Linux event original actions",
+      "actual": "1:1:1:ES",
+      "expected": "1:1:1:ES",
+      "pass": true
+    },
+    {
+      "label": "Linux country event restores",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "Windows country event redraw",
+      "actual": "crystals",
+      "expected": "none",
+      "pass": false
+    },
+    {
+      "label": "Windows event original actions",
+      "actual": "1:1:1:ES",
+      "expected": "1:1:1:ES",
+      "pass": true
+    },
+    {
+      "label": "Windows country event restores",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    }
+  ],
+  "patched": [
+    {
+      "label": "winter DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter AT",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter CH",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter LI",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter LU",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter BE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter NL",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter PL",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "winter CZ",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "no snow ",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow ES",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow FR",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow IT",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow AU",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow CN",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow ZA",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow ZZ",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "no snow null",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-05",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-06",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-29",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-30",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-12-31",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2027-01-01",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "boundary 2027-01-02",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "boundary 2026-02-30",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "neutral stars ES",
+      "actual": "stars",
+      "expected": "stars",
+      "pass": true
+    },
+    {
+      "label": "initial DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "unchanged 34 motifs",
+      "actual": 34,
+      "expected": 34,
+      "pass": true
+    },
+    {
+      "label": "no unnecessary redraw",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "label": "switch DE to ES",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "switch ES to DE",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "locked",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "new unspecified book",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "unsaved editor retained",
+      "actual": "unsaved",
+      "expected": "unsaved",
+      "pass": true
+    },
+    {
+      "label": "Linux country event redraw",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "Linux event original actions",
+      "actual": "1:1:1:ES",
+      "expected": "1:1:1:ES",
+      "pass": true
+    },
+    {
+      "label": "Linux country event restores",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    },
+    {
+      "label": "Windows country event redraw",
+      "actual": "none",
+      "expected": "none",
+      "pass": true
+    },
+    {
+      "label": "Windows event original actions",
+      "actual": "1:1:1:ES",
+      "expected": "1:1:1:ES",
+      "pass": true
+    },
+    {
+      "label": "Windows country event restores",
+      "actual": "crystals",
+      "expected": "crystals",
+      "pass": true
+    }
+  ],
+  "sourceBindings": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "sha": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+      "changes": 4
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "sha": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+      "changes": 4
+    },
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha": "bd2df1c6dccf3de3012dfafe851be77cead3f765",
+      "changes": 5
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha": "5d66c66cfc867fad3391a1d8f1992c0c04d0b9b2",
+      "changes": 5
+    },
+    {
+      "path": "magnolie-organizer/pruefungen/appearance-model.cjs",
+      "sha": "b676117391470defc6d8a2fd8b0be0c34d1b900e",
+      "changes": 4
+    },
+    {
+      "path": "contracts/appearance-v1.md",
+      "sha": "0c900a97b9a8ecd0cdc8f24268f4a570633bbf9c",
+      "changes": 1
+    }
+  ],
+  "syntax": "Both appearance and both frontend scripts parsed; forward/reverse reconstruction and appearance parity passed."
+}
