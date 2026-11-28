@@ -635,7 +635,7 @@ def validate_body(kind, body):
             raise ValueError("invalid personal sync settings")
     elif kind == "personal_sync.request":
         if (set(body) != {"format", "run_id", "trigger", "modules"} | ({"send_item"} if "send_item" in body else set()) or body.get("format") not in FORMATS
-                or not UUID4.fullmatch(body.get("run_id", "")) or body.get("trigger") not in {"manual", "auto_wifi"}
+                or not UUID4.fullmatch(body.get("run_id", "")) or body.get("trigger") not in SYNC_TRIGGERS
                 or body.get("modules") not in (["notes"], ["tasks"], ["notes", "tasks"])):
             raise ValueError("invalid personal sync request")
         if "send_item" in body:
@@ -671,7 +671,9 @@ def validate_body(kind, body):
             fields.add("attachments")
         if set(body) != fields or format not in FORMATS or not UUID4.fullmatch(body.get("run_id", "")):
             raise ValueError("invalid personal sync report")
-        if body.get("state") not in {"complete", "partial", "blocked", "failed"} or body.get("trigger") not in {"manual", "auto_wifi"} or body.get("transport") not in {"wifi", "bluetooth"}:
+        if (body.get("state") not in {"complete", "partial", "blocked", "failed"}
+                or body.get("trigger") not in SYNC_TRIGGERS or body.get("transport") not in {"wifi", "bluetooth"}
+                or body["trigger"] == AUTO_CONNECTION_TRIGGER and format not in (3, 14)):
             raise ValueError("invalid personal sync report state")
         counts = {"notes", "tasks", "notebooks"}
         if any(not isinstance(body.get(name), int) or isinstance(body.get(name), bool) or body[name] < 0

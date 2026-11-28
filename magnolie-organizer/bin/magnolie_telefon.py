@@ -33,6 +33,7 @@ import uuid
 import weakref
 import magnolie_optional_phone as optional_phone
 from collections import deque
+from dataclasses import dataclass
 
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
                                     decode_attachment_data_url, mime_from_magic, records_hash,
@@ -966,7 +967,7 @@ class PhoneStore:
         return status
 
     def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None, *,
-              remember_request=False):
+              remember_request=False, connection_authority=None, db=None):
         if remember_request and (kind != "personal_sync.request" or actor_run_id is not None):
             raise ValueError("invalid ordinary run registration")
         if is_reserved_ephemeral_phone_control({'kind': kind, 'body': body}):
@@ -976,8 +977,20 @@ class PhoneStore:
         now = now_ms()
         if not isinstance(ttl_ms, int) or not 0 < ttl_ms <= 30 * DAY_MS:
             raise ValueError("invalid message lifetime")
-        if transport_policy not in {"any", "wifi_only"}:
+        if transport_policy not in {"any", "wifi_only", "connection_only"}:
             raise ValueError("invalid transport policy")
+        if (transport_policy == "connection_only") != (connection_authority is not None):
+            raise PermissionError("Connection queue authority is required.")
+        if connection_authority is not None:
+            if kind not in {"personal_sync.attachment_request", "personal_sync.attachment_chunk"} or actor_run_id is not None or remember_request:
+                raise PermissionError("Invalid connection attachment request.")
+            validate_personal_sync_body(kind, body)
+            run_id = body["run_id"]
+            run = self._personal_run_record(peer_id, run_id, db=db)
+            if not run or run.get("connection_authority") != connection_authority or run["expires_ms"] <= now:
+                raise PermissionError("Connection attachment request does not match its stored run.")
+            ttl_ms = min(ttl_ms, run["expires_ms"] - now)
+            transport_policy = f"connection_only:{connection_authority}:{run_id}"
         if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND}:
             validate_personal_sync_body(kind, body)
             if ttl_ms > DAY_MS:
@@ -1000,9 +1013,20 @@ class PhoneStore:
         if kind == "personal_sync.deletion_proposals":
             validate_personal_sync_body(kind, body)
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
-        with sqlite3.connect(self.database_path) as db:
-            if remember_request or kind == "personal_sync.deletion_proposals":
-                db.execute("BEGIN IMMEDIATE")
+        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
+            if db is None and (remember_request or kind == "personal_sync.deletion_proposals" or connection_authority is not None):
+                connection.execute("BEGIN IMMEDIATE")
+            db = connection
+            if connection_authority is not None:
+                run = self._personal_run_record(peer_id, run_id, db=db)
+                if not run or run.get("connection_authority") != connection_authority or now + ttl_ms > run["expires_ms"]:
+                    raise PermissionError("Connection attachment request run changed before queueing.")
+                existing = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND kind=? AND transport_policy=?",
+                                      (peer_id, kind, transport_policy)).fetchall()
+                for existing_id, encrypted_existing in existing:
+                    previous = strict_json(self._decrypt(encrypted_existing, "outbox", existing_id))
+                    if kind == "personal_sync.attachment_request" or previous["body"] == body:
+                        return previous
             if kind == "personal_sync.deletion_proposals":
                 self._remember_personal_proposal_kinds(db,
                     personal_actor_contract.storage_peer(actor_run_id) if actor_run_id is not None else peer_id, body, True, now)
@@ -1194,10 +1218,14 @@ class PhoneStore:
         return copy.deepcopy(recorded['frames'])
 
     def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None,
-                          storage_peer_id=None, *, remember_request=False):
+                          storage_peer_id=None, *, remember_request=False, connection_start=None):
         """Atomically encrypt-stage every source before record messages enter outbox."""
-        if transport_policy not in {"any", "wifi_only"} or not messages:
+        if transport_policy not in {"any", "wifi_only", "connection_only"} or not messages:
             raise ValueError("invalid format 2 run")
+        if (transport_policy == "connection_only") != (connection_start is not None):
+            raise PermissionError("A connection start requires its current scope and reader.")
+        if connection_start is not None and not remember_request:
+            raise PermissionError("Connection start requires a bound initial request.")
         if remember_request and (actor_run_id is not None or storage_peer_id is not None
                 or messages[0][0] != "personal_sync.request" or messages[-1][1].get("reply")):
             raise ValueError("invalid ordinary run registration")
@@ -1241,33 +1269,47 @@ class PhoneStore:
                     or run_used + added > 50 * 1024 * 1024):
                 raise RuntimeError("attachment staging capacity")
             if remember_request:
-                self.remember_personal_run(peer_id, messages[0][1], db=db)
+                if connection_start is None:
+                    self.remember_personal_run(peer_id, messages[0][1], db=db)
+                else:
+                    public, reference, authority = connection_start
+                    start = prepared[0][0]
+                    self.remember_scoped_run(peer_id, public, start["body"], reference, start["expires_ms"],
+                        connection_authority=authority, start_id=start["message_id"], db=db)
+                    transport_policy = f"connection_only:{authority}:{run_id}"
+            attachment_policy = "connection_only" if connection_start is not None else transport_policy
+            attachment_expiry = prepared[0][0]["expires_ms"] if connection_start is not None else now + DAY_MS
             for descriptor in {item["sha256"]: item for item, _raw in attachments}.values():
                 metadata = self._attachment_metadata(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"],
-                    "outgoing", descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS, False,
+                    "outgoing", descriptor["size"], descriptor["mime"], attachment_policy, attachment_expiry, False,
                     descriptor["attachment_id"])
                 db.execute("INSERT INTO personal_attachment_transfer VALUES(?,?,?,?,?,?,?,?,?,?,0,?)",
                     (storage_peer, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing",
-                     descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS,
+                      descriptor["size"], descriptor["mime"], attachment_policy, attachment_expiry,
                      self._encrypt_attachment_metadata(metadata)))
             for descriptor, index, encrypted in staged:
                 db.execute("INSERT INTO personal_attachment_chunk VALUES(?,?,?,?,?,?,?,?)",
                     (storage_peer, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing", index, encrypted))
             for message, encrypted, semantic_kind in prepared:
+                held = connection_start is not None and semantic_kind == "personal_sync.batch"
                 db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                    (message["message_id"], peer_id, semantic_kind, now, message["expires_ms"],
-                     encrypted, 0, now, "", transport_policy))
+                     (message["message_id"], peer_id, semantic_kind, now, message["expires_ms"],
+                      encrypted, 0, message["expires_ms"] if held else now, "connection_held" if held else "", transport_policy))
         return [item[0] for item in prepared]
 
-    def pending(self, peer_id, transport="wifi"):
+    def pending(self, peer_id, transport="wifi", *, connection_authority=None):
         if transport not in {"wifi", "bluetooth"}:
             raise ValueError("invalid current transport")
         now = now_ms()
         with sqlite3.connect(self.database_path) as db:
             rows = db.execute("SELECT message_id,payload,kind FROM outbox WHERE peer_id=? AND "
-                              "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') "
+                              "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' "
+                              "OR (transport_policy='wifi_only' AND ?='wifi') OR transport_policy GLOB ?) "
                               "ORDER BY CASE WHEN kind IN ('capabilities.update','grants.update','personal_sync.settings',"
-                              "'personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings') THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
+                              "'personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings') THEN 0 ELSE 1 END,"
+                              "created_ms,rowid LIMIT 32",
+                              (peer_id, now, now, transport,
+                               f"connection_only:{connection_authority}:*" if connection_authority else None)).fetchall()
         result = []
         for message_id, payload, kind in rows:
             message = strict_json(self._decrypt(payload, "outbox", message_id))
@@ -1311,12 +1353,100 @@ class PhoneStore:
             return personal_actor_contract.semantic_message(message)["body"]["decision_id"]
         return ""
 
-    def outbox_policy(self, peer_id, message_id, scope_check=None):
+    def acknowledge_connection_reply(self, peer_id, message_id, status, error):
         with sqlite3.connect(self.database_path) as db:
-            row = db.execute("SELECT transport_policy,kind,payload,expires_ms FROM outbox WHERE peer_id=? AND message_id=?",
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT transport_policy,kind,last_error,payload FROM outbox WHERE peer_id=? AND message_id=?",
+                             (peer_id, message_id)).fetchone()
+            if not row or row[2] == "connection_rejected":
+                return False
+            policy, kind, _, encrypted = row
+            if error == "temporary_failure":
+                return False
+            if status == "rejected":
+                db.execute("UPDATE outbox SET next_attempt_ms=expires_ms,last_error='connection_rejected' "
+                           "WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+                return False
+            if kind == "personal_sync.request":
+                request = strict_json(self._decrypt(encrypted, "outbox", message_id))["body"]
+                run_id = request["run_id"]
+                run = self._personal_run_record(peer_id, run_id, db=db)
+                if not run or run.get("connection_start_id") != message_id or run.get("connection_start_accepted") is not False:
+                    return False
+                run["connection_start_accepted"] = True
+                key = f"personal_run:{peer_id}:{run_id}"
+                db.execute("UPDATE meta SET value=? WHERE key=?",
+                           (self._encrypt(canonical(run), "personal_run", key), key))
+                db.execute("UPDATE outbox SET next_attempt_ms=?,last_error='' WHERE peer_id=? AND transport_policy=? "
+                           "AND kind='personal_sync.batch' AND last_error='connection_held'", (now_ms(), peer_id, policy))
+            if kind == "personal_sync.attachment_request":
+                # The ACK acknowledges the request, not receipt of its window.
+                # Keep its durable identity until those chunks are staged.
+                db.execute("UPDATE outbox SET next_attempt_ms=expires_ms WHERE peer_id=? AND message_id=?",
+                           (peer_id, message_id))
+                return True
+            if kind == "personal_sync.attachment_chunk":
+                frame = strict_json(self._decrypt(encrypted, "outbox", message_id))
+                body = frame["body"]
+                self._remember_connection_chunk_receipt(db, peer_id, policy, body)
+            db.execute("DELETE FROM outbox WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+            if kind in {"personal_sync.batch", "personal_sync.attachment_result"}:
+                self._release_connection_report(db, peer_id, policy)
+            elif kind == "personal_sync.report":
+                run_id = policy.rsplit(":", 1)[-1]
+                run = self._personal_run_record(peer_id, run_id, db=db)
+                if not run:
+                    raise PermissionError("Connection report run was removed.")
+                run["finished_ms"] = now_ms()
+                key = f"personal_run:{peer_id}:{run_id}"
+                db.execute("UPDATE meta SET value=? WHERE key=?",
+                           (self._encrypt(canonical(run), "personal_run", key), key))
+            return True
+
+    @staticmethod
+    def _release_connection_report(db, peer_id, policy):
+        run_id = policy.rsplit(":", 1)[-1]
+        db.execute("UPDATE outbox SET next_attempt_ms=? WHERE peer_id=? AND kind='personal_sync.report' "
+                   "AND transport_policy=? AND NOT EXISTS(SELECT 1 FROM outbox "
+                   "WHERE peer_id=? AND kind IN ('personal_sync.batch','personal_sync.attachment_result') AND transport_policy=?) "
+                   "AND NOT EXISTS(SELECT 1 FROM personal_attachment_transfer WHERE peer_id=? AND run_id=? "
+                   "AND direction='outgoing' AND complete=0)",
+                   (now_ms(), peer_id, policy, peer_id, policy, peer_id, run_id))
+
+    @staticmethod
+    def _connection_chunk_receipt_key(peer_id, body):
+        return f"personal_connection_chunk:{peer_id}:{body['run_id']}:{body['records_hash']}:{body['sha256']}:{body['index']}"
+
+    def _connection_chunk_receipt(self, db, peer_id, policy, body):
+        key = self._connection_chunk_receipt_key(peer_id, body)
+        result = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        if not result:
+            return False
+        receipt = strict_json(self._decrypt(result[0], "personal_connection_chunk", key))
+        return receipt.get("policy") == policy and receipt.get("expires_ms", 0) > now_ms()
+
+    def _remember_connection_chunk_receipt(self, db, peer_id, policy, body):
+        key = self._connection_chunk_receipt_key(peer_id, body)
+        run = self._personal_run_record(peer_id, body["run_id"], db=db)
+        db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)",
+                   (key, self._encrypt(canonical({"policy": policy, "expires_ms": run["expires_ms"]}), "personal_connection_chunk", key)))
+
+    def outbox_policy(self, peer_id, message_id, scope_check=None, *, require_attempt=False, require_released=False):
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT transport_policy,kind,payload,expires_ms,attempts,next_attempt_ms FROM outbox WHERE peer_id=? AND message_id=?",
                               (peer_id, message_id)).fetchone()
-        if not row or row[0] not in {"any", "wifi_only"}:
+        if not row:
             return None
+        policy = row[0]
+        bound = isinstance(policy, str) and policy.startswith("connection_only:")
+        if bound:
+            if (row[1] not in {"personal_sync.request", "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_request",
+                               "personal_sync.attachment_result", "personal_sync.attachment_chunk"}
+                    or require_attempt and row[4] < 1 or require_released and row[5] >= row[3]):
+                return "invalid"
+            policy = "connection_only"
+        elif policy not in {"any", "wifi_only"}:
+            return "invalid"
         if row[3] <= now_ms():
             return "expired"
         if row[1] not in PERSONAL_DATA_KINDS:
@@ -1325,6 +1455,16 @@ class PhoneStore:
         body = message.get("body", {})
         try:
             durable = self.run_policy(peer_id, body.get("run_id", ""))
+            if bound and durable == "connection_only":
+                run = self._personal_run_record(peer_id, body["run_id"])
+                initial = "connection_start_id" in run
+                if (row[0] != f"connection_only:{run['connection_authority']}:{body['run_id']}"
+                        or row[1] == "personal_sync.request" and (run.get("connection_start_id") != message_id
+                            or run.get("connection_start_accepted") is not False or run["body"] != body)
+                        or row[1] == "personal_sync.batch" and (bool(body.get("reply")) == initial
+                            or initial and require_released and run.get("connection_start_accepted") is not True)
+                        or row[1] == "personal_sync.report" and body.get("trigger") != personal_sync_contract.AUTO_CONNECTION_TRIGGER):
+                    return "invalid"
             peer = self.peer(peer_id)
             if peer is not None:
                 reference = self.scoped_run_reference(peer_id, peer["static_public"], body.get("run_id", ""))
@@ -1337,7 +1477,7 @@ class PhoneStore:
         trigger_bound = row[1] in {"personal_sync.request", "personal_sync.report"}
         expected = durable or ("wifi_only" if trigger_bound and body.get("trigger") == "auto_wifi"
                                else "any" if trigger_bound and body.get("trigger") == "manual" else None)
-        return row[0] if expected == row[0] else "invalid"
+        return policy if expected == policy else "invalid"
 
     def personal_success(self, peer_id):
         peers = [peer for peer in self.peers if peer.get("device_id") == peer_id and peer.get("state") == "paired"]
@@ -1386,6 +1526,8 @@ class PhoneStore:
         if stored["expires_ms"] <= now_ms():
             return "expired"
         run = stored["body"]
+        if run.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+            return "connection_only"
         if run.get("trigger") == "auto_wifi":
             return "wifi_only"
         if run.get("trigger") == "manual":
@@ -1395,6 +1537,23 @@ class PhoneStore:
     def remove_kind(self, peer_id, kind):
         with sqlite3.connect(self.database_path) as db:
             db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
+
+    def connection_attachment_window_ready(self, peer_id, run_id, authority, reply, aggregate_hash, wants):
+        missing = {item["sha256"]: item["ranges"] for item in wants}
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT message_id,payload,last_error FROM outbox WHERE peer_id=? AND kind='personal_sync.attachment_request' "
+                             "AND transport_policy=?", (peer_id, f"connection_only:{authority}:{run_id}")).fetchone()
+            if row is None:
+                return True
+            message_id, encrypted, error = row
+            pending = strict_json(self._decrypt(encrypted, "outbox", message_id))["body"]
+            if (error == "connection_rejected" or (pending["reply"], pending["records_hash"]) != (reply, aggregate_hash)
+                    or any(left < end and start < right for item in pending["wants"] for left, right in item["ranges"]
+                           for start, end in missing.get(item["sha256"], ()))):
+                return False
+            db.execute("DELETE FROM outbox WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+            return True
 
     def has_kind(self, peer_id, kind):
         with sqlite3.connect(self.database_path) as db:
@@ -1446,6 +1605,7 @@ class PhoneStore:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_run:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_scope:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_applied:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_connection_chunk:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_actor_producer:%s:%%" % peer_id,))
@@ -1471,7 +1631,8 @@ class PhoneStore:
             for run_id in runs:
                 for table in ("personal_batch", "personal_attachment_chunk", "personal_attachment_transfer"):
                     db.execute("DELETE FROM %s WHERE peer_id=? AND run_id=?" % table, (peer_id, run_id))
-                for prefix in ("personal_run", "personal_scope", "personal_report", "personal_local_index", "personal_applied"):
+                for prefix in ("personal_run", "personal_scope", "personal_report", "personal_local_index",
+                               "personal_applied", "personal_connection_chunk"):
                     db.execute("DELETE FROM meta WHERE key LIKE ?", ("%s:%s:%s%%" % (prefix, peer_id, run_id),))
             for table in ("outbox", "inbox", "personal_domain"):
                 rows = db.execute("SELECT message_id,payload FROM %s WHERE peer_id=?" % table,
@@ -1682,12 +1843,39 @@ class PhoneStore:
         self._stage_attachment_chunks(peer_id, run_id, reply, aggregate_hash, digest, "outgoing",
                                       len(raw), mime, chunks, transport_policy, expires_ms, attachment_id or digest)
 
+    def _stage_connection_reply_attachments(self, db, peer_id, run_id, aggregate_hash, sources, expires):
+        if not sources:
+            return
+        global_count, global_bytes = db.execute(
+            "SELECT COUNT(*),COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk").fetchone()
+        run_count, run_bytes = db.execute("SELECT COUNT(DISTINCT sha256),COALESCE(SUM(length(payload)),0) "
+            "FROM personal_attachment_chunk WHERE peer_id=? AND run_id=?", (peer_id, run_id)).fetchone()
+        active = db.execute("SELECT COUNT(DISTINCT run_id||':'||reply||':'||direction) "
+                            "FROM personal_attachment_transfer WHERE peer_id=?", (peer_id,)).fetchone()[0]
+        chunks = []
+        for item, raw in sources:
+            digest = item["sha256"]
+            metadata = self._attachment_metadata(peer_id, run_id, True, aggregate_hash, digest, "outgoing",
+                len(raw), item["mime"], "connection_only", expires, False, item["attachment_id"])
+            db.execute("INSERT INTO personal_attachment_transfer VALUES(?,?,?,?,?,?,?,?,?,?,0,?)",
+                       (peer_id, run_id, 1, aggregate_hash, digest, "outgoing", len(raw), item["mime"],
+                        "connection_only", expires, self._encrypt_attachment_metadata(metadata)))
+            for index, offset in enumerate(range(0, len(raw), CHUNK_RAW)):
+                primary = self._attachment_primary(peer_id, run_id, True, aggregate_hash, digest, index, "outgoing")
+                encrypted = self._encrypt(raw[offset:offset + CHUNK_RAW], "personal_attachment_chunk", primary)
+                chunks.append((peer_id, run_id, 1, aggregate_hash, digest, "outgoing", index, encrypted))
+        added = sum(len(row[-1]) for row in chunks)
+        if (active >= 4 or run_count + len(sources) > 256 or global_count + len(chunks) > 4096
+                or global_bytes + added > 100 * 1024 * 1024 or run_bytes + added > 50 * 1024 * 1024):
+            raise ValueError("Connection attachment staging capacity.")
+        db.executemany("INSERT INTO personal_attachment_chunk VALUES(?,?,?,?,?,?,?,?)", chunks)
+
     def stage_incoming_attachment(self, peer_id, run_id, reply, aggregate_hash, digest,
                                   size, mime, index, raw, transport_policy, expires_ms, attachment_id=None):
         if (isinstance(size, bool) or not isinstance(size, int) or not 1 <= size <= MAX_ATTACHMENT
                 or mime not in {"image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"}
                 or not re.fullmatch(r"[0-9a-f]{64}", digest) or not re.fullmatch(r"[0-9a-f]{64}", aggregate_hash)
-                or transport_policy not in {"any", "wifi_only"}
+                 or transport_policy not in {"any", "wifi_only", "connection_only"}
                 or not 0 <= index < (size + CHUNK_RAW - 1) // CHUNK_RAW or not raw
                 or len(raw) != (CHUNK_RAW if index + 1 < (size + CHUNK_RAW - 1) // CHUNK_RAW
                                 else size - index * CHUNK_RAW)):
@@ -1737,7 +1925,7 @@ class PhoneStore:
 
     def register_incoming_attachment(self, peer_id, run_id, reply, aggregate_hash, digest,
                                      size, mime, policy, expires_ms, attachment_id=None):
-        if (not 1 <= size <= MAX_ATTACHMENT or mime not in MIMES or policy not in {"any", "wifi_only"}):
+        if (not 1 <= size <= MAX_ATTACHMENT or mime not in MIMES or policy not in {"any", "wifi_only", "connection_only"}):
             raise ValueError("invalid incoming attachment manifest")
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -1767,6 +1955,29 @@ class PhoneStore:
             rows = db.execute("SELECT peer_id,run_id,reply,records_hash,sha256,direction,size,mime,transport_policy,expires_ms,complete,metadata FROM personal_attachment_transfer WHERE peer_id=? AND run_id=? AND direction='outgoing'",
                 (peer_id, run_id)).fetchall()
         return any(not self._decode_attachment_row(row)["complete"] for row in rows)
+
+    def complete_connection_attachment(self, peer_id, body, authority, *, db=None):
+        run_id, digest, sha = body["run_id"], body["records_hash"], body["sha256"]
+        policy = f"connection_only:{authority}:{run_id}"
+        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
+            if db is None:
+                connection.execute("BEGIN IMMEDIATE")
+            db = connection
+            run = self._personal_run_record(peer_id, run_id, db=db)
+            reply = body["reply"]
+            metadata = self._load_attachment_metadata(db, peer_id, run_id, reply, digest, sha, "outgoing")
+            if (not run or run.get("connection_authority") != authority or run["expires_ms"] <= now_ms()
+                    or reply == ("connection_start_id" in run) or not metadata or metadata["transport_policy"] != "connection_only"
+                    or metadata["expires_ms"] <= now_ms()
+                    or any(not self._connection_chunk_receipt(db, peer_id, policy, dict(body, index=index))
+                           for index in range(metadata["total_chunks"]))):
+                raise PermissionError("Connection attachment result has no completed chunk acknowledgements.")
+            if body["state"] == "complete" and body["error"] == "none":
+                metadata["complete"] = True
+                db.execute("UPDATE personal_attachment_transfer SET complete=1,metadata=? WHERE peer_id=? AND run_id=? "
+                           "AND reply=? AND records_hash=? AND sha256=? AND direction='outgoing'",
+                           (self._encrypt_attachment_metadata(metadata), peer_id, run_id, int(reply), digest, sha))
+                self._release_connection_report(db, peer_id, policy)
 
     def outgoing_attachment_complete(self, peer_id, run_id, reply, aggregate_hash, digest):
         with sqlite3.connect(self.database_path) as db:
@@ -1846,7 +2057,7 @@ class PhoneStore:
         return ranges
 
     def requested_attachment_chunks(self, peer_id, run_id, reply, aggregate_hash, wants,
-                                    transport="wifi"):
+                                    transport="wifi", *, connection_bound=False):
         """Scheduler window; callers still perform grant/own-device checks before send."""
         if transport not in {"wifi", "bluetooth"}:
             raise ValueError("invalid transport")
@@ -1855,7 +2066,8 @@ class PhoneStore:
             for want in wants:
                 digest = want["sha256"]
                 metadata = self._load_attachment_metadata(db, peer_id, run_id, reply, aggregate_hash, digest, "outgoing")
-                if not metadata or metadata["transport_policy"] == "wifi_only" and transport != "wifi":
+                if (not metadata or (metadata["transport_policy"] == "connection_only") != connection_bound
+                        or metadata["transport_policy"] == "wifi_only" and transport != "wifi"):
                     continue
                 for start, end in want["ranges"]:
                     for index in range(start, end):
@@ -1867,6 +2079,54 @@ class PhoneStore:
                         if len(result) == 8:
                             return result
         return result
+
+    def receive_connection_start_attachment(self, peer_id, message, authority):
+        kind = message["kind"]
+        body = validate_personal_sync_body(kind, message["body"])
+        run_id, aggregate = body["run_id"], body["records_hash"]
+        policy = f"connection_only:{authority}:{run_id}"
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            now = now_ms()
+            run = self._personal_run_record(peer_id, run_id, db=db)
+            if (not run or run.get("connection_authority") != authority or run.get("connection_start_accepted") is not True
+                    or "finished_ms" in run or run["expires_ms"] <= now or message["expires_ms"] <= now or body["reply"]):
+                raise PermissionError("Initial attachment does not match its connection run.")
+            if db.execute("SELECT 1 FROM outbox WHERE peer_id=? AND transport_policy=? "
+                          "AND kind IN ('personal_sync.batch','personal_sync.attachment_chunk')", (peer_id, policy)).fetchone():
+                raise PermissionError("Initial attachment is waiting for current acknowledgements.")
+            frames = []
+            if kind == "personal_sync.attachment_request":
+                count = sum(end - start for item in body["wants"] for start, end in item["ranges"])
+                if not 1 <= count <= 8:
+                    raise PermissionError("Initial attachment must request one bounded window.")
+                for item in body["wants"]:
+                    sha = item["sha256"]
+                    transfer = self._load_attachment_metadata(db, peer_id, run_id, False, aggregate, sha, "outgoing")
+                    if (not transfer or transfer["transport_policy"] != "connection_only" or transfer["complete"]
+                            or transfer["expires_ms"] <= now):
+                        raise PermissionError("No initial original matches this window.")
+                    for start, end in item["ranges"]:
+                        if end > transfer["total_chunks"]:
+                            raise PermissionError("Initial attachment range is outside the saved original.")
+                        for index in range(start, end):
+                            row = db.execute("SELECT payload FROM personal_attachment_chunk WHERE peer_id=? AND run_id=? "
+                                             "AND reply=0 AND records_hash=? AND sha256=? AND direction='outgoing' AND chunk_index=?",
+                                             (peer_id, run_id, aggregate, sha, index)).fetchone()
+                            if not row:
+                                raise PermissionError("Initial original chunk is no longer available.")
+                            primary = self._attachment_primary(peer_id, run_id, False, aggregate, sha, index, "outgoing")
+                            raw = self._decrypt(row[0], "personal_attachment_chunk", primary)
+                            chunk = {"format": 2, "run_id": run_id, "reply": False, "records_hash": aggregate,
+                                     "sha256": sha, "index": index, "data": base64.b64encode(raw).decode("ascii")}
+                            frames.append(self.queue(peer_id, "personal_sync.attachment_chunk", chunk, DAY_MS,
+                                "connection_only", connection_authority=authority, db=db))
+            elif kind == "personal_sync.attachment_result" and body["state"] == "complete" and body["error"] == "none":
+                self.complete_connection_attachment(peer_id, body, authority, db=db)
+            else:
+                raise PermissionError("Unsupported completion for an initial connection attachment.")
+            self.remember_message(peer_id, message, "accepted", "none", db=db)
+            return frames
 
     def verify_incoming_attachment(self, peer_id, run_id, reply, aggregate_hash, digest, sink):
         """Stream a complete file into sink while checking size, hash and magic."""
@@ -1898,17 +2158,28 @@ class PhoneStore:
         if not row:
             return None
         stored = strict_json(self._decrypt(row[0], "personal_run", key))
-        if (not isinstance(stored, dict) or set(stored) - {"body", "created_ms", "expires_ms", "finished_ms"}
+        if (not isinstance(stored, dict) or set(stored) - {"body", "created_ms", "expires_ms", "finished_ms", "connection_authority",
+                                                        "connection_start_id", "connection_start_accepted"}
                 or set(stored) < {"body", "created_ms", "expires_ms"}
                 or not isinstance(stored["body"], dict) or stored["body"].get("run_id") != run_id
                 or not valid_timestamp(stored["created_ms"]) or not valid_timestamp(stored["expires_ms"])
                 or stored["expires_ms"] <= stored["created_ms"]):
             raise ValueError("invalid durable personal sync run")
-        if stored["body"].get("trigger") not in {"manual", "auto_wifi"}:
+        trigger = stored["body"].get("trigger")
+        if (trigger not in personal_sync_contract.SYNC_TRIGGERS
+                or (trigger == personal_sync_contract.AUTO_CONNECTION_TRIGGER) != ("connection_authority" in stored)
+                or ("connection_authority" in stored and (not isinstance(stored["connection_authority"], str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", stored["connection_authority"])))):
             raise ValueError("invalid durable personal sync policy")
+        if ("connection_start_id" in stored) != ("connection_start_accepted" in stored) or (
+                "connection_start_id" in stored and (trigger != personal_sync_contract.AUTO_CONNECTION_TRIGGER
+                    or not valid_uuid(stored["connection_start_id"], 4) or type(stored["connection_start_accepted"]) is not bool)):
+            raise ValueError("invalid connection start receipt")
         return stored
 
     def remember_personal_run(self, peer_id, body, claimed_expires_ms=None, *, db=None):
+        if body.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+            raise ValueError("connection automation requires an authenticated run binding")
         if db is None:
             with sqlite3.connect(self.database_path) as connection:
                 connection.execute("BEGIN IMMEDIATE")
@@ -1931,13 +2202,19 @@ class PhoneStore:
             "expires_ms": expires}), "personal_run", key)
         db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (key, value))
 
-    def remember_scoped_run(self, peer_id, expected_public, request, reference, claimed_expires_ms):
+    def remember_scoped_run(self, peer_id, expected_public, request, reference, claimed_expires_ms, *,
+                            connection_authority=None, start_id=None, db=None):
         """Atomically bind the ordinary run to the current paired content preference.
 
         Current-connection scope evidence is checked by the service before calling;
         this persisted record cannot reconstruct that evidence after reconnect.
         """
         validate_personal_sync_body("personal_sync.request", request)
+        connection_automation = request["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER
+        if (connection_automation != (connection_authority is not None)
+                or (connection_automation and (not isinstance(connection_authority, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", connection_authority)))):
+            raise PermissionError("Invalid connection automation authority.")
         if request.get("format") not in (3, 14):
             raise ValueError("scoped runs require record format 3 or 14")
         content_scope_contract.validate_reference(reference)
@@ -1948,8 +2225,12 @@ class PhoneStore:
         now = now_ms()
         if not valid_timestamp(claimed_expires_ms) or claimed_expires_ms <= now:
             raise ValueError("expired scoped run")
-        with sqlite3.connect(self.database_path) as db:
-            db.execute("BEGIN IMMEDIATE")
+        if start_id is not None and (not connection_automation or not valid_uuid(start_id, 4) or db is None):
+            raise ValueError("invalid original connection request")
+        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
+            if db is None:
+                connection.execute("BEGIN IMMEDIATE")
+            db = connection
             row = db.execute("SELECT value FROM meta WHERE key=?", (shared_key,)).fetchone()
             if row is None:
                 raise PermissionError("shared preferences unavailable")
@@ -1967,11 +2248,17 @@ class PhoneStore:
             if existing_run:
                 stored_run = strict_json(self._decrypt(existing_run[0], "personal_run", run_key))
                 stored_scope = strict_json(self._decrypt(existing_scope[0], "personal_scope", scope_key))
+                if stored_run.get("connection_authority") != connection_authority or start_id is not None or "connection_start_id" in stored_run:
+                    raise PermissionError("Connection automation run belongs to another session.")
                 if (stored_run.get("body") != request or stored_scope != binding or
                         stored_run.get("expires_ms", 0) <= now or claimed_expires_ms > stored_run["expires_ms"]):
                     raise ValueError("conflicting or expired scoped run")
                 return
             run = {"body": request, "created_ms": now, "expires_ms": min(now + DAY_MS, claimed_expires_ms)}
+            if connection_automation:
+                run["connection_authority"] = connection_authority
+            if start_id is not None:
+                run.update(connection_start_id=start_id, connection_start_accepted=False)
             self._shared_settings_binding(peer_id, expected_public)
             db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (run_key, self._encrypt(canonical(run), "personal_run", run_key)))
             db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (scope_key, self._encrypt(canonical(binding), "personal_scope", scope_key)))
@@ -2000,7 +2287,7 @@ class PhoneStore:
             raise PermissionError("scoped run is no longer current")
         return stored["scope"]
 
-    def active_auto_run(self, peer_id):
+    def active_auto_run(self, peer_id, *, connection_authority=None):
         key = "personal_active_auto:" + peer_id
         with sqlite3.connect(self.database_path) as db:
             row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
@@ -2013,7 +2300,9 @@ class PhoneStore:
         for run_key, encrypted in runs:
             stored = strict_json(self._decrypt(encrypted, "personal_run", run_key))
             body = stored.get("body", stored)
-            if (body.get("trigger") == "auto_wifi" and not stored.get("finished_ms")
+            if ((body.get("trigger") == "auto_wifi" or
+                    (connection_authority is not None and body.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER
+                     and stored.get("connection_authority") == connection_authority)) and not stored.get("finished_ms")
                     and stored.get("expires_ms", 0) > now_ms()):
                 return body["run_id"]
         return ""
@@ -2042,7 +2331,8 @@ class PhoneStore:
         stored = self._personal_run_record(peer_id, run_id)
         return stored["body"] if stored else {}
 
-    def commit_personal_batch(self, peer_id, message_id, token, *, actor_intents=None):
+    def commit_personal_batch(self, peer_id, message_id, token, *, actor_intents=None, connection_messages=None,
+                              connection_attachments=None):
         if not all(isinstance(value, str) and value for value in (peer_id, message_id, token)):
             raise ValueError("invalid personal commit token")
         with sqlite3.connect(self.database_path) as db:
@@ -2068,6 +2358,27 @@ class PhoneStore:
                 "AND commit_token=?", (peer_id, run_id, reply, token)).fetchone()[0]
             if current != len(messages):
                 return peer_id, []
+            if connection_messages is not None:
+                outgoing, authority = connection_messages
+                stored = self._personal_run_record(peer_id, run_id, db=db)
+                if (reply and any(item["kind"] != "personal_sync.attachment_result" for item in outgoing)
+                        or actor_intents is not None or not stored or stored.get("connection_authority") != authority):
+                    raise PermissionError("Connection batch reply does not match its stored run.")
+                if connection_attachments is not None:
+                    reply_hash, sources = connection_attachments
+                    if reply:
+                        raise PermissionError("An incoming reply cannot start another attachment transfer.")
+                    self._stage_connection_reply_attachments(db, peer_id, run_id, reply_hash, sources, stored["expires_ms"])
+                items = [(item, self._encrypt(canonical(item), "outbox", item["message_id"])) for item in outgoing]
+                used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
+                if used + sum(len(encrypted) for _item, encrypted in items) > 50 * 1024 * 1024:
+                    raise RuntimeError("connection reply staging capacity")
+                for item, encrypted in items:
+                    db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) "
+                               "VALUES(?,?,?,?,?,?,0,?,'',?)",
+                               (item["message_id"], peer_id, item["kind"], item["created_ms"], item["expires_ms"],
+                                encrypted, item["expires_ms"] if item["kind"] == "personal_sync.report" else item["created_ms"],
+                                f"connection_only:{authority}:{run_id}"))
             # A native actor must consume exactly its reviewed intents in the
             # same core transaction as its saved batch. No partial acceptance
             # or successful deletion receipt can survive a stale/foreign token.
@@ -2155,24 +2466,69 @@ class PhoneStore:
             db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)",
                         (message_id, peer_id, result, error, int(time.time() * 1000)))
 
-    def remember_message(self, peer_id, message, result, error):
+    def remember_message(self, peer_id, message, result, error, *, db=None):
         if is_reserved_ephemeral_phone_control(message):
             raise ValueError('ephemeral phone controls cannot enter persistent replay history')
         if message.get("kind") == "device_status.report":
             message = dict(message, body=without_device_identifiers(message["body"]))
         seen = now_ms()
         encrypted = self._encrypt(canonical(message), "inbox", message["message_id"])
-        with sqlite3.connect(self.database_path) as db:
-            db.execute("BEGIN IMMEDIATE")
+        with (sqlite3.connect(self.database_path) if db is None else contextlib.nullcontext(db)) as connection:
+            if db is None:
+                connection.execute("BEGIN IMMEDIATE")
+            db = connection
             db.execute("INSERT OR REPLACE INTO inbox VALUES(?,?,?,?,?,?,?)",
                        (message["message_id"], peer_id, message["kind"], seen,
                         message["expires_ms"], encrypted, result))
             db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)",
-                       (message["message_id"], peer_id, result, error, seen))
+                        (message["message_id"], peer_id, result, error, seen))
+
+    def receive_connection_report(self, peer_id, message, authority):
+        body = validate_personal_sync_body("personal_sync.report", message["body"])
+        run_id = body["run_id"]
+        run_key = f"personal_run:{peer_id}:{run_id}"
+        applied_key = f"personal_applied:{peer_id}:{run_id}:1"
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            run = self._personal_run_record(peer_id, run_id, db=db)
+            now = now_ms()
+            if (not run or run.get("connection_authority") != authority or
+                    run.get("connection_start_accepted") is not True or run["expires_ms"] <= now or
+                    message["expires_ms"] <= now or run["body"]["trigger"] != body["trigger"] or
+                    run["body"]["format"] != body["format"] or body["state"] != "complete" or body["error"] != "none"):
+                raise PermissionError("Connection report does not match its original start.")
+            existing = db.execute("SELECT state,payload FROM inbox WHERE peer_id=? AND message_id=?",
+                                  (peer_id, message["message_id"])).fetchone()
+            if existing:
+                if (existing[0] == "accepted" and "finished_ms" in run and
+                        strict_json(self._decrypt(existing[1], "inbox", message["message_id"])) == message):
+                    return "duplicate"
+                raise ValueError("Conflicting connection report receipt.")
+            policy = f"connection_only:{authority}:{run_id}"
+            if ("finished_ms" in run or db.execute("SELECT 1 FROM outbox WHERE peer_id=? AND transport_policy=?",
+                                                   (peer_id, policy)).fetchone()
+                    or db.execute("SELECT 1 FROM personal_attachment_transfer WHERE peer_id=? AND run_id=? "
+                                  "AND direction='outgoing' AND complete=0", (peer_id, run_id)).fetchone()):
+                raise PermissionError("Connection report still has outstanding data.")
+            applied = db.execute("SELECT value FROM meta WHERE key=?", (applied_key,)).fetchone()
+            if not applied:
+                raise PermissionError("Connection reply has no saved book receipt.")
+            proof = strict_json(self._decrypt(applied[0], "personal_applied", applied_key))
+            if (set(proof) != {"commit_token", "applied_ms"} or
+                    len(unb64(proof["commit_token"], 32)) != 32 or
+                    not valid_timestamp(proof["applied_ms"]) or
+                    not run["created_ms"] <= proof["applied_ms"] < run["expires_ms"]):
+                raise PermissionError("Connection reply save receipt changed.")
+            run["finished_ms"] = now
+            db.execute("UPDATE meta SET value=? WHERE key=?",
+                       (self._encrypt(canonical(run), "personal_run", run_key), run_key))
+            self.remember_message(peer_id, message, "accepted", "none", db=db)
+            return "accepted"
 
     def cleanup(self):
         now = now_ms()
         expired_runs = []
+        retired_connection_runs = set()
         with sqlite3.connect(self.database_path) as db:
             partial = db.execute("SELECT DISTINCT peer_id,run_id FROM personal_batch WHERE expires_ms<=?", (now,)).fetchall()
             db.execute("DELETE FROM outbox WHERE expires_ms<=?", (now,))
@@ -2212,6 +2568,13 @@ class PhoneStore:
                     expired = True
                 if expired:
                     db.execute("DELETE FROM meta WHERE key=?", (key,))
+            for key, encrypted in db.execute("SELECT key,value FROM meta WHERE key LIKE 'personal_connection_chunk:%'").fetchall():
+                try:
+                    expired = strict_json(self._decrypt(encrypted, "personal_connection_chunk", key)).get("expires_ms", 0) <= now
+                except ValueError:
+                    expired = True
+                if expired:
+                    db.execute("DELETE FROM meta WHERE key=?", (key,))
             db.execute("DELETE FROM meta WHERE key LIKE 'personal_local_index:%' AND CAST(value AS INTEGER)<?",
                        (now - DAY_MS,))
             for key, encrypted in db.execute("SELECT key,value FROM meta WHERE key LIKE 'personal_run:%'").fetchall():
@@ -2219,7 +2582,10 @@ class PhoneStore:
                     stored = strict_json(self._decrypt(encrypted, "personal_run", key))
                     body = stored.get("body", stored)
                     if stored.get("expires_ms", now + 1) <= now:
-                        if stored.get("finished_ms"):
+                        if body.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                            retired_connection_runs.add((key.split(":", 2)[1], body["run_id"]))
+                            db.execute("DELETE FROM meta WHERE key=?", (key,))
+                        elif stored.get("finished_ms"):
                             db.execute("DELETE FROM meta WHERE key=?", (key,))
                         else:
                             expired_runs.append((key.split(":", 2)[1], body["run_id"]))
@@ -2229,9 +2595,11 @@ class PhoneStore:
                 db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
                 if (peer_id, run_id) not in partial:
                     partial.append((peer_id, run_id))
-        for peer_id, run_id in set(partial):
+        for peer_id, run_id in set(partial) - retired_connection_runs:
             run = self.personal_run(peer_id, run_id)
             trigger = run.get("trigger", "manual")
+            if trigger == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                continue  # No connection authority may be created from cleanup.
             counts = {"notes": 0, "tasks": 0, "notebooks": 0}
             report = {"format": run.get("format", 1), "run_id": run_id, "state": "partial", "trigger": trigger,
                 "transport": "wifi", "sent": counts, "received": dict(counts), "conflicts": 0,
@@ -2420,6 +2788,7 @@ class NativeSyncActivity:
 class SecureChannel:
     def __init__(self, sock, sid, send_key, send_prefix, receive_key, receive_prefix):
         self.sock, self.sid = sock, sid
+        self.reader_nonce = os.urandom(32)
         self.send_key, self.send_prefix = send_key, send_prefix
         self.receive_key, self.receive_prefix = receive_key, receive_prefix
         self.send_seq = self.receive_seq = 0
@@ -2918,6 +3287,29 @@ def is_reserved_ephemeral_phone_control(value):
     return is_reserved_webcam_control(value) or is_reserved_screen_control(value)
 
 
+@dataclass(frozen=True)
+class NativeConnectionBatchSave:
+    phone: object
+    peer_id: str
+    message_id: str
+    token: str
+    book_source: str
+    before: str
+    candidate_hash: str
+
+
+@dataclass(frozen=True)
+class NativeConnectionStart:
+    authority: str
+    reference: dict
+    saved_book: dict
+    capabilities: dict
+    run_id: str
+    token: str
+    format: int
+    deadline: float
+
+
 class PhoneService:
     """Own listener, pairing state, status cache and phone sessions."""
 
@@ -2970,6 +3362,8 @@ class PhoneService:
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
         self.content_scope_sessions = weakref.WeakKeyDictionary()
+        self.gui_connection_starts = weakref.WeakKeyDictionary()
+        self.gui_connection_started = weakref.WeakSet()
         self.note_controls = weakref.WeakKeyDictionary()
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
@@ -3018,6 +3412,7 @@ class PhoneService:
         self.audio_capability_address = ""
         self.call_action_tickets = {}
         self.personal_commit_events = {}
+        self.connection_batch_saves = deque(maxlen=32)
         self.personal_dispatched = set()
         self.personal_sync_available = lambda: True
         # Contact operations need a loaded, trusted book, not a visible notes
@@ -3951,6 +4346,7 @@ class PhoneService:
                             "custom_sync": peer.get("custom_sync", {}),
                              "note_sync": self.note_status(peer_id),
                              "shared_sync": self.shared_settings_status(peer_id),
+                             "gui_connection_start": self.gui_connection_start_ready(peer_id),
                             "time_sync": self.time_status(peer_id),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
@@ -5527,6 +5923,45 @@ class PhoneService:
             body = self.store.shared_settings(peer_id, peer["static_public"])
             session = self._shared_session(peer, channel)
             return body is not None and session["sent"] == body and session["received"] == body
+
+    def _connection_automation_authority(self, peer, channel, request=None):
+        peer_id, public = peer["device_id"], peer["static_public"]
+        current = self.store.sole_peer(peer_id)
+        transport = self.connection_transports.get(peer_id)
+        sid = getattr(channel, "sid", None)
+        reader_nonce = getattr(channel, "reader_nonce", None)
+        if (not current or current["static_public"] != public or self.connections.get(peer_id) is not channel
+                or transport not in {"wifi", "bluetooth"} or not isinstance(sid, bytes) or len(sid) != 16
+                or not isinstance(reader_nonce, bytes) or len(reader_nonce) != 32
+                or not personal_sync_contract.auto_connection_supported(desktop_capabilities()["items"],
+                    current.get("capabilities", {}).get("items", {}))
+                or not self.shared_settings_ready(peer_id)):
+            raise PermissionError("Connection automation has no current negotiated reader.")
+        settings = self.store.shared_settings(peer_id, public)
+        values = shared_sync_contract.effective(settings)
+        local, remote = current["local_grants"], current["grants"]
+        if values["auto_mode"] != "connection":
+            raise PermissionError("Connection automation does not have current scope and grants.")
+        if request is not None:
+            needed = personal_sync_grants_needed("personal_sync.request", request)
+            if ("send_item" in request or not needed or any(
+                    local["grants"].get(name) is not True or remote["grants"].get(name) is not True
+                    or not supports_personal_format(current, name, request["format"]) for name in needed)):
+                raise PermissionError("Connection automation does not have current scope and grants.")
+        return hashlib.sha256(canonical({
+            "peer": peer_id, "key": public, "session": b64(sid), "reader": b64(reader_nonce), "transport": transport,
+            "remote_capabilities": current["capabilities"]["revision"],
+            "local_grants": local["revision"], "remote_grants": remote["revision"],
+            "content_mode": settings["settings"]["content_mode"], "auto_mode": settings["settings"]["auto_mode"],
+        })).hexdigest()
+
+    def _connection_run_authority(self, peer, channel, run):
+        if not peer or not run or run["expires_ms"] <= now_ms():
+            raise PermissionError("Automatic synchronization no longer owns this run.")
+        authority = self._connection_automation_authority(peer, channel, run["body"])
+        if run.get("connection_authority") != authority:
+            raise PermissionError("Automatic synchronization reader changed.")
+        return authority
 
     def change_shared_setting(self, peer_id, expected_public, field, value, initial=None):
         with self.lock:
@@ -7946,6 +8381,12 @@ class PhoneService:
 
     def _note_policy_error(self, peer_id, kind, body, outgoing, channel=None):
         try:
+            if kind in PERSONAL_DATA_KINDS and body.get("run_id"):
+                run = self.store._personal_run_record(peer_id, body["run_id"])
+                if run and "connection_authority" in run:
+                    peer = self.store.sole_peer(peer_id)
+                    reader = channel if channel is not None else self.connections.get(peer_id)
+                    self._connection_run_authority(peer, reader, run)
             if kind in ("personal_sync.deletion_proposals", "personal_sync.deletion_decision") and self._uses_scoped_content(self.store.sole_peer(peer_id)):
                 return None if self._note_direction_allowed(peer_id, kind, body, outgoing) else "not_granted"
             if self._single_item_run(peer_id, kind, body):
@@ -8129,8 +8570,8 @@ class PhoneService:
         self.callback("status", self.report())
 
     def _record_personal_success(self, peer_id, static_public, run_id, trigger, channel):
-        # Called only after native actor completion or accepted report ACK.
-        # Reports received from the phone, queueing and failed attempts do not call it.
+        # Called after native actor completion or exchange of a confirmed report ACK.
+        # An unbound incoming report, queueing and failed attempts cannot record success.
         try:
             with self.lock:
                 if self.connections.get(peer_id) is not channel:
@@ -8256,15 +8697,112 @@ class PhoneService:
         with self.lock:
             return self._send_personal_sync_run(peer_id, request, batches, sources, trigger, report)
 
-    def _send_personal_sync_run(self, peer_id, request, batches, sources, trigger="manual", report=None):
+    def _gui_connection_scope(self, peer, channel):
+        if not peer or not self._content_scope_ready_controls(peer, channel):
+            raise PermissionError("Connection automation is waiting for the phone collection.")
+        binding = (peer["device_id"], peer["static_public"], id(channel))
+        session = self.content_scope_sessions.get(channel)
+        if session is None:
+            raise PermissionError("Connection automation is waiting for the phone collection.")
+        return session.current_reference(binding)
+
+    def _gui_connection_saved_book(self):
+        if not callable(self.native_actor_book_source) or not callable(self.native_actor_saved_book):
+            raise PermissionError("Connection automation requires the native book owner.")
+        return self._actor_saved_book(self.native_actor_saved_book(), self.native_actor_book_source())
+
+    def _gui_connection_offer(self, peer, channel):
+        capabilities = getattr(channel, "last_capabilities", None)
+        if not peer or not capabilities or not personal_sync_contract.auto_connection_supported(
+                capabilities["items"], peer.get("capabilities", {}).get("items", {})):
+            raise PermissionError("Connection automation has not been advertised on this reader.")
+        if self.stop_event.is_set() or not callable(self.native_actor_book_source) or not callable(self.native_actor_saved_book):
+            raise PermissionError("Connection automation requires the native book owner.")
+        # Both endpoints order the same authenticated UUIDs. The lower ID
+        # starts; the other endpoint can receive immediately without a race.
+        if self.store.identity["device_id"] >= peer["device_id"]:
+            raise PermissionError("Connection automation is waiting for the elected initiator.")
+        reference = self._gui_connection_scope(peer, channel)
+        names = ("personal_notes_sync", "personal_tasks_sync")
+        format = next((version for version in (14, 3) if all(
+            version in capabilities["items"][name]["versions"] and supports_personal_format(peer, name, version)
+            for name in names)), None)
+        if format is None:
+            raise PermissionError("Connection automation has no common scoped format.")
+        authority = self._connection_automation_authority(peer, channel, {
+            "format": format, "trigger": personal_sync_contract.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]})
+        if channel in self.gui_connection_started or self.store.active_auto_run(
+                peer["device_id"], connection_authority=authority):
+            raise PermissionError("Connection automation already started on this reader.")
+        return authority, format, reference
+
+    def gui_connection_start_ready(self, peer_id):
+        with self.lock:
+            try:
+                self._gui_connection_offer(self.store.sole_peer(peer_id), self.connections.get(peer_id))
+                return True
+            except PermissionError:
+                return False
+
+    def prepare_gui_connection_start(self, peer_id, expected_fingerprint):
+        """Capture the local GUI owner's current reader, scope and saved book."""
+        with self.lock:
+            peer, channel = self.store.sole_peer(peer_id), self.connections.get(peer_id)
+            if not peer or fingerprint(unb64(peer["static_public"], 32)) != expected_fingerprint:
+                raise PermissionError("Connection automation pairing changed.")
+            authority, format, reference = self._gui_connection_offer(peer, channel)
+            manifest = self.current_content_scope(peer_id, peer["static_public"], reference)
+            capabilities = channel.last_capabilities
+            saved = self._gui_connection_saved_book()
+            now = time.monotonic()
+            plan = self.gui_connection_starts.get(channel)
+            if (plan is None or plan.deadline <= now or plan.authority != authority or plan.reference != reference
+                    or plan.capabilities != capabilities or plan.format != format
+                    or plan.saved_book["book_source"] != saved["book_source"]):
+                plan = NativeConnectionStart(authority, reference, saved, copy.deepcopy(capabilities),
+                                             str(uuid.uuid4()), secrets.token_hex(32), format, now + 30)
+                self.gui_connection_starts[channel] = plan
+            return {"token": plan.token, "run_id": plan.run_id, "format": plan.format,
+                    "transport": self.connection_transports[peer_id], "scope": manifest}
+
+    def start_gui_connection_run(self, peer_id, token, saved_hash, request, batches, sources):
+        """Consume one native plan only with the original reader and current saved bytes."""
+        with self.lock:
+            channel = self.connections.get(peer_id)
+            plan = self.gui_connection_starts.get(channel) if channel is not None else None
+            if plan is None or plan.token != token:
+                raise PermissionError("Connection automation no longer owns this start.")
+            del self.gui_connection_starts[channel]
+            expected = {"format": plan.format, "run_id": plan.run_id, "trigger": personal_sync_contract.AUTO_CONNECTION_TRIGGER,
+                        "modules": ["notes", "tasks"]}
+            if plan.deadline <= time.monotonic() or request != expected:
+                raise PermissionError("Connection automation no longer owns this start.")
+            result = self._send_personal_sync_run(peer_id, request, batches, sources, gui_start=(plan, saved_hash))
+            self.gui_connection_started.add(channel)
+            return result
+
+    def _check_gui_connection_start(self, peer, channel, plan, saved_hash):
+        authority, format, reference = self._gui_connection_offer(peer, channel)
+        saved = self._gui_connection_saved_book()
+        if (plan.deadline <= time.monotonic() or plan.authority != authority or plan.format != format or
+                plan.capabilities != getattr(channel, "last_capabilities", None) or
+                plan.reference != reference or saved["book_source"] != plan.saved_book["book_source"] or
+                saved["sequence"] < plan.saved_book["sequence"] or saved["sha256"] != saved_hash):
+            raise PermissionError("Connection automation no longer owns this saved book and reader.")
+
+    def _send_personal_sync_run(self, peer_id, request, batches, sources, trigger="manual", report=None, *, gui_start=None):
         """Validate and durably stage one complete attachment-capable direction."""
         validate_personal_sync_body("personal_sync.request", request)
+        connection_start = request["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER
+        if connection_start and (report is not None or isinstance(batches, list) and any(
+                isinstance(body, dict) and body.get("reply") is True for body in batches)):
+            raise PermissionError("Connection automation requires the protected batch reply.")
         format = request["format"]
         if format not in (2, 3, 14) or not isinstance(batches, list) or not batches:
             raise ValueError("invalid format 2 run")
         for body in batches:
             validate_personal_sync_body("personal_sync.batch", body)
-            if not self._note_direction_allowed(peer_id, "personal_sync.request" if "send_item" in request else "personal_sync.batch",
+            if not connection_start and not self._note_direction_allowed(peer_id, "personal_sync.request" if "send_item" in request else "personal_sync.batch",
                                                 request if "send_item" in request else body, True):
                 raise RuntimeError("Note direction does not permit this batch.")
         if report is not None:
@@ -8307,6 +8845,28 @@ class PhoneService:
             decoded.append((descriptor, raw))
         trigger = request["trigger"]
         reply = batches[-1]["reply"]
+        if connection_start:
+            channel = self.connections.get(peer_id)
+            if (format not in (3, 14) or reply or not self.personal_sync_available() or
+                    not self._content_scope_ready_controls(peer, channel)):
+                raise PermissionError("Connection start requires current scoped book data and an initial batch.")
+            authority = self._connection_automation_authority(peer, channel, request)
+            if self.store.active_auto_run(peer_id, connection_authority=authority):
+                raise PermissionError("Connection automation already has a current run.")
+            public = peer["static_public"]
+            binding = (peer_id, public, id(channel))
+            reference = self.content_scope_sessions[channel].current_reference(binding)
+            manifest = self.current_content_scope(peer_id, public, reference)
+            if content_scope_contract.filter_records(records, manifest) != records:
+                raise PermissionError("Records are outside the current phone collection.")
+            if gui_start is not None:
+                self._check_gui_connection_start(peer, channel, *gui_start)
+            ttl = 60 * 60 * 1000
+            messages = [("personal_sync.request", request, ttl)] + [("personal_sync.batch", body, ttl) for body in batches]
+            queued = self.store.queue_format2_run(peer_id, messages, decoded, "connection_only", remember_request=True,
+                connection_start=(public, reference, authority))
+            self._send_message(channel, peer_id, queued[0])
+            return queued[-1]["message_id"]
         if trigger == "auto_wifi" and not reply and self.store.active_auto_run(peer_id):
             raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
         if reply and self.store.personal_run(peer_id, request["run_id"]) != request:
@@ -8600,8 +9160,30 @@ class PhoneService:
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
             return False
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
-        if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
+        if policy in {"invalid", "expired"} or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if policy == "connection_only":
+            peer = self.store.sole_peer(peer_id)
+            try:
+                queued = self.store.outbox_message(peer_id, message["message_id"])
+                if queued != message or self.store.outbox_policy(peer_id, message["message_id"], require_released=True) != "connection_only":
+                    return False
+                run = self.store._personal_run_record(peer_id, message["body"]["run_id"])
+                self._connection_run_authority(peer, channel, run)
+                if self._note_policy_error(peer_id, message["kind"], message["body"], True, channel):
+                    return False
+                manifest = self._scoped_data_manifest(peer_id, message["kind"], message["body"], channel)
+                if manifest is None:
+                    return False
+                channel.send(dict(message, kind=content_scope_contract.DATA_KIND,
+                                  body=content_scope_contract.wrap(message["kind"], message["body"], manifest)))
+                self.store.mark_attempt(peer_id, message["message_id"])
+                return True
+            except PermissionError:
+                return False
+        if policy is None and message["kind"] in PERSONAL_DATA_KINDS and self.store.run_policy(
+                peer_id, message.get("body", {}).get("run_id", "")) == "connection_only":
+            return False  # Only the original typed SQLite row may send a bound reply.
         if message.get("kind") == shared_sync_contract.START_KIND:
             peer = self.store.sole_peer(peer_id)
             if not self._shared_controls_ready(peer, channel) or not self.shared_settings_ready(peer_id):
@@ -8726,12 +9308,158 @@ class PhoneService:
         with self.lock:
             return self._commit_personal_sync(peer_id, message_id, token, success)
 
+    def _require_connection_batch_save(self, peer_id, message_id, token):
+        for staged_peer, aggregate in self.store.ready_personal_batches():
+            if staged_peer != peer_id or aggregate["message_id"] != message_id or aggregate["commit_token"] != token:
+                continue
+            run_id = aggregate["run_id"]
+            body = {"run_id": run_id, "records": aggregate["records"]}
+            if self.store.run_policy(peer_id, run_id) == "connection_only" and not self._note_policy_error(
+                    peer_id, "personal_sync.batch", body, False):
+                self._verified_connection_attachments(peer_id, aggregate)
+                return aggregate
+            break
+        raise PermissionError("Automatic synchronization no longer owns this batch.")
+
+    def _verified_connection_attachments(self, peer_id, aggregate):
+        descriptors = {item["sha256"]: item for record in aggregate["records"] if record["kind"] == "note"
+                       for item in record["value"]["attachments"]}
+        if not descriptors:
+            return [], 0
+        run_id, reply = aggregate["run_id"], aggregate["reply"]
+        digest = aggregate["messages"][-1]["body"]["records_hash"]
+        completed = self.store.completed_incoming_for_batch(peer_id, aggregate["message_id"], aggregate["commit_token"])
+        if set(completed) != {(run_id, reply, digest, sha) for sha in descriptors}:
+            raise PermissionError("Connection attachment bytes have not been verified.")
+        results = [{"format": 2, "run_id": run_id, "reply": reply, "records_hash": digest,
+                    "sha256": sha, "state": "complete", "error": "none"} for sha in sorted(descriptors)]
+        return results, sum(item["size"] for item in descriptors.values())
+
+    @staticmethod
+    def _connection_frame(kind, body, created_ms, expires_ms):
+        return {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": kind,
+                "created_ms": created_ms, "expires_ms": expires_ms, "body": body}
+
+    def prepare_connection_batch_save(self, claim, text, book_source):
+        if (not isinstance(claim, dict) or set(claim) != {"peer", "messageId", "token", "before"}
+                or not valid_uuid(claim["peer"], 4) or not valid_uuid(claim["messageId"], 4)
+                or not isinstance(claim["token"], str) or len(claim["token"]) != 44
+                or not isinstance(claim["before"], str) or not re.fullmatch(r"[0-9a-f]{64}", claim["before"])
+                or not book_source):
+            raise PermissionError("Invalid automatic synchronization save request.")
+        unb64(claim["token"], 32)
+        with self.lock:
+            self._require_connection_batch_save(claim["peer"], claim["messageId"], claim["token"])
+            return NativeConnectionBatchSave(self, claim["peer"], claim["messageId"], claim["token"], book_source,
+                                             claim["before"], hashlib.sha256(text.encode("utf-8")).hexdigest())
+
+    def write_connection_batch_save(self, job, book_source, before, previous, candidate, text, writer):
+        with self.lock:
+            if (job.phone is not self or job.book_source != book_source or job.before != before
+                    or hashlib.sha256(text.encode("utf-8")).hexdigest() != job.candidate_hash
+                    or job.token in previous.get("personalSync", {}).get("applied_batches", ())
+                    or job.token not in candidate.get("personalSync", {}).get("applied_batches", ())):
+                raise PermissionError("Automatic synchronization book changed or was already saved.")
+            self._require_connection_batch_save(job.peer_id, job.message_id, job.token)
+            writer(text)
+            self.connection_batch_saves.append(job)
+
+    def _confirmed_connection_batch_save(self, peer_id, message_id, token):
+        for job in self.connection_batch_saves:
+            if (job.peer_id, job.message_id, job.token) == (peer_id, message_id, token):
+                saved = self.native_actor_saved_book() if callable(self.native_actor_saved_book) else None
+                if saved and (saved["book_source"], saved["sha256"]) == (job.book_source, job.candidate_hash):
+                    return job
+                break
+        return None
+
+    def finish_connection_batch_reply(self, peer_id, message_id, token, batches, *, sources=(), conflicts=0, oversized_skipped=0):
+        """Stage a reply and commit the saved incoming batch in one transaction."""
+        with self.lock:
+            aggregate = self._require_connection_batch_save(peer_id, message_id, token)
+            job = self._confirmed_connection_batch_save(peer_id, message_id, token)
+            if job is None or aggregate["reply"]:
+                raise PermissionError("A saved incoming connection batch is required.")
+            run_id = aggregate["run_id"]
+            run = self.store._personal_run_record(peer_id, run_id)
+            peer, reader = self.store.sole_peer(peer_id), self.connections.get(peer_id)
+            authority = self._connection_run_authority(peer, reader, run)
+            if not isinstance(batches, list) or not 1 <= len(batches) <= 4096:
+                raise ValueError("Invalid connection reply batches.")
+            if any(type(value) is not int or not 0 <= value <= personal_sync_contract.MAX_SAFE_INTEGER
+                   for value in (conflicts, oversized_skipped)):
+                raise ValueError("Invalid connection reply counters.")
+            records = []
+            for sequence, body in enumerate(batches):
+                validate_personal_sync_body("personal_sync.batch", body)
+                if (body["run_id"] != run_id or body["format"] != run["body"]["format"] or not body["reply"]
+                        or body["sequence"] != sequence or body["last"] != (sequence == len(batches) - 1)
+                        or body["records_hash"] != batches[0]["records_hash"]
+                        or self._note_policy_error(peer_id, "personal_sync.batch", body, True, reader)
+                        or self._scoped_data_manifest(peer_id, "personal_sync.batch", body, reader) is None):
+                    raise PermissionError("Invalid current connection reply.")
+                records.extend(body["records"])
+            if records_hash(records) != batches[0]["records_hash"]:
+                raise ValueError("Invalid connection reply manifest.")
+            personal_sync_contract.validate_selected_records(run["body"], records, complete=True, reply=True)
+            descriptors = {}
+            _check_attachment_manifest(records, descriptors)
+            if (not isinstance(sources, (list, tuple)) or len(sources) != len(descriptors) or len(sources) > 256
+                    or any(not isinstance(source, dict) or set(source) != {"sha256", "data"} for source in sources)
+                    or {item["sha256"] for item in sources} != set(descriptors)):
+                raise ValueError("Connection reply attachment sources do not match the manifest.")
+            originals = []
+            for source in sources:
+                mime, raw = decode_attachment_data_url(source["data"])
+                item = descriptors[source["sha256"]]
+                if mime != item["mime"] or len(raw) != item["size"] or hashlib.sha256(raw).hexdigest() != item["sha256"]:
+                    raise ValueError("Connection reply attachment source changed.")
+                originals.append((item, raw))
+            created = now_ms()
+            if created >= run["expires_ms"]:
+                raise PermissionError("Connection reply run expired.")
+            results, attachment_bytes = self._verified_connection_attachments(peer_id, aggregate)
+            expires = run["expires_ms"]
+            outgoing = [self._connection_frame("personal_sync.attachment_result", body, created, expires) for body in results]
+            batch_frames = [self._connection_frame("personal_sync.batch", body, created, expires) for body in batches]
+            outgoing.extend(batch_frames)
+            def counts(records):
+                return {f"{kind}s": sum(record["kind"] == kind for record in records) for kind in ("note", "task", "notebook")}
+            report = {"format": run["body"]["format"], "run_id": run_id, "state": "partial" if oversized_skipped else "complete",
+                      "trigger": personal_sync_contract.AUTO_CONNECTION_TRIGGER, "transport": self.connection_transports[peer_id],
+                      "sent": counts(records), "received": counts(aggregate["records"]), "conflicts": conflicts,
+                      "attachments_omitted": 0, "oversized_skipped": oversized_skipped, "started_ms": run["created_ms"],
+                      "finished_ms": created, "error": "none",
+                      "deletions": dict.fromkeys(("pending", "deleted", "restored", "conflicts", "blocked"), 0),
+                      "attachments": dict.fromkeys(("declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes"), 0)}
+            report["deletions"]["trash"] = dict.fromkeys(("notes", "tasks", "notebooks", "attachments"), 0)
+            report["attachments"].update(declared=len(originals), requested=len(results), received=len(results),
+                                         sent=len(originals), bytes=attachment_bytes + sum(len(raw) for _item, raw in originals))
+            validate_personal_sync_body("personal_sync.report", report)
+            report_frame = self._connection_frame("personal_sync.report", report, created, expires)
+            _, committed = self.store.commit_personal_batch(
+                peer_id, message_id, token, connection_messages=(outgoing + [report_frame], authority),
+                connection_attachments=(batches[0]["records_hash"], originals))
+            if not committed:
+                raise PermissionError("Connection batch expired before its reply was stored.")
+            self.connection_batch_saves.remove(job)
+            self.personal_dispatched.discard(token)
+            event = self.personal_commit_events.get(token)
+            if event:
+                event.set()
+            for frame in outgoing:
+                self._send_message_locked(reader, peer_id, frame)
+            return [frame["message_id"] for frame in batch_frames]
+
     def _commit_personal_sync(self, peer_id, message_id, token, success):
         with sqlite3.connect(self.store.database_path) as db:
             time_pending = db.execute("SELECT 1 FROM time_batch WHERE peer_id=? AND message_id=?",
                                       (peer_id, message_id)).fetchone()
         if time_pending:
             return self.commit_time_sync(peer_id, message_id, token, success)
+        connection_save = None
+        connection_results = None
+        frames = []
         if success:
             for stored_peer, payload in self.store.ready_personal_domains():
                 if stored_peer == peer_id and payload["pending_message_id"] == message_id and payload["commit_token"] == token:
@@ -8741,6 +9469,20 @@ class PhoneService:
                 if stored_peer == peer_id and aggregate["message_id"] == message_id and aggregate["commit_token"] == token:
                     if self._note_policy_error(peer_id, "personal_sync.batch", {"run_id": aggregate["run_id"], "records": aggregate["records"]}, False):
                         return False
+                    if self.store.run_policy(peer_id, aggregate["run_id"]) == "connection_only":
+                        if not aggregate["reply"]:
+                            return False  # Initial input completes only together with its protected reply.
+                        connection_save = self._confirmed_connection_batch_save(peer_id, message_id, token)
+                        if connection_save is None:
+                            return False
+                        results, _ = self._verified_connection_attachments(peer_id, aggregate)
+                        if results:
+                            peer, reader = self.store.sole_peer(peer_id), self.connections.get(peer_id)
+                            run = self.store._personal_run_record(peer_id, aggregate["run_id"])
+                            authority = self._connection_run_authority(peer, reader, run)
+                            frames = [self._connection_frame("personal_sync.attachment_result", body, now_ms(), run["expires_ms"])
+                                      for body in results]
+                            connection_results = (frames, authority)
         if not success:
             if (not self.store.has_personal_batch(peer_id, message_id, token)
                     and not any(item[1]["pending_message_id"] == message_id and
@@ -8760,7 +9502,8 @@ class PhoneService:
                 event.set()
             return True
         attachment_results = self.store.completed_incoming_for_batch(peer_id, message_id, token)
-        committed_peer, message_ids = self.store.commit_personal_batch(peer_id, message_id, token)
+        committed_peer, message_ids = self.store.commit_personal_batch(peer_id, message_id, token,
+                                                                      connection_messages=connection_results)
         if committed_peer != peer_id:
             raise ValueError("invalid personal commit peer")
         with self.lock:
@@ -8769,6 +9512,11 @@ class PhoneService:
         if event and message_ids:
             event.set()
         if message_ids:
+            if connection_save is not None:
+                self.connection_batch_saves.remove(connection_save)
+                for frame in frames:
+                    self._send_message_locked(reader, peer_id, frame)
+                return True
             for run_id, reply, aggregate_hash, digest in attachment_results:
                 run = self.store.personal_run(peer_id, run_id)
                 self.send_personal_sync(peer_id, "personal_sync.attachment_result", {
@@ -8805,11 +9553,13 @@ class PhoneService:
             message_id = aggregate.pop("message_id")
             run = self.store.personal_run(peer_id, aggregate["run_id"])
             format = aggregate["messages"][-1]["body"].get("format", 1)
-            if format >= 2 and not self._prepare_format2_aggregate(peer_id, aggregate, "wifi"):
+            transport = (self.connection_transports.get(peer_id, "")
+                         if run.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER else "wifi")
+            if format >= 2 and not self._prepare_format2_aggregate(peer_id, aggregate, transport):
                 continue
             self.personal_dispatched.add(token)
             aggregate.pop("messages")
-            self._emit_personal_sync({"device_id": peer_id, "transport": "wifi",
+            self._emit_personal_sync({"device_id": peer_id, "transport": transport,
                 "kind": "personal_sync.batch", "commit_token": token,
                 "pending_message_id": message_id, "body": {
                     "format": format, "run_id": aggregate["run_id"], "batch_id": str(uuid.uuid4()),
@@ -8830,8 +9580,13 @@ class PhoneService:
         body = messages[-1]["body"] if messages else {}
         if body.get("format", 1) < 2:
             return True
-        run = self.store.personal_run(peer_id, aggregate["run_id"])
-        policy = "wifi_only" if run.get("trigger") == "auto_wifi" else "any"
+        run_id = aggregate["run_id"]
+        stored = self.store._personal_run_record(peer_id, run_id)
+        policy = self.store.run_policy(peer_id, run_id)
+        if policy not in {"wifi_only", "any", "connection_only"}:
+            return False
+        connection_bound = policy == "connection_only"
+        expires = stored["expires_ms"] if connection_bound else now_ms() + DAY_MS
         reply, digest = aggregate["reply"], body["records_hash"]
         descriptors = {item["sha256"]: item for record in aggregate["records"]
                        if record["kind"] == "note" for item in record["value"]["attachments"]}
@@ -8839,12 +9594,12 @@ class PhoneService:
             raise ValueError("attachment run too large")
         for item in descriptors.values():
             self.store.register_incoming_attachment(peer_id, aggregate["run_id"], reply, digest,
-                item["sha256"], item["size"], item["mime"], policy, now_ms() + DAY_MS,
+                item["sha256"], item["size"], item["mime"], policy, expires,
                 item["attachment_id"])
-            if self.store.attachment_missing_ranges(peer_id, aggregate["run_id"], reply, digest, item["sha256"]):
+            if not connection_bound and self.store.attachment_missing_ranges(peer_id, aggregate["run_id"], reply, digest, item["sha256"]):
                 self.store.reuse_staged_attachment(peer_id, aggregate["run_id"], reply, digest,
                     item, policy, now_ms() + DAY_MS)
-        if any(self.store.attachment_missing_ranges(peer_id, aggregate["run_id"], reply, digest, key)
+        if not connection_bound and any(self.store.attachment_missing_ranges(peer_id, aggregate["run_id"], reply, digest, key)
                for key in descriptors) and self.store.begin_local_attachment_index(
                    peer_id, aggregate["run_id"], reply):
             self.callback("personal_sync_attachment_index", {"device_id": peer_id,
@@ -8852,6 +9607,11 @@ class PhoneService:
             return False
         wants = [{"sha256": key, "ranges": ranges} for key in sorted(descriptors)
                  if (ranges := self.store.attachment_missing_ranges(peer_id, aggregate["run_id"], reply, digest, key))]
+        if connection_bound:
+            channel = self.connections.get(peer_id)
+            authority = self._connection_run_authority(self.store.sole_peer(peer_id), channel, stored)
+            if not self.store.connection_attachment_window_ready(peer_id, run_id, authority, reply, digest, wants):
+                return False
         if wants:
             self.callback("personal_sync_progress", {"device_id": peer_id,
                 "declared": len(descriptors), "received": len(descriptors) - len(wants),
@@ -8859,9 +9619,27 @@ class PhoneService:
                              if key not in {want["sha256"] for want in wants})})
             request = {"format": 2, "run_id": aggregate["run_id"], "reply": reply,
                        "records_hash": digest, "wants": wants}
+            channel = self.connections.get(peer_id)
+            if connection_bound:
+                remaining, window = 8, []
+                for item in wants:
+                    selected = []
+                    for start, end in item["ranges"]:
+                        length = min(end - start, remaining)
+                        selected.append([start, start + length])
+                        remaining -= length
+                        if not remaining:
+                            break
+                    window.append({"sha256": item["sha256"], "ranges": selected})
+                    if not remaining:
+                        break
+                request["wants"] = window
+                message = self.store.queue(peer_id, "personal_sync.attachment_request", request, DAY_MS, policy,
+                                           connection_authority=authority)
+                self._send_message_locked(channel, peer_id, message)
+                return False
             self.store.remove_kind(peer_id, "personal_sync.attachment_request")
             message = self.store.queue(peer_id, "personal_sync.attachment_request", request, DAY_MS, policy)
-            channel = self.connections.get(peer_id)
             if channel and (policy == "any" or transport == "wifi"):
                 self._send_message(channel, peer_id, message)
             return False
@@ -8879,6 +9657,8 @@ class PhoneService:
             return self._index_local_attachments(peer_id, run_id, reply, aggregate_hash, sources)
 
     def _index_local_attachments(self, peer_id, run_id, reply, aggregate_hash, sources):
+        if self.store.run_policy(peer_id, run_id) == "connection_only":
+            raise PermissionError("Automatic connection attachments require the original reader.")
         if self._note_policy_error(peer_id, "personal_sync.attachment_chunk", {}, False):
             raise PermissionError("note direction is not ready")
         if not isinstance(sources, list) or len(sources) > 256:
@@ -9342,7 +10122,12 @@ class PhoneService:
                     if now - channel.last_send >= 25:
                         channel.send({"type": "ping", "ping_id": str(uuid.uuid4()),
                                       "sent_ms": now_ms()})
-                    for message in self.store.pending(peer["device_id"], transport):
+                    with self.lock:
+                        try:
+                            authority = self._connection_automation_authority(peer, channel)
+                        except PermissionError:
+                            authority = None
+                    for message in self.store.pending(peer["device_id"], transport, connection_authority=authority):
                         self._send_message(channel, peer["device_id"], message)
         finally:
             self._signal_native_webcam_retire(channel)
@@ -9548,6 +10333,30 @@ class PhoneService:
             if (ack_policy == "invalid" or ack_policy == "wifi_only"
                     and self.connection_transports.get(peer["device_id"]) != "wifi"):
                 raise ValueError("acknowledgement violates current transport or content scope policy")
+            if ack_policy == "connection_only":
+                peer_id = peer["device_id"]
+                with self.lock:
+                    message_id = payload["message_id"]
+                    if self.store.outbox_policy(peer_id, message_id, require_attempt=True) != "connection_only":
+                        raise ValueError("acknowledgement violates current connection policy")
+                    queued = self.store.outbox_message(peer_id, message_id)
+                    try:
+                        run = self.store._personal_run_record(peer_id, queued["body"]["run_id"])
+                        self._connection_run_authority(peer, channel, run)
+                        if self._scoped_data_manifest(peer_id, queued["kind"], queued["body"], channel) is None:
+                            raise PermissionError("Connection reply has no current scope.")
+                    except PermissionError as error:
+                        raise ValueError("acknowledgement violates current connection policy") from error
+                    accepted = self.store.acknowledge_connection_reply(peer_id, message_id, payload["status"], payload["error"])
+                    if accepted and queued["kind"] == "personal_sync.request":
+                        for pending in self.store.pending(peer_id, self.connection_transports[peer_id],
+                                connection_authority=run["connection_authority"]):
+                            if pending["kind"] == "personal_sync.batch" and pending["body"].get("run_id") == run["body"]["run_id"]:
+                                self._send_message_locked(channel, peer_id, pending)
+                    if accepted and queued["kind"] == "personal_sync.report" and queued["body"]["state"] == "complete":
+                        self._record_personal_success(peer_id, peer["static_public"], run["body"]["run_id"],
+                                                      personal_sync_contract.AUTO_CONNECTION_TRIGGER, channel)
+                return
             queued = self.store.outbox_message(peer["device_id"], payload["message_id"])
             if (queued and queued.get("kind") == shared_sync_contract.KIND and
                     self.connections.get(peer["device_id"]) is channel and
@@ -9589,6 +10398,8 @@ class PhoneService:
             raise ValueError("invalid message")
         kind = payload["kind"]
         if kind == content_scope_contract.DATA_KIND:
+            bound_status = None
+            reply_frames = []
             try:
                 wrapped = content_scope_contract.validate_data(payload["body"])
                 if (payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] >
@@ -9601,28 +10412,67 @@ class PhoneService:
                     manifest = self.current_content_scope(peer["device_id"], peer["static_public"], wrapped["scope"])
                     inner_kind, body = content_scope_contract.unwrap(wrapped, manifest)
                     inner_message = dict(payload, kind=inner_kind, body=body)
-                    if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], inner_message):
+                    previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
+                    if previous and not self.store.received_matches(peer["device_id"], inner_message):
                         raise ValueError("conflicting scoped data message identity")
                     if inner_kind == "personal_sync.request":
                         if body["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                             raise ValueError("auto sync received outside wifi")
-                        self.store.remember_scoped_run(peer["device_id"], peer["static_public"], body, wrapped["scope"], payload["expires_ms"])
+                        authority = None
+                        if body["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                            authority = self._connection_automation_authority(current, channel, body)
+                            active = self.store.active_auto_run(peer["device_id"], connection_authority=authority)
+                            if active and active != body["run_id"]:
+                                raise PermissionError("Another automatic run is active.")
+                        self.store.remember_scoped_run(peer["device_id"], peer["static_public"], body, wrapped["scope"],
+                                                       payload["expires_ms"], connection_authority=authority)
                     elif self.store.scoped_run_reference(peer["device_id"], peer["static_public"], body["run_id"]) != wrapped["scope"]:
                         raise PermissionError("Scoped run binding missing or different.")
+                    if inner_kind == "personal_sync.report" and body["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                        run = self.store._personal_run_record(peer["device_id"], body["run_id"])
+                        authority = self._connection_run_authority(current, channel, run)
+                        if body["transport"] != self.connection_transports[peer["device_id"]]:
+                            raise PermissionError("Connection report transport changed.")
+                        bound_status = self.store.receive_connection_report(peer["device_id"], inner_message, authority)
+                    if inner_kind in {"personal_sync.attachment_request", "personal_sync.attachment_result"}:
+                        run = self.store._personal_run_record(peer["device_id"], body["run_id"])
+                        if run and "connection_start_id" in run:
+                            authority = self._connection_run_authority(current, channel, run)
+                            if self._note_policy_error(peer["device_id"], inner_kind, body, False, channel):
+                                raise PermissionError("Initial attachment controls changed.")
+                            if not previous:
+                                reply_frames = self.store.receive_connection_start_attachment(peer["device_id"], inner_message, authority)
+                            elif previous[0] != "accepted":
+                                raise PermissionError("Initial attachment has no accepted receipt.")
+                            bound_status = "duplicate" if previous else "accepted"
                 # The ordinary data path retains its staging, receipts and commit handling.
                 # Never hold the service lock while that path waits for the GUI commit.
-                self._payload(peer, channel, inner_message, scoped_reference=wrapped["scope"])
-                return
+                if bound_status is None:
+                    self._payload(peer, channel, inner_message, scoped_reference=wrapped["scope"])
+                    return
             except PermissionError:
                 error = "not_granted"
             except (ValueError, TypeError, KeyError):
                 error = "invalid_schema"
             except (OSError, RuntimeError, sqlite3.Error):
                 error = "temporary_failure"
+            else:
+                with self.lock:
+                    if self._note_policy_error(peer["device_id"], inner_kind, body, False, channel):
+                        return
+                    channel.send({"type": "ack", "message_id": payload["message_id"], "status": bound_status, "error": "none"})
+                    for frame in reply_frames:
+                        self._send_message_locked(channel, peer["device_id"], frame)
+                    if inner_kind == "personal_sync.report" and self._record_personal_success(
+                            peer["device_id"], peer["static_public"], body["run_id"], body["trigger"], channel):
+                        self._emit_personal_sync({"device_id": peer["device_id"], "transport": body["transport"],
+                            "kind": inner_kind, "body": body})
+                return
             channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
             return
         if kind == content_scope_contract.KIND:
             status, error = "accepted", "none"
+            manifest = None
             try:
                 content_scope_contract.validate_part(payload["body"])
                 if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > 60000:
@@ -9638,9 +10488,6 @@ class PhoneService:
                     session = self.content_scope_sessions.setdefault(channel, content_scope_contract.ScopeSession(binding))
                     manifest = session.receive(binding, payload["body"])
                     self.store.remember_message(peer["device_id"], payload, status, error)
-                    if manifest is not None:
-                        self.callback("personal_collection", {"device_id": peer["device_id"],
-                            "fingerprint": fingerprint(unb64(peer["static_public"], 32)), "members": manifest["members"]})
             except PermissionError:
                 status, error = "rejected", "not_granted"
             except (ValueError, TypeError):
@@ -9648,6 +10495,10 @@ class PhoneService:
             except (OSError, RuntimeError, sqlite3.Error):
                 status, error = "rejected", "temporary_failure"
             channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            if status == "accepted" and manifest is not None:
+                self.callback("personal_collection", {"device_id": peer["device_id"],
+                    "fingerprint": fingerprint(unb64(peer["static_public"], 32)), "members": manifest["members"],
+                    "connection_start": self.gui_connection_start_ready(peer["device_id"])})
             return
         if kind == shared_sync_contract.KIND:
             status, error = "accepted", "none"
@@ -9842,6 +10693,14 @@ class PhoneService:
                     channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": "not_granted"})
                     return
                 error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
+                if kind == "personal_sync.request" and value["trigger"] == personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                    run = self.store._personal_run_record(peer["device_id"], value["run_id"])
+                    try:
+                        authority = self._connection_automation_authority(peer, channel, value)
+                        if scoped_reference is None or not run or run.get("connection_authority") != authority:
+                            raise PermissionError("Connection automation run was not bound on this reader.")
+                    except PermissionError:
+                        error = "not_granted"
             if error:
                 channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
                 return
@@ -9851,7 +10710,8 @@ class PhoneService:
                               "status": "rejected", "error": "expired"})
                 return
             if kind == "personal_sync.request":
-                policy = "wifi_only" if value["trigger"] == "auto_wifi" else "any"
+                policy = {"auto_wifi": "wifi_only", personal_sync_contract.AUTO_CONNECTION_TRIGGER: "connection_only"}.get(
+                    value["trigger"], "any")
                 durable = self.store.run_policy(peer["device_id"], value["run_id"])
                 if durable == "expired":
                     self.store.remember_message(peer["device_id"], payload, "rejected", "expired")
@@ -9863,6 +10723,11 @@ class PhoneService:
                 policy = durable or policy
             else:
                 policy = self.store.run_policy(peer["device_id"], value["run_id"])
+                if policy == "connection_only" and kind not in {"personal_sync.batch", "personal_sync.attachment_chunk",
+                                                                 "personal_sync.attachment_request", "personal_sync.attachment_result"}:
+                    channel.send({"type": "ack", "message_id": payload["message_id"],
+                                  "status": "rejected", "error": "not_granted"})
+                    return
                 if policy == "expired":
                     self.store.remember_message(peer["device_id"], payload, "rejected", "expired")
                     channel.send({"type": "ack", "message_id": payload["message_id"],
@@ -10150,21 +11015,36 @@ class PhoneService:
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
                     if run.get("trigger") == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                         raise ValueError("auto attachment request outside wifi")
-                    chunks = self.store.requested_attachment_chunks(peer["device_id"], value["run_id"],
-                        value["reply"], value["records_hash"], value["wants"],
-                        self.connection_transports.get(peer["device_id"], "wifi"))
-                    for digest, index, raw in chunks:
-                        self.send_personal_sync(peer["device_id"], "personal_sync.attachment_chunk", {
-                            "format": 2, "run_id": value["run_id"], "reply": value["reply"],
-                            "records_hash": value["records_hash"], "sha256": digest, "index": index,
-                            "data": base64.b64encode(raw).decode("ascii")})
-                    self.store.remember_message(peer["device_id"], payload, "accepted", "none")
-                    channel.send({"type": "ack", "message_id": payload["message_id"],
-                                  "status": "accepted", "error": "none"})
+                    with self.lock:
+                        peer_id = peer["device_id"]
+                        bound = policy == "connection_only"
+                        authority = (self._connection_run_authority(peer, channel,
+                            self.store._personal_run_record(peer_id, value["run_id"])) if bound else None)
+                        chunks = self.store.requested_attachment_chunks(peer_id, value["run_id"],
+                            value["reply"], value["records_hash"], value["wants"],
+                            self.connection_transports.get(peer_id, "wifi"), connection_bound=bound)
+                        if bound and not chunks:
+                            status, error = "rejected", "not_granted"
+                            raise PermissionError("No protected attachment matches this request.")
+                        for digest, index, raw in chunks:
+                            chunk = {"format": 2, "run_id": value["run_id"], "reply": value["reply"],
+                                     "records_hash": value["records_hash"], "sha256": digest, "index": index,
+                                     "data": base64.b64encode(raw).decode("ascii")}
+                            if bound:
+                                queued = self.store.queue(peer_id, "personal_sync.attachment_chunk", chunk, DAY_MS,
+                                                          policy, connection_authority=authority)
+                                if not self._send_message_locked(channel, peer_id, queued):
+                                    status, error = "rejected", "temporary_failure"
+                                    raise PermissionError("Connection attachment chunk not sent.")
+                            else:
+                                self.send_personal_sync(peer_id, "personal_sync.attachment_chunk", chunk)
+                        self.store.remember_message(peer_id, payload, "accepted", "none")
+                        channel.send({"type": "ack", "message_id": payload["message_id"],
+                                      "status": "accepted", "error": "none"})
                     return
                 if kind == "personal_sync.attachment_chunk":
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
-                    policy = "wifi_only" if run.get("trigger") == "auto_wifi" else "any"
+                    policy = self.store.run_policy(peer["device_id"], value["run_id"])
                     if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                         raise ValueError("auto attachment chunk outside wifi")
                     descriptor = None
@@ -10190,19 +11070,33 @@ class PhoneService:
                         self.store.stage_incoming_attachment(peer["device_id"], value["run_id"], value["reply"],
                             value["records_hash"], value["sha256"], descriptor["size"], descriptor["mime"],
                             value["index"], raw, policy, payload["expires_ms"], descriptor["attachment_id"])
-                    self.store.remember_message(peer["device_id"], payload, "accepted", "none")
-                    channel.send({"type": "ack", "message_id": payload["message_id"],
-                                  "status": "accepted", "error": "none"})
+                        self.store.remember_message(peer["device_id"], payload, "accepted", "none")
+                        channel.send({"type": "ack", "message_id": payload["message_id"],
+                                      "status": "accepted", "error": "none"})
                     try:
                         self.replay_personal_sync()
                     except (ValueError, OSError):
-                        self.send_personal_sync(peer["device_id"], "personal_sync.attachment_result", {
-                            "format": 2, "run_id": value["run_id"], "reply": value["reply"],
-                            "records_hash": value["records_hash"], "sha256": value["sha256"],
-                            "state": "failed", "error": "invalid"}, run.get("trigger", "manual"))
+                        if policy != "connection_only":
+                            self.send_personal_sync(peer["device_id"], "personal_sync.attachment_result", {
+                                "format": 2, "run_id": value["run_id"], "reply": value["reply"],
+                                "records_hash": value["records_hash"], "sha256": value["sha256"],
+                                "state": "failed", "error": "invalid"}, run.get("trigger", "manual"))
                         self.callback("personal_sync_error", {"error": "invalid attachment"})
                     return
                 if kind == "personal_sync.attachment_result":
+                    if policy == "connection_only":
+                        with self.lock:
+                            peer_id = peer["device_id"]
+                            try:
+                                authority = self._connection_run_authority(peer, channel,
+                                    self.store._personal_run_record(peer_id, value["run_id"]))
+                                self.store.complete_connection_attachment(peer_id, value, authority)
+                            except PermissionError:
+                                status, error = "rejected", "not_granted"
+                            else:
+                                self.store.remember_message(peer_id, payload, status, error)
+                            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+                        return
                     if value["state"] == "complete":
                         self.store.complete_outgoing_attachment(peer["device_id"], value["run_id"],
                             value["reply"], value["records_hash"], value["sha256"])
@@ -10257,17 +11151,20 @@ class PhoneService:
                         status, error = "rejected", "restore_unavailable"
                         raise PermissionError
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
-                    if run.get("trigger") not in {"manual", "auto_wifi"} or not run.get("modules"):
+                    if run.get("trigger") not in personal_sync_contract.SYNC_TRIGGERS or not run.get("modules"):
                         raise ValueError("personal sync request missing")
+                    # A batch transport ACK means encrypted durable staging, not semantic apply.
+                    ack = {"type": "ack", "message_id": payload["message_id"], "status": "accepted", "error": "none"}
                     with self.lock:
                         direction_error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
                         if direction_error:
                             status, error = "rejected", direction_error
                             raise PermissionError
                         aggregate = self.store.stage_personal_batch(peer["device_id"], payload)
-                    # A batch transport ACK means encrypted durable staging, not semantic apply.
-                    channel.send({"type": "ack", "message_id": payload["message_id"],
-                                  "status": "accepted", "error": "none"})
+                        if policy == "connection_only":
+                            channel.send(ack)
+                    if policy != "connection_only":
+                        channel.send(ack)
                     if aggregate is None:
                         return
                     if value["format"] >= 2 and not self._prepare_format2_aggregate(
@@ -10323,7 +11220,8 @@ class PhoneService:
                                 "trigger": value["trigger"]})
                         status, error = "rejected", "restore_unavailable"
                         raise PermissionError
-                    self.store.remember_personal_run(peer["device_id"], value, payload["expires_ms"])
+                    if value["trigger"] != personal_sync_contract.AUTO_CONNECTION_TRIGGER:
+                        self.store.remember_personal_run(peer["device_id"], value, payload["expires_ms"])
                     if value["trigger"] == "auto_wifi":
                         self.store.set_active_auto_run(peer["device_id"], value["run_id"])
                 if kind == "personal_sync.report":
@@ -10364,6 +11262,10 @@ class PhoneService:
         with self.lock:
             try:
                 body = payload.get("body", {})
+                if (payload["kind"] == "personal_sync.batch" and
+                        body.get("trigger") == personal_sync_contract.AUTO_CONNECTION_TRIGGER and
+                        self._note_policy_error(payload["device_id"], payload["kind"], body, False)):
+                    raise PermissionError("Connection automation admission was retired.")
                 manifest = self._scoped_data_manifest(payload["device_id"], payload["kind"], body)
                 if manifest is not None:
                     if payload["kind"] == "personal_sync.batch" and content_scope_contract.filter_records(body["records"], manifest) != body["records"]:

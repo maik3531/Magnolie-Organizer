@@ -226,8 +226,15 @@ aufgeführt.
   Abschlussberichts bleiben an diesen Lauf gebunden. Die Notes-Quellen
   sind bytegleich mit den separat gekoppelten Loopback-Prüfungen.
   Auf der aktuellen Basis bestanden zusätzlich 160 Release-JVM-Fälle.
-  Die neue Fähigkeit wird weiterhin nicht angekündigt. Desktop-Integration,
-  weitere Inhaltsmodi und installierte Abnahme bleiben offen.
+  Die Linux-Quelle für den lokalen Leser und Buchschreiber wurde mit der
+  aktuellen GTK-Brücke und Oberfläche zusammengeführt; 140 Host- und
+  acht Rendererfälle bestanden. Im gekoppelten verschlüsselten Loopback
+  mit Notes bestanden beide UUID-Startrollen mit Originalanhängen und
+  Abschlussbestätigung. Der separate Hintergrunddienst besitzt
+  noch keinen durchgehenden Beleg vom Originalleser bis zur atomaren
+  Buchersetzung. Die neue Fähigkeit wird weiterhin nicht angekündigt.
+  Windows-Quellübernahme, weitere Inhaltsmodi und installierte Abnahme
+  bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

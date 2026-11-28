@@ -8,13 +8,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_content_scope as scope
+import magnolie_personal_sync as personal
 import magnolie_shared_sync as shared
 import magnolie_telefon as phone
 from test_shared_sync_transport import fixture as shared_fixture, Channel, message
 
 
-def fixture(tmp_path, monkeypatch):
-    service, peer, channel, body = shared_fixture(tmp_path, monkeypatch)
+def fixture(tmp_path, monkeypatch, *, peer_id=None):
+    service, peer, channel, body = shared_fixture(tmp_path, monkeypatch, peer_id=peer_id)
     original = phone.desktop_capabilities
     def capabilities(*args, **kwargs):
         result = original(*args, **kwargs)
@@ -67,6 +68,262 @@ def test_scoped_request_checks_transport_before_persisting(tmp_path, monkeypatch
         assert ack["error"] == "invalid_schema"
         assert service.store.scoped_run_reference(peer_id, peer["static_public"], run) is None
         assert service.store.active_auto_run(peer_id) == ""
+
+
+def connection_automation_fixture(tmp_path, monkeypatch, transport, gate=None, *, peer_id=None):
+    service, peer, channel = fixture(tmp_path, monkeypatch, peer_id=peer_id)
+    channel.sid = uuid.uuid4().bytes
+    channel.reader_nonce = uuid.uuid4().bytes + uuid.uuid4().bytes
+    capabilities = phone.desktop_capabilities
+
+    def marked_capabilities(*args, **kwargs):
+        body = capabilities(*args, **kwargs)
+        for module in ("personal_notes_sync", "personal_tasks_sync"):
+            versions = body["items"][module]["versions"]
+            body["items"][module]["versions"] = sorted(set(versions + [personal.AUTO_CONNECTION_VERSION]))
+        return body
+
+    if gate != "local_marker":
+        monkeypatch.setattr(phone, "desktop_capabilities", marked_capabilities)
+    if gate != "remote_marker":
+        peer["capabilities"] = marked_capabilities()
+        service.note_controls[channel]["capabilities.update"] = copy.deepcopy(peer["capabilities"])
+        service.store.save_peers()
+    peer_id, public = peer["device_id"], peer["static_public"]
+    service.connection_transports[peer_id] = "wifi"
+    mode = "wifi" if gate == "mode" else "connection"
+    agreed = service.store.change_shared_setting(peer_id, public, "auto_mode", mode)
+    remote = shared.merge(shared.create(peer_id), agreed, peer_id, service.store.identity["device_id"])
+    service._payload(peer, channel, message(remote))
+    assert service.shared_settings_ready(peer_id)
+    manifest = scope.create(["phone-note"], ["phone-task"])
+    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    assert channel.sent[-1]["status"] == "accepted"
+
+    service.connection_transports[peer_id] = transport
+    if gate == "settings_echo":
+        service.store.change_shared_setting(peer_id, public, "auto_mode", "manual")
+        service.store.change_shared_setting(peer_id, public, "auto_mode", "connection")
+        assert not service.shared_settings_ready(peer_id)
+    elif gate == "grant":
+        peer["local_grants"]["grants"]["personal_tasks_sync"] = False
+        service.store.save_peers()
+    elif gate == "reader":
+        service.connections[peer_id] = Channel()
+    return service, peer, channel, remote, manifest
+
+
+def reconnect_automation_fixture(service, peer, original, remote, manifest):
+    replacement = Channel()
+    # Simulate an unchanged advertised session id, but a new native reader.
+    replacement.sid = original.sid
+    replacement.reader_nonce = uuid.uuid4().bytes + uuid.uuid4().bytes
+    service.connections[peer["device_id"]] = replacement
+    service.note_controls[replacement] = copy.deepcopy(service.note_controls[original])
+    service._payload(peer, replacement, message(remote))
+    assert service.shared_settings_ready(peer["device_id"])
+    service._payload(peer, replacement, frame(scope.chunks(manifest)[0]))
+    assert replacement.sent[-1]["status"] == "accepted"
+    return replacement
+
+
+def test_grouped_connection_reply_never_uses_ordinary_outbox_policy(tmp_path, monkeypatch):
+    service, peer, channel, _, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    peer_id = peer["device_id"]
+    run = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND))
+    assert channel.sent[-1]["status"] == "accepted"
+    reply = {"format": 3, "run_id": run, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+             "reply": True, "records": [], "records_hash": personal.records_hash([])}
+    before_frames = copy.deepcopy(channel.sent)
+    with pytest.raises(PermissionError, match="requires the protected batch reply"):
+        service.send_personal_sync_run(peer_id, request, [reply], [], request["trigger"])
+    assert channel.sent == before_frames
+    with sqlite3.connect(service.store.database_path) as db:
+        assert not db.execute("SELECT 1 FROM outbox WHERE peer_id=? AND kind='personal_sync.batch'", (peer_id,)).fetchone()
+
+
+def test_grouped_connection_start_waits_for_original_request_ack(tmp_path, monkeypatch):
+    service, peer, reader, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    peer_id = peer["device_id"]
+    run_id = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run_id, "trigger": personal.AUTO_CONNECTION_TRIGGER,
+               "modules": ["notes", "tasks"]}
+    batch = {"format": 3, "run_id": run_id, "batch_id": str(uuid.uuid4()), "sequence": 0,
+             "last": True, "reply": False, "records": [], "records_hash": personal.records_hash([])}
+
+    def frames(channel):
+        return [item for item in channel.sent if item.get("kind") == scope.DATA_KIND]
+
+    reader.sent.clear()
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("CREATE TRIGGER connection_start_failure BEFORE INSERT ON outbox "
+                   "WHEN NEW.kind='personal_sync.batch' AND NEW.transport_policy GLOB 'connection_only:*' "
+                   "BEGIN SELECT RAISE(ABORT, 'synthetic initial batch failure'); END")
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="synthetic initial batch failure"):
+            service.send_personal_sync_run(peer_id, request, [batch], [], request["trigger"])
+        assert not frames(reader)
+        assert not service.store.personal_run(peer_id, run_id)
+        assert service.store.scoped_run_reference(peer_id, peer["static_public"], run_id) is None
+        with sqlite3.connect(service.store.database_path) as db:
+            assert not db.execute("SELECT 1 FROM outbox WHERE transport_policy GLOB 'connection_only:*'").fetchone()
+    finally:
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("DROP TRIGGER connection_start_failure")
+    service.send_personal_sync_run(peer_id, request, [batch], [], request["trigger"])
+    assert service.store.personal_run(peer_id, run_id) == request
+    assert service.store.run_policy(peer_id, run_id) == "connection_only"
+    start, = frames(reader)
+    assert start["body"] == scope.wrap("personal_sync.request", request, manifest)
+    assert service.store.active_auto_run(peer_id) == ""
+
+    def ack(status, error):
+        return {"type": "ack", "message_id": start["message_id"], "status": status, "error": error}
+
+    service._payload(peer, reader, ack("rejected", "temporary_failure"))
+    assert frames(reader) == [start]
+    replacement = reconnect_automation_fixture(service, peer, reader, remote, manifest)
+    with pytest.raises(ValueError, match="violates current connection policy"):
+        service._payload(peer, replacement, ack("accepted", "none"))
+    assert not frames(replacement)
+    assert service.store.outbox_message(peer_id, start["message_id"]) is not None
+
+    service.connections[peer_id] = reader
+    service._payload(peer, reader, ack("accepted", "none"))
+    sent_request, sent_batch = frames(reader)
+    assert sent_request == start
+    assert sent_batch["body"] == scope.wrap("personal_sync.batch", batch, manifest)
+
+
+@pytest.mark.parametrize("change", ["reader", "restore", "stale_save", "manifest", "advertisement", "other_initiator", "none"])
+def test_gui_connection_start_rechecks_original_reader_and_saved_book(tmp_path, monkeypatch, change):
+    peer_id = ("00000000-0000-4000-8000-000000000000" if change == "other_initiator"
+               else "ffffffff-ffff-4fff-bfff-ffffffffffff")
+    service, peer, reader, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "wifi", peer_id=peer_id)
+    peer_id = peer["device_id"]
+    source = "a" * 64
+    before = {"book_source": source, "sequence": 1, "sha256": "b" * 64}
+    current = dict(before)
+    service.native_actor_book_source = lambda: current["book_source"]
+    service.native_actor_saved_book = lambda: dict(current)
+    fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
+    with pytest.raises(PermissionError, match="not been advertised"):
+        service.prepare_gui_connection_start(peer_id, fingerprint)
+    reader.last_capabilities = phone.desktop_capabilities()
+    if change == "other_initiator":
+        assert not service.gui_connection_start_ready(peer_id)
+        with pytest.raises(PermissionError, match="elected initiator"):
+            service.prepare_gui_connection_start(peer_id, fingerprint)
+        return
+    plan = service.prepare_gui_connection_start(peer_id, fingerprint)
+    assert plan["scope"] == manifest
+    assert plan["transport"] == "wifi"
+    assert service.prepare_gui_connection_start(peer_id, fingerprint) == plan
+    request = {"format": plan["format"], "run_id": plan["run_id"], "trigger": personal.AUTO_CONNECTION_TRIGGER,
+               "modules": ["notes", "tasks"]}
+    batch = {"format": plan["format"], "run_id": plan["run_id"], "batch_id": str(uuid.uuid4()), "sequence": 0,
+             "last": True, "reply": False, "records": [], "records_hash": personal.records_hash([])}
+    current.update(sequence=2, sha256="c" * 64)
+    if change == "reader":
+        reconnect_automation_fixture(service, peer, reader, remote, manifest)
+    elif change == "restore":
+        current["book_source"] = "d" * 64
+    elif change == "manifest":
+        updated = scope.create(["phone-note", "new-note"], ["phone-task"],
+                               revision=manifest["revision"] + 1)
+        service._payload(peer, reader, frame(scope.chunks(updated)[0]))
+        assert reader.sent[-1]["status"] == "accepted"
+    elif change == "advertisement":
+        reader.last_capabilities["revision"] += 1
+    claimed = before["sha256"] if change == "stale_save" else current["sha256"]
+    reader.sent.clear()
+    if change == "none":
+        service.start_gui_connection_run(peer_id, plan["token"], claimed, request, [batch], [])
+        assert reader.sent[-1]["body"] == scope.wrap("personal_sync.request", request, manifest)
+        with pytest.raises(PermissionError):
+            service.start_gui_connection_run(peer_id, plan["token"], claimed, request, [batch], [])
+    else:
+        with pytest.raises(PermissionError):
+            service.start_gui_connection_run(peer_id, plan["token"], claimed, request, [batch], [])
+        assert not reader.sent
+        assert service.store.personal_run(peer_id, request["run_id"]) == {}
+
+
+def test_expired_connection_run_never_creates_an_unbound_report_or_clears_legacy_reservation(tmp_path, monkeypatch):
+    service, peer, channel, _, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    peer_id = peer["device_id"]
+    run_id = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run_id, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
+    payload = dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND)
+    service._payload(peer, channel, payload)
+    assert channel.sent[-1]["status"] == "accepted"
+    wlan_run = str(uuid.uuid4())
+    service.store.set_active_auto_run(peer_id, wlan_run)
+    monkeypatch.setattr(phone, "now_ms", lambda: payload["expires_ms"] + 1)
+
+    service.store.cleanup()
+    with sqlite3.connect(service.store.database_path) as db:
+        assert not db.execute("SELECT 1 FROM outbox WHERE peer_id=? AND kind='personal_sync.report'", (peer_id,)).fetchone()
+        assert not db.execute("SELECT 1 FROM meta WHERE key=?", (f"personal_scope:{peer_id}:{run_id}",)).fetchone()
+    assert service.store.active_auto_run(peer_id) == wlan_run
+    assert not service.store.personal_run(peer_id, run_id)
+
+
+@pytest.mark.parametrize("transport, gate", [
+    ("wifi", None),
+    ("bluetooth", None),
+    ("wifi", "local_marker"),
+    ("bluetooth", "remote_marker"),
+    ("bluetooth", "mode"),
+    ("bluetooth", "settings_echo"),
+    ("bluetooth", "grant"),
+    ("bluetooth", "reader"),
+    ("unavailable", "transport"),
+])
+def test_connection_automation_requires_current_negotiated_authority(tmp_path, monkeypatch, transport, gate):
+    service, peer, channel, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, transport, gate)
+    peer_id, public = peer["device_id"], peer["static_public"]
+    run = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run, "trigger": personal.AUTO_CONNECTION_TRIGGER, "modules": ["notes", "tasks"]}
+    # Keep the peer's frame independent of the local encoder, so the baseline
+    # reaches the same receiving entry point even when the codec is absent.
+    wrapped = {"format": scope.VERSION, "scope": scope.reference(manifest),
+               "kind": "personal_sync.request", "body": request}
+    packet = dict(message(wrapped), kind=scope.DATA_KIND)
+    service._payload(peer, channel, packet)
+    ack = next(item for item in reversed(channel.sent) if item.get("message_id") == packet["message_id"])
+    if gate is None:
+        assert ack["status"] == "accepted", ack
+        assert service.store.personal_run(peer_id, run) == request
+        assert service.store.scoped_run_reference(peer_id, public, run) == wrapped["scope"]
+        authority = service._connection_automation_authority(peer, channel, request)
+        assert service.store.active_auto_run(peer_id, connection_authority=authority) == run
+        assert service.store.run_policy(peer_id, run) == "connection_only"
+        service._payload(peer, channel, packet)
+        assert channel.sent[-1]["status"] == "duplicate"
+        other_request = dict(request, run_id=str(uuid.uuid4()))
+        competing = dict(message(dict(wrapped, body=other_request)), kind=scope.DATA_KIND)
+        service._payload(peer, channel, competing)
+        assert (channel.sent[-1]["status"], channel.sent[-1]["error"]) == ("rejected", "not_granted")
+        assert not service.store.personal_run(peer_id, other_request["run_id"])
+        # Reconnection may negotiate the same settings and content, but it
+        # must not resurrect the earlier run or its accepted request receipt.
+        replacement = reconnect_automation_fixture(service, peer, channel, remote, manifest)
+        service._payload(peer, replacement, packet)
+        replay_ack = next(item for item in reversed(replacement.sent) if item.get("message_id") == packet["message_id"])
+        assert (replay_ack["status"], replay_ack["error"]) == ("rejected", "not_granted"), replay_ack
+        assert service.store.personal_run(peer_id, run) == request
+        service._payload(peer, replacement, competing)
+        assert replacement.sent[-1]["status"] == "accepted"
+        assert service.store.personal_run(peer_id, other_request["run_id"]) == other_request
+    else:
+        assert not service.store.personal_run(peer_id, run)
+        assert service.store.scoped_run_reference(peer_id, public, run) is None
+        assert not service.store.active_auto_run(peer_id)
+        expected_error = "temporary_failure" if gate == "settings_echo" else "not_granted"
+        assert (ack["status"], ack["error"]) == ("rejected", expected_error), ack
 
 
 def test_current_phone_membership_arrives_only_after_complete_bound_manifest(tmp_path, monkeypatch):
@@ -276,17 +533,27 @@ def test_outgoing_scoped_data_wraps_current_member_and_blocks_other_notes(tmp_pa
         service.send_personal_sync(peer["device_id"], "personal_sync.batch", body)
 
 
-def test_complete_phone_batch_reaches_gui_with_scope_and_exact_commit_guard(tmp_path, monkeypatch):
-    service, peer, channel = fixture(tmp_path, monkeypatch)
-    manifest = scope.create(["mobile-note"], ["task"])
-    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
-    run_id = str(uuid.uuid4()); request = {"format": 3, "run_id": run_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+@pytest.mark.parametrize("trigger, reader_lost", [
+    ("manual", None),
+    (personal.AUTO_CONNECTION_TRIGGER, None),
+    (personal.AUTO_CONNECTION_TRIGGER, "before_staging"),
+    (personal.AUTO_CONNECTION_TRIGGER, "before_commit"),
+])
+def test_complete_phone_batch_reaches_gui_with_scope_and_exact_commit_guard(tmp_path, monkeypatch, trigger, reader_lost):
+    remote = None
+    if trigger == personal.AUTO_CONNECTION_TRIGGER:
+        service, peer, channel, remote, manifest = connection_automation_fixture(tmp_path, monkeypatch, "bluetooth")
+    else:
+        service, peer, channel = fixture(tmp_path, monkeypatch)
+        manifest = scope.create(["mobile-note"], ["task"])
+        service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    run_id = str(uuid.uuid4()); request = {"format": 3, "run_id": run_id, "trigger": trigger, "modules": ["notes", "tasks"]}
     request_message = message(scope.wrap("personal_sync.request", request, manifest)); request_message["kind"] = scope.DATA_KIND
     service._payload(peer, channel, request_message)
-    import magnolie_personal_sync as personal
+    assert channel.sent[-1]["status"] == "accepted"
     value = {"title": "Mobile", "text": "Phone edit", "html": "", "notebook_id": "", "symbol": "note",
              "created_ms": 1, "modified_ms": 2, "attachments": []}
-    record = {"kind": "note", "id": "mobile-note", "state": "live", "clock": [{"actor_id": peer["device_id"], "counter": 1}],
+    record = {"kind": "note", "id": manifest["members"]["notes"][0], "state": "live", "clock": [{"actor_id": peer["device_id"], "counter": 1}],
               "hash": personal.projection_hash(value), "modified_ms": 2, "value": value}
     body = {"format": 3, "run_id": run_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
             "reply": False, "records": [record], "records_hash": personal.records_hash([record])}
@@ -294,12 +561,40 @@ def test_complete_phone_batch_reaches_gui_with_scope_and_exact_commit_guard(tmp_
     def applied(event, payload):
         if event != "personal_sync": return
         deliveries.append(payload)
+        if trigger == personal.AUTO_CONNECTION_TRIGGER:
+            assert payload["body"]["trigger"] == trigger
+            assert payload["transport"] == "bluetooth"
         assert payload["content_scope"] == manifest
         assert payload["body"]["records"] == [record]
-        assert service.commit_personal_sync(peer["device_id"], payload["pending_message_id"], payload["commit_token"], True)
+        message_id, token = payload["pending_message_id"], payload["commit_token"]
+        if reader_lost == "before_commit":
+            reconnect_automation_fixture(service, peer, channel, remote, manifest)
+            assert not service.commit_personal_sync(peer["device_id"], message_id, token, True)
+            assert service.store.has_personal_batch(peer["device_id"], message_id, token)
+            assert service.commit_personal_sync(peer["device_id"], message_id, token, False)
+        elif trigger == personal.AUTO_CONNECTION_TRIGGER:
+            assert not service.commit_personal_sync(peer["device_id"], message_id, token, True)
+            assert service.commit_personal_sync(peer["device_id"], message_id, token, False)
+        else:
+            assert service.commit_personal_sync(peer["device_id"], message_id, token, True)
     service.callback = applied
     batch_message = message(scope.wrap("personal_sync.batch", body, manifest)); batch_message["kind"] = scope.DATA_KIND
+    if reader_lost == "before_staging":
+        replacement = reconnect_automation_fixture(service, peer, channel, remote, manifest)
+        service._payload(peer, replacement, batch_message)
+        assert replacement.sent[-1]["error"] == "not_granted"
+        assert not service.store.dedupe_result(peer["device_id"], batch_message["message_id"])
+        assert deliveries == []
+        return
     service._payload(peer, channel, batch_message)
     assert len(deliveries) == 1
-    service._payload(peer, channel, batch_message)
+    if reader_lost == "before_commit":
+        replacement = service.connections[peer["device_id"]]
+        service.replay_personal_sync()
+        service._payload(peer, replacement, batch_message)
+        assert replacement.sent[-1]["error"] == "not_granted"
+    elif trigger == "manual":
+        service._payload(peer, channel, batch_message)
+    else:
+        assert service.store.has_personal_batch(peer["device_id"], batch_message["message_id"], deliveries[0]["commit_token"])
     assert len(deliveries) == 1

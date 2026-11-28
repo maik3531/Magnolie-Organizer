@@ -2092,7 +2092,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const oben = modalStapel[modalStapel.length - 1] || null;
     for (const hintergrund of [$("#schreibtisch"), $("#statusleiste")]) {
       if (!hintergrund) continue;
-      if (oben || !initialisiert) hintergrund.setAttribute("inert", "");
+      if (oben || !initialisiert || laufenderSpeicher?.personalConnection) hintergrund.setAttribute("inert", "");
       else hintergrund.removeAttribute("inert");
     }
     modalStapel.forEach((eintrag) => {
@@ -2152,6 +2152,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       : fokusElement(eintrag.vorherFokus) ||
         (darunter && (fokussierbareElemente(darunter.dialog)[0] || darunter.dialog));
     if (ziel && ziel.isConnected) ziel.focus();
+    queueMicrotask(personalConnectionStartPruefen);
   }
 
   function schliesseVorhandenesModal(id) {
@@ -6911,6 +6912,159 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     // Register before sending: local rejection and browser storage can settle synchronously.
     wartendeSpeicherAktionen.push({ aktion, beiFehler });
     speichereJetzt();
+  }
+
+  let personalConnectionStart = null;
+  const personalConnectionUiFrei = () => notesOriginalUiFrei() && !beendenGewuenscht &&
+    !modalStapel.some(entry => entry.schleier.isConnected);
+
+  function personalConnectionStartPruefen() {
+    const peer = telefonStand?.peers?.find(value => value.gui_connection_start === true);
+    if (!peer || personalConnectionStart || !personalConnectionUiFrei()) return;
+    const pending = { requestId: crypto.randomUUID(), book: DATEN, peer: peer.device_id,
+      fingerprint: peer.fingerprint };
+    personalConnectionStart = pending;
+    pending.timer = setTimeout(() => {
+      if (personalConnectionStart === pending) personalConnectionStart = null;
+    }, 35000);
+    const prepare = () => {
+      if (personalConnectionStart !== pending || DATEN !== pending.book || !personalConnectionUiFrei() ||
+          !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256) ||
+          !Bruecke.sende({ cmd: "telefon_personal_connection_prepare", requestId: pending.requestId,
+            kennung: pending.peer, fingerprint: pending.fingerprint })) personalConnectionStartEnde(pending);
+    };
+    if (!/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) {
+      letzterSpeicherText = null;
+      nachDauerhaftemSpeichern(prepare, () => personalConnectionStartEnde(pending));
+    } else {
+      prepare();
+    }
+  }
+
+  function personalConnectionStartEnde(pending) {
+    clearTimeout(pending.timer);
+    if (personalConnectionStart === pending) personalConnectionStart = null;
+  }
+
+  function personalConnectionSpeichern(live, before, candidate, text, lauf) {
+    return new Promise((resolve, reject) => {
+      const auftrag = { id: naechsteSpeicherId++, text, personalConnection: { live, candidate, before, resolve, reject } };
+      laufenderSpeicher = auftrag;
+      aktualisiereModalEbenen();
+      setzeSpeicherStatus(_("Saving …"), false);
+      speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: auftrag.id, ok: false }), 30000);
+      if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text, ...(lauf ? { personalConnectionLauf: lauf } : {}) }))
+        App.gespeichert({ id: auftrag.id, ok: false });
+    });
+  }
+
+  async function personalConnectionStartErgebnis(value) {
+    const pending = personalConnectionStart;
+    if (!pending || pending.requestId !== value?.requestId) return;
+    if (!value.ok || !value.plan) { personalConnectionStartEnde(pending); return; }
+    const plan = value.plan, live = pending.book;
+    const guard = () => {
+      const peer = personalSyncNotizPeer(pending.peer);
+      if (personalConnectionStart !== pending || DATEN !== live || !personalConnectionUiFrei() ||
+          peer?.fingerprint !== pending.fingerprint || peer?.transport !== plan.transport)
+        throw new Error(_("Personal synchronization failed."));
+    };
+    try {
+      guard();
+      const beforeText = JSON.stringify(live), before = JSON.parse(beforeText), candidate = JSON.parse(beforeText);
+      const selection = await personalSyncScopeAusManifest(plan.scope);
+      const modules = ["notes", "tasks"];
+      const records = await personalSyncSnapshotAusBestand(candidate, modules, plan.format, pending.peer,
+        { selection, independentRemovals: true, guard });
+      const chunks = personalSyncPakete(records, plan.run_id, false, plan.format);
+      const included = chunks.flat(), hash = await personalSyncHash(included);
+      const needed = new Set(included.flatMap(record => (record.value.attachments || []).map(item => item.sha256)));
+      const text = JSON.stringify(candidate);
+      guard();
+      if (JSON.stringify(live) !== beforeText) throw new Error(_("Personal synchronization failed."));
+      if (text !== letzterSpeicherText) await personalConnectionSpeichern(live, before, candidate, text);
+      guard();
+      if (JSON.stringify(live) !== text || letzterSpeicherText !== text ||
+          !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) throw new Error(_("Personal synchronization failed."));
+      const request = { format: plan.format, run_id: plan.run_id, trigger: "auto_connection", modules };
+      if (!Bruecke.sende({ cmd: "telefon_personal_connection_start", requestId: pending.requestId, kennung: pending.peer,
+        token: plan.token, savedHash: letzterSpeicherSha256, request,
+        batches: chunks.map((records, sequence) => ({ format: plan.format, run_id: plan.run_id,
+          batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1, reply: false,
+          records_hash: hash, records })),
+        sources: (records.attachmentSources || []).filter(source => needed.has(source.sha256)) }))
+        personalConnectionStartEnde(pending);
+    } catch (_) {
+      personalConnectionStartEnde(pending);
+    }
+  }
+
+  async function personalConnectionBatchSpeichern(nutzlast, peer) {
+    const body = nutzlast.body;
+    const confirm = erfolgreich => Bruecke.sende({ cmd: "telefon_personal_sync_commit",
+      kennung: peer.device_id, messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich });
+    const frei = personalConnectionUiFrei;
+    try {
+      if (!nutzlast.connection_save || !nutzlast.content_scope ||
+          !Array.isArray(body.requested_modules) || !body.requested_modules.length || !frei()) {
+        confirm(false); return;
+      }
+      if (!/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) {
+        // Establish the writer's baseline after opening a book, even when the
+        // normalized model has not changed since it was loaded.
+        letzterSpeicherText = null;
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      }
+      const live = DATEN, before = letzterSpeicherSha256, beforeText = JSON.stringify(live);
+      const guard = () => {
+        if (!frei() || DATEN !== live || letzterSpeicherSha256 !== before ||
+            nutzlast.content_scope_fingerprint !== personalSyncNotizPeer(peer.device_id)?.fingerprint ||
+            !/^[0-9a-f]{64}$/.test(before) || JSON.stringify(live) !== beforeText ||
+            (letzterSpeicherText !== beforeText && notesOriginalModell(letzterSpeicherText) !== notesOriginalModell(beforeText)))
+          throw new Error(_("Personal synchronization failed."));
+      };
+      guard();
+      const selection = await personalSyncScopeAusManifest(nutzlast.content_scope);
+      const candidate = JSON.parse(beforeText);
+      const options = { selection, independentRemovals: true,
+        propagateSelectedDeletions: peer.shared_sync?.values?.skip_deletions === false, guard };
+      const schonGespeichert = live.personalSync.applied_batches.includes(nutzlast.commit_token);
+      let conflicts = 0, oversized = 0, sources = [];
+      // Prepare away from the live model. In particular, an ordinary save
+      // after a denied protected write must never include a staged record.
+      if (!schonGespeichert) {
+        ({ conflicts } = await personalSyncAnwendenAusBestand(candidate, body.records, body.attachment_data || {}, peer.device_id,
+          body.requested_modules, options, body.format));
+        personalSyncMerkeBatch(candidate, nutzlast.commit_token);
+      }
+      let batches = null;
+      if (body.reply === false) {
+        const records = await personalSyncSnapshotAusBestand(schonGespeichert ? kopie(candidate) : candidate,
+          body.requested_modules, body.format, peer.device_id, options);
+        const chunks = personalSyncPakete(records, body.run_id, true, body.format);
+        oversized = chunks.oversizedSkipped || 0;
+        const included = chunks.flat();
+        const needed = new Set(included.flatMap(record => (record.value.attachments || []).map(item => item.sha256)));
+        sources = (records.attachmentSources || []).filter(source => needed.has(source.sha256));
+        const hash = await personalSyncHash(included);
+        batches = chunks.map((records, sequence) => ({ format: body.format, run_id: body.run_id,
+          batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1,
+          reply: true, records_hash: hash, records }));
+      }
+      guard();
+      const text = JSON.stringify(candidate);
+      if (!schonGespeichert) await personalConnectionSpeichern(live, JSON.parse(beforeText), candidate, text,
+        { peer: peer.device_id, messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, before });
+      if (batches) {
+        if (!Bruecke.sende({ cmd: "telefon_personal_connection_reply", kennung: peer.device_id,
+            messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, batches, conflicts, oversized, sources })) confirm(false);
+      } else {
+        confirm(true);
+      }
+      if (!gesperrt && !editorIstGeaendert()) zeichneAlles();
+    } catch (_) {
+      confirm(false);
+    }
   }
 
   function beendeSpeicherAktionen(fehler) {
@@ -36737,7 +36891,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;
       personalPhoneCollections.set(value.device_id, { fingerprint: value.fingerprint,
         notes: new Set(value.members.notes), tasks: new Set(value.members.tasks) });
+      const peer = personalSyncNotizPeer(value.device_id);
+      if (peer?.fingerprint === value.fingerprint) {
+        peer.gui_connection_start = value.connection_start === true;
+        personalConnectionStartPruefen();
+      }
     },
+    personalConnectionStartErgebnis,
     telefonEntwicklerDiagnose,
     medienPapierkorbStand: medienPapierkorbErgebnis,
     medienBackupStand: medienBackupErgebnis,
@@ -36778,6 +36938,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       aktualisiereGeraeteSyncStatus();
       zeitAbgleichVonNotesAktivieren();
       personalSyncBetriebPruefen();
+      personalConnectionStartPruefen();
       personalDesktopFeaturesSenden();
       document.querySelectorAll('[data-kde-zeichen-input]').forEach(node => {
         node.disabled = !Bruecke.vorhanden || !telefonStand?.kdeconnect?.digitizer_available || !telefonStand.kdeconnect.digitizer_device_id;
@@ -36954,6 +37115,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (kind === "personal_sync.request") return;
       const peer = telefonStand && (telefonStand.peers || []).find((x) => x.device_id === nutzlast.device_id);
       if (!peer) return;
+      if (kind === "personal_sync.batch" && body.trigger === "auto_connection") {
+        personalSyncBatchKette = personalSyncBatchKette.then(() => personalConnectionBatchSpeichern(nutzlast, peer));
+        return;
+      }
       const syncBestand = DATEN.personalSync, deferredKey = peer.device_id + "\u0000" + nutzlast.commit_token;
       if (kind === "personal_sync.batch" && personalSyncVertagteBatches.get(deferredKey) === syncBestand) return;
       if (kind === "personal_sync.deletion_proposals") {
@@ -38204,6 +38369,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(speicherAntwortTimer);
       speicherAntwortTimer = null;
       laufenderSpeicher = null;
+      if (erledigt?.personalConnection) {
+        const { live, candidate, before, resolve, reject } = erledigt.personalConnection;
+        aktualisiereModalEbenen();
+        const saved = ergebnis.ok === true && ergebnis.committed === true &&
+          /^[0-9a-f]{64}$/.test(ergebnis.standSha256 || "");
+        if (!saved || gesperrt || DATEN !== live) {
+          if (!saved && !gesperrt && DATEN === live) setzeSpeicherStatus(_("Saving failed!"), false);
+          reject(new Error(_("Personal synchronization failed.")));
+          pumpeSpeichern();
+          return;
+        }
+        const changed = ["notizen", "notizbuecher", "aufgaben", "papierkorb", "personalSync"].filter(field =>
+          JSON.stringify(before[field]) !== JSON.stringify(candidate[field]));
+        letzterSpeicherText = erledigt.text;
+        letzterSpeicherSha256 = ergebnis.standSha256;
+        if (changed.some(field => JSON.stringify(live[field]) !== JSON.stringify(before[field]))) {
+          reject(new Error(_("Personal synchronization failed.")));
+        } else {
+          for (const field of changed) live[field] = candidate[field];
+          terminIndexVeraltet = jahrestagIndexVeraltet = true;
+          const d = organizerDatumzeitTeile(new Date());
+          setzeSpeicherStatus(uebersetzt("Saved ✓ %(time)s", { time: pad2(d.stunde) + ":" + pad2(d.minute) }), true);
+          if (ergebnis.repairPending) reject(new Error(_("Personal synchronization failed.")));
+          else resolve();
+        }
+        if (wartenderSpeicherText !== null) wartenderSpeicherText = JSON.stringify(live);
+        queueMicrotask(pumpeSpeichern);
+        return;
+      }
       if (ergebnis.ok === true) {
         if (originalKontaktNachweis) {
           if (ergebnis.kontaktOriginalGespeichert === originalKontaktNachweis.token) originalKontaktSpeicher = null;
@@ -38230,6 +38424,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }), true);
         pumpeSpeichern();
         zeitAbgleichAutomatisch();
+        personalConnectionStartPruefen();
         if (!originalKontaktNachweis && !originalKontaktDauerNachweis) starteOriginalKontaktUpdates();
       } else {
         if (originalKontaktNachweis) originalKontaktUpdatesWiderrufen();

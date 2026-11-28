@@ -241,12 +241,12 @@ def test_expired_auto_run_is_recovered_and_no_longer_blocks(tmp_path):
         assert len(reports) == 1
 
 
-def _personal_service(tmp_path, callback):
+def _personal_service(tmp_path, callback, *, peer_id=None):
     # Business protocol fixtures inspect data events, not independent visual
     # wakeups. The actual visual event/projection path has its own native tests.
     service = phone.PhoneService(str(tmp_path / "phone"), "Test", callback=lambda kind, value:
         callback(kind, value) if kind != 'personal_sync_activity' else None)
-    peer_id = str(uuid.uuid4())
+    peer_id = peer_id or str(uuid.uuid4())
     local = phone.desktop_grants()
     remote = phone.desktop_grants()
     local["grants"]["personal_notes_sync"] = True

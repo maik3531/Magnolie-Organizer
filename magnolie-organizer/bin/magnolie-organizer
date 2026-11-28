@@ -123,7 +123,7 @@ if any(argument in ("--hintergrunddienst", "--background-service")
     from magnolie_hintergrund import daemon_main
     sys.exit(daemon_main(sys.argv[1:]))
 
-from magnolie_telefon import PhoneService, PORT as TELEFON_PORT, without_device_identifiers
+from magnolie_telefon import NativeConnectionBatchSave, PhoneService, PORT as TELEFON_PORT, without_device_identifiers
 from magnolie_anruf_audio import AnrufBluetooth, open_bluetooth_settings
 from magnolie_phone_region import enrich_call as telefon_anreichern, match_key as telefon_schluessel
 from magnolie_asset import read_asset
@@ -23238,6 +23238,20 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
+            if 'personalConnectionLauf' in nachricht:
+                try:
+                    with self._daten_sperre:
+                        phone = getattr(self, '_telefon', None)
+                        if (not isinstance(phone, PhoneService) or 'notesOriginalLauf' in nachricht or
+                                'kontaktOriginalLauf' in nachricht or nachricht.get('baumSyncLauf') is not None):
+                            raise PermissionError('connection_batch_native_writer_unavailable')
+                        job = phone.prepare_connection_batch_save(nachricht['personalConnectionLauf'], klartext,
+                                                                  self._telefon_actor_buchquelle())
+                        self._speicher_auftraege.put((kennung, klartext, None, job))
+                except Exception:
+                    self.antwort('App.gespeichert', {'id': kennung, 'ok': False,
+                        'fehler': _('The save request is invalid.')})
+                return
             if 'notesOriginalLauf' in nachricht:
                 try:
                     from magnolie_contact_notes_ui import NativeNotesUiSaveSession
@@ -24107,6 +24121,14 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("token") or "", nachricht.get("erfolgreich") is True),
                 daemon=True).start()
 
+        elif befehl == "telefon_personal_connection_reply":
+            threading.Thread(target=Fenster._personal_connection_reply,
+                args=(self, nachricht), daemon=True).start()
+
+        elif befehl in ("telefon_personal_connection_prepare", "telefon_personal_connection_start"):
+            threading.Thread(target=Fenster._personal_connection_start,
+                args=(self, nachricht), daemon=True).start()
+
         elif befehl == "telefon_waehlen":
             threading.Thread(target=lambda: self._telefon_waehlen(
                 nachricht.get("kennung") or "",
@@ -24878,7 +24900,7 @@ class Fenster(_FENSTER_BASIS):
                 return
             kennung, klartext, *nachweise = auftrag
             proof = nachweise[0] if nachweise else None
-            historical = nachweise[1] if len(nachweise) > 1 else None
+            native_writer_job = nachweise[1] if len(nachweise) > 1 else None
             contact_result = nachweise[2] if len(nachweise) > 2 else None
             notes_work = nachweise[3] if len(nachweise) > 3 else None
             from magnolie_contact_notes_ui import _SaveProof
@@ -24897,7 +24919,7 @@ class Fenster(_FENSTER_BASIS):
                     from magnolie_contact_source_book import NativeContactSourceResultCommit, _NativeSavedBookDigests
                     from magnolie_contact_notes_requests import NativeNotesBootstrapSave
                     if contact_result is not None and (type(contact_result) not in (NativeContactSourceResultCommit, NativeNotesBootstrapSave) or
-                            proof is not None or historical is not None):
+                            proof is not None or native_writer_job is not None):
                         raise PermissionError('Invalid native contact result invocation')
                     if (getattr(self, "_gesperrt", False) or
                             getattr(self, "_ladefehler", "")):
@@ -24984,11 +25006,17 @@ class Fenster(_FENSTER_BASIS):
                                     contact_saved_payload = _NativeSavedBookDigests(lease.ack, fingerprint)
                         if retention.get("repair_error"):
                             warnung = warnung or _("Saving the data") + ": " + retention["repair_error"]
-                    if historical is not None:
+                    if type(native_writer_job) is NativeConnectionBatchSave:
+                        phone = getattr(self, '_telefon', None)
+                        if phone is not native_writer_job.phone or proof is not None:
+                            raise PermissionError("Automatic synchronization owner changed.")
+                        phone.write_connection_batch_save(native_writer_job, self._telefon_actor_buchquelle(),
+                                                          lease.ack, previous, daten, klartext, native_write)
+                    elif native_writer_job is not None:
                         from magnolie_personal_actor_writer import NativeHistoricalWriterInvocation
-                        if type(historical) is not NativeHistoricalWriterInvocation or proof is not None:
+                        if type(native_writer_job) is not NativeHistoricalWriterInvocation or proof is not None:
                             raise PermissionError("Invalid native historical writer invocation")
-                        historical.write(klartext, native_write)
+                        native_writer_job.write(klartext, native_write)
                     elif contact_result is not None:
                         if notes_completion is not None and notes_completion.controller is not getattr(self, '_notes_original_controller', None):
                             raise PermissionError('notes_ui_native_controller_changed')
@@ -26196,6 +26224,8 @@ class Fenster(_FENSTER_BASIS):
         elif art == "personal_custom_ack":
             self.antwort("App.personalCustomAck", nutzlast)
         elif art == "personal_sync":
+            if nutzlast.get("body", {}).get("trigger") == "auto_connection":
+                nutzlast = dict(nutzlast, connection_save=isinstance(getattr(self, "_telefon", None), PhoneService))
             self.antwort("App.personalSync", nutzlast)
         elif art == "personal_sync_error":
             self.antwort("App.personalSyncFehler", {"fehler": nutzlast.get("error") or
@@ -28600,6 +28630,8 @@ class Fenster(_FENSTER_BASIS):
         try:
             if not self._telefon:
                 raise RuntimeError(_("The phone connection is not available."))
+            if trigger == "auto_connection":
+                raise PermissionError("Automatic synchronization requires a native start plan.")
             self._telefon.send_personal_sync_run(kennung, request, batches, sources, trigger, report)
             if commit and not self._telefon.commit_personal_sync(kennung,
                     commit.get("messageId") or "", commit.get("token") or "", True):
@@ -28625,6 +28657,40 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             self.antwort("App.personalSyncFehler", {"fehler": fehler_deutsch(
                 fehler, "Persönlicher Sync speichern")})
+
+    def _personal_connection_start(self, nachricht):
+        prepare = nachricht["cmd"] == "telefon_personal_connection_prepare"
+        result = {"requestId": nachricht.get("requestId"), "ok": False}
+        try:
+            with self._daten_sperre:
+                phone = self._telefon
+                if not isinstance(phone, PhoneService) or not self._darf_schreiben():
+                    raise PermissionError("Automatic synchronization writer unavailable.")
+                peer = nachricht.get("kennung")
+                if prepare:
+                    fingerprint = nachricht.get("fingerprint")
+                    if not isinstance(fingerprint, str) or not fingerprint:
+                        raise PermissionError("Automatic synchronization pairing unavailable.")
+                    result["plan"] = phone.prepare_gui_connection_start(peer, fingerprint)
+                else:
+                    phone.start_gui_connection_run(peer, nachricht.get("token"), nachricht.get("savedHash"),
+                        nachricht.get("request"), nachricht.get("batches"), nachricht.get("sources"))
+                result["ok"] = True
+        except (PermissionError, ValueError, TypeError, OSError, RuntimeError, sqlite3.Error):
+            pass  # The next connection/book event can refresh a retired start plan.
+        self.antwort("App.personalConnectionStartErgebnis", result)
+
+    def _personal_connection_reply(self, nachricht):
+        try:
+            with self._daten_sperre:
+                phone = self._telefon
+                if not isinstance(phone, PhoneService) or not self._darf_schreiben():
+                    raise PermissionError("Automatic synchronization writer unavailable.")
+                phone.finish_connection_batch_reply(nachricht.get("kennung"), nachricht.get("messageId"),
+                    nachricht.get("token"), nachricht.get("batches"), conflicts=nachricht.get("conflicts", 0),
+                    oversized_skipped=nachricht.get("oversized", 0), sources=nachricht.get("sources", []))
+        except (PermissionError, ValueError, OSError, RuntimeError, sqlite3.Error) as fehler:
+            self.antwort("App.personalSyncFehler", {"fehler": fehler_deutsch(fehler, "Persönlicher Sync")})
 
     def _telefon_waehlen(self, kennung, nummer, client_ref, land):
         try:

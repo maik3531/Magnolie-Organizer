@@ -19,7 +19,7 @@ class Channel:
         self.sent.append(copy.deepcopy(payload))
 
 
-def fixture(tmp_path, monkeypatch, negotiated=True, initialize=True):
+def fixture(tmp_path, monkeypatch, negotiated=True, initialize=True, *, peer_id=None):
     original = phone.desktop_capabilities
     def capabilities(*args, **kwargs):
         value = original(*args, **kwargs)
@@ -28,7 +28,7 @@ def fixture(tmp_path, monkeypatch, negotiated=True, initialize=True):
                 value["items"][name]["versions"] = [version for version in value["items"][name]["versions"] if version < 9]
         return value
     monkeypatch.setattr(phone, "desktop_capabilities", capabilities)
-    service, peer_id = _personal_service(tmp_path, lambda *_: None)
+    service, peer_id = _personal_service(tmp_path, lambda *_: None, peer_id=peer_id)
     peer = service.store.peer(peer_id)
     peer["capabilities"] = capabilities()
     service.store.save_peers()
