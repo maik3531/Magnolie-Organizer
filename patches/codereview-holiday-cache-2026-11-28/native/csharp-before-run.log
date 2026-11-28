@@ -1,0 +1,27 @@
+FAIL successful empty pages certify both requested kinds: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31;DE|DE-SN|school-holiday|2026-01-01|2026-12-31
+FAIL opt-out certifies public only: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31
+FAIL missing required region certifies no school: Scopes differ: actual= expected=DE||public-holiday|2026-01-01|2026-12-31
+FAIL country request remains separate from subdivisions: Scopes differ: actual= expected=FR||public-holiday|2026-01-01|2026-12-31
+FAIL each year region and kind gets independent success: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31;DE|DE-SN|public-holiday|2027-01-01|2027-12-31;DE|DE-BY|public-holiday|2026-01-01|2026-12-31;DE|DE-BY|public-holiday|2027-01-01|2027-12-31;DE|DE-SN|school-holiday|2026-01-01|2026-12-31;DE|DE-SN|school-holiday|2027-01-01|2027-12-31;DE|DE-BY|school-holiday|2026-01-01|2026-12-31;DE|DE-BY|school-holiday|2027-01-01|2027-12-31
+FAIL failed school region does not certify it: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31;DE|DE-BY|public-holiday|2026-01-01|2026-12-31;DE|DE-SN|school-holiday|2026-01-01|2026-12-31
+FAIL failed later school year preserves other success: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31;DE|DE-SN|public-holiday|2027-01-01|2027-12-31;DE|DE-SN|school-holiday|2026-01-01|2026-12-31
+PASS unreadable school JSON retains whole failure contract
+PASS wrong JSON shapes never authorize removal
+FAIL valid wrapper may certify empty array: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31
+PASS skipped invalid row retains valid data without coverage
+PASS corrected end dates do not certify coverage
+PASS absent required end keeps point fallback without coverage
+PASS absent required nationwide keeps row without coverage
+PASS unscoped regional row cannot certify country response
+PASS malformed scope metadata cannot certify response
+PASS blank or partly malformed names cannot certify response
+FAIL cross-year dates are returned intact: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31
+PASS out-of-year response cannot certify requested year
+PASS unrelated or foreign scopes cannot certify query
+FAIL parent child and relative scope codes remain compatible: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31
+FAIL nationwide record belongs to subdivision response: Scopes differ: actual= expected=DE|DE-SN|public-holiday|2026-01-01|2026-12-31
+PASS invalid requested subdivision fails before HTTP
+PASS public HTTP failure yields no successful partial response
+PASS size failure is not downgraded to school absence
+PASS existing parser entry point remains compatible
+{"total":26,"passed":15,"failed":11,"runtime":"8.0.34","scope":"actual C# methods / offline HTTP / Linux source host"}

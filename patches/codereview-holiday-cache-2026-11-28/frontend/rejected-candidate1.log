@@ -1,0 +1,649 @@
+FAIL magnolie-organizer/web: foreign country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: other school region
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: school opt-out
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: nationwide record with only local coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: different entry type
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: missing legacy coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: empty partial-failure coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: public success with failed school retrieval
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: forged foreign country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: unrequested region
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: unrequested whole country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: unrequested year
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: malformed time window
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: unknown kind
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: invalid coverage entries
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: successful empty selected-region reply removes only covered record
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:83:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: public visibility is independent of replacement authority
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:88:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: whole-country retrieval replaces nationwide and unqualified regional rows of known country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:94:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: partial aggregate retains only unaffected region and a consistent label
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:101:18
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: all-regions partial failure preserves failed-region cache
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:111:7
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: complete adjacent-year coverage can replace a cross-year period
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:116:23
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: failed adjacent-year portion is retained
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:121:51
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: empty requested year does not touch later-year rows
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:126:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: legacy repeated replies merge without deleting other cache
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:137:72
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: nationwide repeat ignores lookup-region label
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:143:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: coverage without a current request cannot clear data
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:161:39
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer/web: save and restart preserve unaffected countries and refined regional remainder
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43357:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:43366:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:37808:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:167:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: foreign country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: other school region
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: school opt-out
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: nationwide record with only local coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: different entry type
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: missing legacy coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: empty partial-failure coverage
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: public success with failed school retrieval
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: forged foreign country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: unrequested region
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: unrequested whole country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: unrequested year
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: malformed time window
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: unknown kind
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: invalid coverage entries
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: successful empty selected-region reply removes only covered record
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:83:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: public visibility is independent of replacement authority
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:88:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: whole-country retrieval replaces nationwide and unqualified regional rows of known country
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:94:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: partial aggregate retains only unaffected region and a consistent label
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:101:18
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: all-regions partial failure preserves failed-region cache
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:111:7
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: complete adjacent-year coverage can replace a cross-year period
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:116:23
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: failed adjacent-year portion is retained
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:121:51
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: empty requested year does not touch later-year rows
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:126:50
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: legacy repeated replies merge without deleting other cache
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:137:72
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: nationwide repeat ignores lookup-region label
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:143:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: coverage without a current request cannot clear data
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:161:39
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+FAIL magnolie-organizer-windows/app/web: save and restart preserve unaffected countries and refined regional remainder
+TypeError: local?.has is not a function
+    at covered (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42177:82)
+    at wendeFeiertageDatenAn (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:42186:11)
+    at Object.feiertageErgebnis (eval at boot (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:26:88), <anonymous>:36583:7)
+    at Object.reply (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:42:27)
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:167:22
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:174:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+Holiday cache: 14/68 cases passed (full desktop scripts, controlled native responses).

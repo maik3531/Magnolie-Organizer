@@ -1,0 +1,35 @@
+AssertionError [ERR_ASSERTION]: Failed fetch/save retains original cache
++ actual - expected
+
+  [
+    {
+      art: 'public-holiday',
+      bis: '2026-11-01',
+-     country: 'DE',
+-     id: 'local',
+-     name: 'MCP cache fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-11-01'
+-   },
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-11-01',
+      country: 'AT',
+      id: 'foreign',
+      name: 'MCP cache fixture',
+      nationwide: false,
+      region: 'AT-9',
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache-mcp.js:54:18 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [Array],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

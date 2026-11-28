@@ -1,0 +1,409 @@
+{
+  "sourceRef": "working-tree",
+  "node": "v24.22.3",
+  "jsdom": "26.1.0",
+  "passed": 80,
+  "total": 80,
+  "results": [
+    {
+      "web": "magnolie-organizer/web",
+      "name": "foreign country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "other school region",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "school opt-out",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "foreign cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unqualified legacy record",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "nationwide record with only local coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "different entry type",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested previous-year portion",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested next-year portion",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "missing legacy coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "empty partial-failure coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "public success with failed school retrieval",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "forged foreign country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested region",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested whole country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested year",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "malformed time window",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unknown kind",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "invalid coverage entries",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "successful empty selected-region reply removes only covered record",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "public visibility is independent of replacement authority",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "whole-country retrieval replaces nationwide and unqualified regional rows of known country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "partial aggregate retains only unaffected region and a consistent label",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "all-regions partial failure preserves failed-region cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "complete adjacent-year coverage can replace a cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "failed adjacent-year portion is retained",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "empty requested year does not touch later-year rows",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "cross-year repeats without complete coverage are idempotent and retain id",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "legacy repeated replies merge without deleting other cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "nationwide repeat ignores lookup-region label",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "failed native request preserves cache and retrieval metadata",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "response after region change cannot mutate cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "coverage without a current request cannot clear data",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "save and restart preserve unaffected countries and refined regional remainder",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: public-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: school-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "equivalent remainders formed by subtraction are consolidated by a positive row",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "contradictory existing geography survives whole-country coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unknown free-text regions are not conflated during a legacy merge",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "duplicate unbound legacy callback cannot add an unqualified copy",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "foreign country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "other school region",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "school opt-out",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "foreign cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unqualified legacy record",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "nationwide record with only local coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "different entry type",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested previous-year portion",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested next-year portion",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "missing legacy coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "empty partial-failure coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "public success with failed school retrieval",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "forged foreign country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested region",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested whole country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested year",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "malformed time window",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unknown kind",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "invalid coverage entries",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "successful empty selected-region reply removes only covered record",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "public visibility is independent of replacement authority",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "whole-country retrieval replaces nationwide and unqualified regional rows of known country",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "partial aggregate retains only unaffected region and a consistent label",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "all-regions partial failure preserves failed-region cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "complete adjacent-year coverage can replace a cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "failed adjacent-year portion is retained",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "empty requested year does not touch later-year rows",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "cross-year repeats without complete coverage are idempotent and retain id",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "legacy repeated replies merge without deleting other cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "nationwide repeat ignores lookup-region label",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "failed native request preserves cache and retrieval metadata",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "response after region change cannot mutate cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "coverage without a current request cannot clear data",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "save and restart preserve unaffected countries and refined regional remainder",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: public-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: school-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "equivalent remainders formed by subtraction are consolidated by a positive row",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "contradictory existing geography survives whole-country coverage",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unknown free-text regions are not conflated during a legacy merge",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "duplicate unbound legacy callback cannot add an unqualified copy",
+      "passed": true
+    }
+  ]
+}

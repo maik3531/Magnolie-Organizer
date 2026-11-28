@@ -1,0 +1,3 @@
+Existing setup test SHA256: 401a75060f7a90f4cf12f962c6097bb089eff7debc471be29b71bea150d4209a
+Scope: English source catalogue. All other existing assertions and both real frontends unchanged.
+Setup holidays: 50 cross-desktop cases passed; 1 languages.

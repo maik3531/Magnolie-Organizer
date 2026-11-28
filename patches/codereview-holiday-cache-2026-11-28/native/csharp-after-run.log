@@ -1,0 +1,27 @@
+PASS successful empty pages certify both requested kinds
+PASS opt-out certifies public only
+PASS missing required region certifies no school
+PASS country request remains separate from subdivisions
+PASS each year region and kind gets independent success
+PASS failed school region does not certify it
+PASS failed later school year preserves other success
+PASS unreadable school JSON retains whole failure contract
+PASS wrong JSON shapes never authorize removal
+PASS valid wrapper may certify empty array
+PASS skipped invalid row retains valid data without coverage
+PASS corrected end dates do not certify coverage
+PASS absent required end keeps point fallback without coverage
+PASS absent required nationwide keeps row without coverage
+PASS unscoped regional row cannot certify country response
+PASS malformed scope metadata cannot certify response
+PASS blank or partly malformed names cannot certify response
+PASS cross-year dates are returned intact
+PASS out-of-year response cannot certify requested year
+PASS unrelated or foreign scopes cannot certify query
+PASS parent child and relative scope codes remain compatible
+PASS nationwide record belongs to subdivision response
+PASS invalid requested subdivision fails before HTTP
+PASS public HTTP failure yields no successful partial response
+PASS size failure is not downgraded to school absence
+PASS existing parser entry point remains compatible
+{"total":26,"passed":26,"failed":0,"runtime":"8.0.34","scope":"actual C# methods / offline HTTP / Linux source host"}

@@ -10,11 +10,23 @@ Reviewzweig: work/open-issues-audit-20261127
 
 Diese dauerhafte Fortsetzungsdatei: patches/CODEREVIEW-WEITER.md auf dem Reviewzweig.
 
-Letzte vollständige Übergabe: patches/codereview-outbox-current-2026-11-27/README.md auf demselben Zweig.
+Letzte vollständige Übergabe: patches/codereview-holiday-cache-2026-11-28/README.md auf demselben Zweig (Fachissue #855). Ältere Pakete darunter bleiben historische Quellen.
 
 Zentrale Issue-Übergabe: https://github.com/maik3531/Magnolie-Organizer/issues/113
 
 Stand dieses abgeschlossenen Arbeitspakets: 27. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
+
+## Neuester abgeschlossener Review – Cache-Erhalt #855 (28.11.2026)
+
+Fachissue https://github.com/maik3531/Magnolie-Organizer/issues/855 . Vollständiger Einzelpatch mit Produktquellen, Tests und Grenzen: [Übergabe](codereview-holiday-cache-2026-11-28/README.md). Basis `1749c92eb42801c38eaba31b272d8c0e27be9164`, Ergebnisbaum `f4f94a2c2cf73a064448d3208f31d471e150dbe4`, Patch-SHA256 `c1cecd73eda51d3726962039bbb5b9e3bef8d34dede05897a64908acbb2f588c`. Main bei Abschluss weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`; kein Produktmerge durch diesen Review. Nach frischen Änderungen immer erneut Übernahme/Dubletten prüfen.
+
+Bestätigt: jahresweises pauschales Cache-Ersetzen löscht fremde Länder/Regionen und Ferien bei Opt-out. Neue native `abrufbereiche` belegen ausschließlich vollständige erfolgreiche Endpoint-/Jahr-/Regionsabfragen; Teilfehler/beschädigte Antworten geben keine Löschbefugnis. Gemeinsamer Import bindet sie an Anfrage und vollständige Zeit-/Geografieabdeckung, erhält unbekannte Restbestände und verhindert wachsende Regionsdubletten. Linux/Windows/Tablet/Mac-Antwortparität im Patch, kein neues persistentes Schema.
+
+Tatsächlich geprüft: vollständige Desktopskripte 16/80 → 80/80, tatsächliches MCP/SaveACK 6/6, vorhandener Setupablauf auf Englisch 50/50, Python 14/26 → 26/26, echter C#-Quellhost 15/26 → 26/26 (.NET8.0.428 unter Linux), vollständiger Tablet-Dienst 20/20 JUnit (Kotlin2.4.21, JVM-Ziel17, OpenJDK21.0.13.1). Swift fünf neue Testmethoden **nicht kompiliert/ausgeführt**; native GUI-/Geräte-/Live-Provider-/Paket- und übrige Sprachabnahme offen. Vorwärts-/Rückwärts-Gitanwendung ergibt exakt beide angegebenen Bäume. Nie Hostbelege als native Paketprüfung ausgeben.
+
+Bewusst konservativ: nationale Datensätze bei nur regionaler Deckung und jahresübergreifende Perioden bei nur teilweiser Jahresdeckung bleiben stehen; mögliche ältere Teilstände sind dokumentiert. Rich Provideridentitäten/regionale Abrufhistorie sind noch offen. Legacy-GUI hat weiterhin keine individuelle Antwort-ID; der Guard schützt ungebundene Replays, nicht jede denkbare Überlappung zweier aktiver Abrufe.
+
+**Nächster Arbeitsschritt:** frisch #855 und main auf Übernahme prüfen, keine erneute identische Testserie ohne geänderte Eingaben. #853 (Festtagsidentitäten/SVG) und #854 (Quellen/Länder/Unterregionen) haben eigene In-Arbeit-Kommentare und bislang keinen hier bestätigten vollständigen Produktpatch. Zuerst deren jüngste Kommentare/Arbeitszweige abgleichen, dann eine konkret fehlende Quellpatch-Lücke abarbeiten, vorzugsweise tatsächliche FR/BE/NL-Subdivision-/Group-Anbindung unter #854. Die generische In-Arbeit-Markierung allein beweist keinen anderen aktiven Worker; aber nicht eine belegbar laufende identische Implementierung starten. #128 auto_connection ist separat aktiv; Sync-Aufsetzpunkt in den historischen Abschnitten erhalten. #850–#852 haben bereits eigene Patches. Jede weitere eigenständige Änderung vor Arbeit einem Fachissue zuordnen und dort vollständigen Einzelpatch/Prüfnachweis verlinken; #113 bleibt Übersicht.
 
 ## Neuester Arbeitsstand – regionaler Abrufstatus (28.11.2026)
 

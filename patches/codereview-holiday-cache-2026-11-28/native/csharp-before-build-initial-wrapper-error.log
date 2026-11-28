@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  Restored /workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj (in 107 ms).
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(14,63): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(14,20): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(25,93): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+
+Build FAILED.
+
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(14,63): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(14,20): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/SetupNormalizer.g.cs(25,93): error CS8669: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context. Auto-generated code requires an explicit '#nullable' directive in source. [/workspace/scratch/69a9d769e56f/holiday-855-native-evidence/csharp-before/HolidayCoverage.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:04.59

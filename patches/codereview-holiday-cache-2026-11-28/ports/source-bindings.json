@@ -1,0 +1,72 @@
+{
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "runtime_checks": {
+    "java": "openjdk version \"21.0.13.1\" 2026-11-17",
+    "kotlin_compiler": "Declared Kotlin 2.4.21 fetched from Maven Central into disposable compiler-cache; JVM target 17",
+    "swift_compiler": "not found in PATH or checked runtime directories",
+    "java_command": "/usr/bin/java",
+    "java_resolved_path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "java_version_output": "openjdk version \"21.0.13.1\" 2026-11-17\nOpenJDK Runtime Environment (build 21.0.13.1+2-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.13.1+2-1-deb13u1-Debian, mixed mode, sharing)",
+    "jvm_bytecode_target": 17,
+    "clarification": "The recorded Kotlin compiler and JUnit commands used java on OpenJDK 21.0.13.1. -jvm-target 17 selects emitted bytecode, not a Java 17 execution runtime. This metadata correction reran only java -version, not product compilation or tests."
+  },
+  "files": [
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "base_sha256": "5c0ac67ce99cefb6a733a38fadd62d63ca2cb30ff7889a38e1378b0de6d830ec",
+      "candidate_sha256": "ed084bfc81b351a783119e36452880f3efb21366f7672359577040b72e093ceb",
+      "bytes": 20056
+    },
+    {
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/test/java/io/gitlab/maik3531/magnolietabletbeta/HolidayServiceTest.kt",
+      "base_sha256": "6206faf2d6b342156eb11f3eaebcca6c2d1a7571ee4309f3ef3338a7f0a65a82",
+      "candidate_sha256": "afc9cab6a35f80c08949cbed177c7dca80a94238b747e84b4eb310545be0320d",
+      "bytes": 19373
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "base_sha256": "9704edd1cbcce4778eae0e4f87eff1468c45ca2229bf3883a3cb79fc8190f0cc",
+      "candidate_sha256": "18a77bdcd3d5f909820f150e1015c2e20655204207d94e927d98df24537969c1",
+      "bytes": 14474
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/MacBeta/main.swift",
+      "base_sha256": "700a7a72e2bdea18e4cbb708e375e25624d0e602ff512506a6723eef55e9682e",
+      "candidate_sha256": "40f3a7b1b1f6151eac055ae1fc51dee85b1580e023622bdc5fe4639e679f66be",
+      "bytes": 71740
+    },
+    {
+      "path": "Magnolie-Organizer-macOS-Beta/Tests/BetaCoreTests/HolidayServiceTests.swift",
+      "base_sha256": "f106b07aabc8ea3ec168c2b0bc850a79624d1852916c9bf648e236836a38fdb8",
+      "candidate_sha256": "df333fc8a260adda45b7952e31e41cd2c4179df8593d14caeb15c2240d5a7c4d",
+      "bytes": 13833
+    }
+  ],
+  "verification": {
+    "git_diff_check": "passed",
+    "new_kotlin_test_methods": 4,
+    "new_swift_test_methods": 5,
+    "kotlin_tests_executed": 20,
+    "kotlin_tests_passed": 20,
+    "swift_tests_executed": false,
+    "kotlin_scope": "Actual HolidayService.kt, DAV.kt and StandardBase64.kt plus complete actual HolidayServiceTest.kt; declared org.json/ThreeTenBP/OkHttp/JUnit dependencies; controlled in-test HTTP transport",
+    "swift_reason": "Swift compiler unavailable; no Swift installation or native macOS environment substitution performed.",
+    "limits": [
+      "No Android SDK/Gradle/installed tablet package test",
+      "No live provider or real GUI test",
+      "Swift source/test changes uncompiled"
+    ],
+    "warnings": [
+      "Existing DAV.kt:41 expression is unused; compilation exits 0"
+    ],
+    "final_run": "kotlin-final/receipt.json",
+    "coverage_rules": [
+      "Scope object keys country/region/art/von/bis match native desktop",
+      "Required endDate and nationwide missing/null/malformed do not certify replacement",
+      "Only actual successful request pages can certify; empty valid page is complete",
+      "Out-of-year, unrelated region and foreign-country row cannot certify scope",
+      "Regional short codes and exact/parent/child match accepted",
+      "Non-nationwide row without geographical scope cannot certify a countrywide query"
+    ]
+  }
+}

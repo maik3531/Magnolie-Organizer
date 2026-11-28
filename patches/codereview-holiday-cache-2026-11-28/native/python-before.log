@@ -1,0 +1,182 @@
+test_blank_or_partly_malformed_names_do_not_certify_coverage (__main__.HolidayCoverageTests.test_blank_or_partly_malformed_names_do_not_certify_coverage) ... ok
+test_byte_limit_failure_is_not_downgraded_to_school_absence (__main__.HolidayCoverageTests.test_byte_limit_failure_is_not_downgraded_to_school_absence) ... ok
+test_country_query_remains_distinct_from_a_subdivision (__main__.HolidayCoverageTests.test_country_query_remains_distinct_from_a_subdivision) ... FAIL
+test_cross_year_full_dates_survive_inclusive_query (__main__.HolidayCoverageTests.test_cross_year_full_dates_survive_inclusive_query) ... FAIL
+test_each_year_region_and_kind_has_its_own_success_scope (__main__.HolidayCoverageTests.test_each_year_region_and_kind_has_its_own_success_scope) ... FAIL
+test_failed_later_school_year_preserves_successful_other_years (__main__.HolidayCoverageTests.test_failed_later_school_year_preserves_successful_other_years) ... FAIL
+test_invalid_end_correction_does_not_certify_coverage (__main__.HolidayCoverageTests.test_invalid_end_correction_does_not_certify_coverage) ... ok
+test_invalid_requested_subdivision_fails_before_http (__main__.HolidayCoverageTests.test_invalid_requested_subdivision_fails_before_http) ... ok
+test_missing_required_end_keeps_point_fallback_without_coverage (__main__.HolidayCoverageTests.test_missing_required_end_keeps_point_fallback_without_coverage) ... ok
+test_missing_required_nationwide_keeps_row_without_coverage (__main__.HolidayCoverageTests.test_missing_required_nationwide_keeps_row_without_coverage) ... ok
+test_missing_required_region_does_not_certify_school (__main__.HolidayCoverageTests.test_missing_required_region_does_not_certify_school) ... FAIL
+test_nationwide_row_can_be_returned_by_subdivision_query (__main__.HolidayCoverageTests.test_nationwide_row_can_be_returned_by_subdivision_query) ... FAIL
+test_one_failed_school_region_does_not_certify_that_region (__main__.HolidayCoverageTests.test_one_failed_school_region_does_not_certify_that_region) ... FAIL
+test_opt_out_certifies_only_public_holidays (__main__.HolidayCoverageTests.test_opt_out_certifies_only_public_holidays) ... FAIL
+test_original_parser_list_call_remains_supported (__main__.HolidayCoverageTests.test_original_parser_list_call_remains_supported) ... ok
+test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) ... 
+  test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE') ... FAIL
+  test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE-SN') ... FAIL
+  test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE-SN-TEST') ... FAIL
+  test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='SN') ... FAIL
+test_public_failure_keeps_existing_whole_operation_error (__main__.HolidayCoverageTests.test_public_failure_keeps_existing_whole_operation_error) ... ok
+test_rows_outside_requested_year_do_not_certify_it (__main__.HolidayCoverageTests.test_rows_outside_requested_year_do_not_certify_it) ... ok
+test_skipped_invalid_row_keeps_valid_rows_without_coverage (__main__.HolidayCoverageTests.test_skipped_invalid_row_keeps_valid_rows_without_coverage) ... ok
+test_successful_empty_pages_certify_both_requested_kinds (__main__.HolidayCoverageTests.test_successful_empty_pages_certify_both_requested_kinds) ... FAIL
+test_tolerated_bad_scope_metadata_does_not_certify_coverage (__main__.HolidayCoverageTests.test_tolerated_bad_scope_metadata_does_not_certify_coverage) ... ok
+test_unreadable_school_payload_is_not_a_successful_empty_page (__main__.HolidayCoverageTests.test_unreadable_school_payload_is_not_a_successful_empty_page) ... FAIL
+test_unscoped_regional_row_cannot_certify_countrywide_response (__main__.HolidayCoverageTests.test_unscoped_regional_row_cannot_certify_countrywide_response) ... ok
+test_valid_wrapper_retains_authoritative_empty_array (__main__.HolidayCoverageTests.test_valid_wrapper_retains_authoritative_empty_array) ... FAIL
+test_wrong_country_or_unrelated_region_does_not_certify_query (__main__.HolidayCoverageTests.test_wrong_country_or_unrelated_region_does_not_certify_query) ... ok
+test_wrong_json_shapes_never_authorize_cache_removal (__main__.HolidayCoverageTests.test_wrong_json_shapes_never_authorize_cache_removal) ... ok
+
+======================================================================
+FAIL: test_country_query_remains_distinct_from_a_subdivision (__main__.HolidayCoverageTests.test_country_query_remains_distinct_from_a_subdivision)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 87, in test_country_query_remains_distinct_from_a_subdivision
+    self.assertEqual(self.scopes(result), {expected_scope(country="FR", region="")})
+AssertionError: Items in the second set but not the first:
+('FR', '', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_cross_year_full_dates_survive_inclusive_query (__main__.HolidayCoverageTests.test_cross_year_full_dates_survive_inclusive_query)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 183, in test_cross_year_full_dates_survive_inclusive_query
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_each_year_region_and_kind_has_its_own_success_scope (__main__.HolidayCoverageTests.test_each_year_region_and_kind_has_its_own_success_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 93, in test_each_year_region_and_kind_has_its_own_success_scope
+    self.assertEqual(self.scopes(result), {expected_scope(kind, region, year)
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2027-01-01', '2027-12-31')
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-SN', 'school-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-BY', 'public-holiday', '2027-01-01', '2027-12-31')
+('DE', 'DE-BY', 'school-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-BY', 'school-holiday', '2027-01-01', '2027-12-31')
+('DE', 'DE-SN', 'school-holiday', '2027-01-01', '2027-12-31')
+('DE', 'DE-BY', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_failed_later_school_year_preserves_successful_other_years (__main__.HolidayCoverageTests.test_failed_later_school_year_preserves_successful_other_years)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 113, in test_failed_later_school_year_preserves_successful_other_years
+    self.assertEqual(self.scopes(result), {expected_scope(year=2026), expected_scope(year=2027),
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2027-01-01', '2027-12-31')
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-SN', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_missing_required_region_does_not_certify_school (__main__.HolidayCoverageTests.test_missing_required_region_does_not_certify_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 82, in test_missing_required_region_does_not_certify_school
+    self.assertEqual(self.scopes(result), {expected_scope(region="")})
+AssertionError: Items in the second set but not the first:
+('DE', '', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_nationwide_row_can_be_returned_by_subdivision_query (__main__.HolidayCoverageTests.test_nationwide_row_can_be_returned_by_subdivision_query)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 211, in test_nationwide_row_can_be_returned_by_subdivision_query
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_one_failed_school_region_does_not_certify_that_region (__main__.HolidayCoverageTests.test_one_failed_school_region_does_not_certify_that_region)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 104, in test_one_failed_school_region_does_not_certify_that_region
+    self.assertEqual(self.scopes(result), {expected_scope(region="DE-SN"),
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-SN', 'school-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-BY', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_opt_out_certifies_only_public_holidays (__main__.HolidayCoverageTests.test_opt_out_certifies_only_public_holidays)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 77, in test_opt_out_certifies_only_public_holidays
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 206, in test_parent_child_and_short_region_codes_are_related
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE-SN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 206, in test_parent_child_and_short_region_codes_are_related
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='DE-SN-TEST')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 206, in test_parent_child_and_short_region_codes_are_related
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_parent_child_and_short_region_codes_are_related (__main__.HolidayCoverageTests.test_parent_child_and_short_region_codes_are_related) (code='SN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 206, in test_parent_child_and_short_region_codes_are_related
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_successful_empty_pages_certify_both_requested_kinds (__main__.HolidayCoverageTests.test_successful_empty_pages_certify_both_requested_kinds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 71, in test_successful_empty_pages_certify_both_requested_kinds
+    self.assertEqual(self.scopes(result), {expected_scope(), expected_scope("school-holiday")})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+('DE', 'DE-SN', 'school-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_unreadable_school_payload_is_not_a_successful_empty_page (__main__.HolidayCoverageTests.test_unreadable_school_payload_is_not_a_successful_empty_page)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 118, in test_unreadable_school_payload_is_not_a_successful_empty_page
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+======================================================================
+FAIL: test_valid_wrapper_retains_authoritative_empty_array (__main__.HolidayCoverageTests.test_valid_wrapper_retains_authoritative_empty_array)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py", line 129, in test_valid_wrapper_retains_authoritative_empty_array
+    self.assertEqual(self.scopes(result), {expected_scope()})
+AssertionError: Items in the second set but not the first:
+('DE', 'DE-SN', 'public-holiday', '2026-01-01', '2026-12-31')
+
+----------------------------------------------------------------------
+Ran 26 tests in 11.634s
+
+FAILED (failures=15)

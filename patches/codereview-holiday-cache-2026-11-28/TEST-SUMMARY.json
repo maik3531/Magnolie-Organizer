@@ -1,0 +1,51 @@
+{
+  "issue": 855,
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "result_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "frontend": {
+    "before_passed": 16,
+    "before_total": 80,
+    "after_passed": 80,
+    "after_total": 80,
+    "node": "24.22.3",
+    "jsdom": "26.1.0"
+  },
+  "mcp": {
+    "passed": 6,
+    "total": 6,
+    "native_http_and_save_ack": "controlled"
+  },
+  "setup": {
+    "passed": 50,
+    "catalogue": "English only",
+    "translated_catalogue_runs": "not executed; generated files/msgfmt unavailable"
+  },
+  "python": {
+    "before_passed": 14,
+    "before_total": 26,
+    "after_passed": 26,
+    "after_total": 26
+  },
+  "csharp": {
+    "before_passed": 15,
+    "before_total": 26,
+    "after_passed": 26,
+    "after_total": 26,
+    "sdk": "8.0.428",
+    "runtime": "8.0.34",
+    "host": "Linux"
+  },
+  "kotlin": {
+    "passed": 20,
+    "total": 20,
+    "compiler": "2.4.21",
+    "jvm_target": 17,
+    "runtime": "OpenJDK 21.0.13.1"
+  },
+  "swift": {
+    "new_test_methods": 5,
+    "compiled": false,
+    "executed": false
+  },
+  "package_or_native_gui_acceptance": false
+}

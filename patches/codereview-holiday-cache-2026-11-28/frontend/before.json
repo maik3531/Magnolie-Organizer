@@ -1,0 +1,473 @@
+{
+  "sourceRef": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "node": "v24.22.3",
+  "jsdom": "26.1.0",
+  "passed": 16,
+  "total": 80,
+  "results": [
+    {
+      "web": "magnolie-organizer/web",
+      "name": "foreign country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'AT',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'AT-9',\n-     regionName: '',\n-     regions: [\n-       'AT-9'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "other school region",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-BY',\n-     regionName: '',\n-     regions: [\n-       'DE-BY'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "school opt-out",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "foreign cross-year period",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-01-05',\n-     country: 'CH',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'CH-ZH',\n-     regionName: '',\n-     regions: [\n-       'CH-ZH'\n-     ],\n-     von: '2025-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unqualified legacy record",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: '',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: '',\n-     regionName: '',\n-     regions: [],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "nationwide record with only local coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: true,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "different entry type",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested previous-year portion",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2025-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested next-year portion",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2027-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "missing legacy coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "empty partial-failure coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "public success with failed school retrieval",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "forged foreign country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested region",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested whole country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unrequested year",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "malformed time window",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unknown kind",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "invalid coverage entries",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "successful empty selected-region reply removes only covered record",
+      "passed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(find(b, \"other\"))\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "public visibility is independent of replacement authority",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "whole-country retrieval replaces nationwide and unqualified regional rows of known country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'school'\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "partial aggregate retains only unaffected region and a consistent label",
+      "passed": false,
+      "error": "Cannot read properties of undefined (reading 'regions')"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "all-regions partial failure preserves failed-region cache",
+      "passed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(find(b, \"bavaria\"))\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "complete adjacent-year coverage can replace a cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "failed adjacent-year portion is retained",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2027-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "empty requested year does not touch later-year rows",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "cross-year repeats without complete coverage are idempotent and retain id",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n2 !== 1\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "legacy repeated replies merge without deleting other cache",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n1 !== 2\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "nationwide repeat ignores lookup-region label",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'mx0cyo0007no38'\n- 'old'\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "failed native request preserves cache and retrieval metadata",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "response after region change cannot mutate cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "coverage without a current request cannot clear data",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "save and restart preserve unaffected countries and refined regional remainder",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: public-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: school-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "equivalent remainders formed by subtraction are consolidated by a positive row",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n-   'DE-BY',\n    'DE-SN'\n  ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "contradictory existing geography survives whole-country coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'ambiguous',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'AT-9',\n-     regionName: '',\n-     regions: [\n-       'AT-9'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "unknown free-text regions are not conflated during a legacy merge",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n1 !== 2\n"
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "name": "duplicate unbound legacy callback cannot add an unqualified copy",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n      art: 'public-holiday',\n      bis: '2026-01-01',\n+     country: '',\n+     id: 'mx0cyo00u7ynrw',\n-     country: 'DE',\n-     id: 'mx0cyo00hjbcq2',\n      name: 'Legacy national fixture',\n      nationwide: true,\n      region: '',\n      regionName: '',\n      regions: [],\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "foreign country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'AT',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'AT-9',\n-     regionName: '',\n-     regions: [\n-       'AT-9'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "other school region",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-BY',\n-     regionName: '',\n-     regions: [\n-       'DE-BY'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "school opt-out",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "foreign cross-year period",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-01-05',\n-     country: 'CH',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'CH-ZH',\n-     regionName: '',\n-     regions: [\n-       'CH-ZH'\n-     ],\n-     von: '2025-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unqualified legacy record",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: '',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: '',\n-     regionName: '',\n-     regions: [],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "nationwide record with only local coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: true,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "different entry type",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested previous-year portion",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2025-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested next-year portion",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2027-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "missing legacy coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "empty partial-failure coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "public success with failed school retrieval",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "forged foreign country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested region",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested whole country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unrequested year",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "malformed time window",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unknown kind",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "invalid coverage entries",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "successful empty selected-region reply removes only covered record",
+      "passed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(find(b, \"other\"))\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "public visibility is independent of replacement authority",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "whole-country retrieval replaces nationwide and unqualified regional rows of known country",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   'school'\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "partial aggregate retains only unaffected region and a consistent label",
+      "passed": false,
+      "error": "Cannot read properties of undefined (reading 'regions')"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "all-regions partial failure preserves failed-region cache",
+      "passed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(find(b, \"bavaria\"))\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "complete adjacent-year coverage can replace a cross-year period",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "failed adjacent-year portion is retained",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2027-01-05',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-12-22'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "empty requested year does not touch later-year rows",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "cross-year repeats without complete coverage are idempotent and retain id",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n2 !== 1\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "legacy repeated replies merge without deleting other cache",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n1 !== 2\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "nationwide repeat ignores lookup-region label",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'mx0cyo002j1emy'\n- 'old'\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "failed native request preserves cache and retrieval metadata",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "response after region change cannot mutate cache",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "coverage without a current request cannot clear data",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'school-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'old',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'DE-SN',\n-     regionName: '',\n-     regions: [\n-       'DE-SN'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "save and restart preserve unaffected countries and refined regional remainder",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: public-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "repeated narrow refresh with broader provider regions stays bounded: school-holiday",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "equivalent remainders formed by subtraction are consolidated by a positive row",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n-   'DE-BY',\n    'DE-SN'\n  ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "contradictory existing geography survives whole-country coverage",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     art: 'public-holiday',\n-     bis: '2026-10-24',\n-     country: 'DE',\n-     id: 'ambiguous',\n-     name: 'Autumn fixture',\n-     nationwide: false,\n-     region: 'AT-9',\n-     regionName: '',\n-     regions: [\n-       'AT-9'\n-     ],\n-     von: '2026-10-12'\n-   }\n- ]\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "unknown free-text regions are not conflated during a legacy merge",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\n1 !== 2\n"
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "name": "duplicate unbound legacy callback cannot add an unqualified copy",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n      art: 'public-holiday',\n      bis: '2026-01-01',\n+     country: '',\n+     id: 'mx0cyo003vr91r',\n-     country: 'DE',\n-     id: 'mx0cyo00y99jfh',\n      name: 'Legacy national fixture',\n      nationwide: true,\n      region: '',\n      regionName: '',\n      regions: [],\n"
+    }
+  ]
+}

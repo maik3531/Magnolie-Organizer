@@ -1,0 +1,33 @@
+{
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "files_sha256": {
+    "magnolie-organizer/bin/magnolie-organizer": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+    "magnolie-organizer-windows/BridgeDispatcher.cs": "75d310ed62cff9381f14ed0b6605392c86327ee6c7e15a1dfd4e59bf21a3a4c5",
+    "magnolie-organizer-windows/OpenHolidayData.cs": "bf4cc4e1a20756eb22e03f15ddf030eba45f373fc9e2026f43e096d66c26c0cf",
+    "magnolie-organizer/pruefungen/test_holiday_fetch_coverage.py": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93",
+    "magnolie-organizer-windows/tests/holiday-fetch-coverage.py": "7c306dacf3da6a2110a993fcd3649cd74e3894c0b17e9ef38a730dbe5bb4ecdb",
+    "magnolie-organizer-windows/tests/holiday-fetch-coverage.cs.txt": "90c244211ec1c06f28dc36dbcd0b31829a91d11164319a326c686cef3882453f"
+  },
+  "python": {
+    "before_methods_passed": 14,
+    "before_methods_failed": 12,
+    "before_failed_assertions_including_subtests": 15,
+    "after_methods_passed": 26,
+    "after_methods_failed": 0
+  },
+  "csharp": {
+    "before_passed": 15,
+    "before_failed": 11,
+    "after_passed": 26,
+    "after_failed": 0,
+    "sdk": "8.0.428",
+    "runtime": "8.0.34",
+    "build_warnings": 0,
+    "build_errors": 0
+  },
+  "sdk_download": {
+    "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.428/dotnet-sdk-8.0.428-linux-x64.tar.gz",
+    "bytes": 217266728,
+    "sha512": "33212bb99a2bf003973d41106c7e8fe94208a12958ff601d4a476be379403c85a7dc9183a6ec64dfb44ded7102965be09f35add1758e68e9251bae7891d7b7bf"
+  }
+}

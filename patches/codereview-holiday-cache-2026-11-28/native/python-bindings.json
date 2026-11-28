@@ -1,0 +1,14 @@
+[
+  {
+    "stage": "before",
+    "exit_code": 1,
+    "source_sha256": "f08f017abdc49e3e7aed4f99628c792e9daf83d87583a39724ddad0880a84163",
+    "test_sha256": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93"
+  },
+  {
+    "stage": "after",
+    "exit_code": 0,
+    "source_sha256": "9b5e8509e73ad01e427c5eff01be09c2b7c06d1d500118a4cbe18c7b9d1b4a55",
+    "test_sha256": "6631541d89c9679a52313981f998b4d722498b63f54aefeffbc13cdb7599bb93"
+  }
+]

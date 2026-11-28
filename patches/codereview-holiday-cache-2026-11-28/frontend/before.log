@@ -1,0 +1,1677 @@
+FAIL magnolie-organizer/web: foreign country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'AT',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'AT-9',
+-     regionName: '',
+-     regions: [
+-       'AT-9'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: other school region
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-BY',
+-     regionName: '',
+-     regions: [
+-       'DE-BY'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: school opt-out
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: foreign cross-year period
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-01-05',
+-     country: 'CH',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'CH-ZH',
+-     regionName: '',
+-     regions: [
+-       'CH-ZH'
+-     ],
+-     von: '2025-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unqualified legacy record
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: '',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: '',
+-     regionName: '',
+-     regions: [],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: nationwide record with only local coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: true,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: different entry type
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unrequested previous-year portion
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2025-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unrequested next-year portion
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2027-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: missing legacy coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: empty partial-failure coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: public success with failed school retrieval
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: forged foreign country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unrequested region
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unrequested whole country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unrequested year
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: malformed time window
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unknown kind
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: invalid coverage entries
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: successful empty selected-region reply removes only covered record
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(find(b, "other"))
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:83:107
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: whole-country retrieval replaces nationwide and unqualified regional rows of known country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'school'
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:94:86
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: partial aggregate retains only unaffected region and a consistent label
+TypeError: Cannot read properties of undefined (reading 'regions')
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:102:64
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: all-regions partial failure preserves failed-region cache
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(find(b, "bavaria"))
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:111:95
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: failed adjacent-year portion is retained
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2027-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:121:116
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: cross-year repeats without complete coverage are idempotent and retain id
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 !== 1
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:132:44
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: legacy repeated replies merge without deleting other cache
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:138:28
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: nationwide repeat ignores lookup-region label
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'mx0cyo0007no38'
+- 'old'
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:144:49
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: coverage without a current request cannot clear data
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:161:83
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: equivalent remainders formed by subtraction are consolidated by a positive row
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+-   'DE-BY',
+    'DE-SN'
+  ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:188:49
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: contradictory existing geography survives whole-country coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'ambiguous',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'AT-9',
+-     regionName: '',
+-     regions: [
+-       'AT-9'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:193:114
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: unknown free-text regions are not conflated during a legacy merge
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:199:12
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer/web: duplicate unbound legacy callback cannot add an unqualified copy
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      art: 'public-holiday',
+      bis: '2026-01-01',
++     country: '',
++     id: 'mx0cyo00u7ynrw',
+-     country: 'DE',
+-     id: 'mx0cyo00hjbcq2',
+      name: 'Legacy national fixture',
+      nationwide: true,
+      region: '',
+      regionName: '',
+      regions: [],
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:205:102
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: foreign country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'AT',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'AT-9',
+-     regionName: '',
+-     regions: [
+-       'AT-9'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: other school region
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-BY',
+-     regionName: '',
+-     regions: [
+-       'DE-BY'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: school opt-out
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: foreign cross-year period
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-01-05',
+-     country: 'CH',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'CH-ZH',
+-     regionName: '',
+-     regions: [
+-       'CH-ZH'
+-     ],
+-     von: '2025-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unqualified legacy record
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: '',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: '',
+-     regionName: '',
+-     regions: [],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: nationwide record with only local coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: true,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: different entry type
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unrequested previous-year portion
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2025-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unrequested next-year portion
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2027-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:64:94
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: missing legacy coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: empty partial-failure coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: public success with failed school retrieval
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: forged foreign country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unrequested region
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unrequested whole country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unrequested year
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: malformed time window
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unknown kind
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: invalid coverage entries
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:78:93
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: successful empty selected-region reply removes only covered record
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(find(b, "other"))
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:83:107
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: whole-country retrieval replaces nationwide and unqualified regional rows of known country
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'school'
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:94:86
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: partial aggregate retains only unaffected region and a consistent label
+TypeError: Cannot read properties of undefined (reading 'regions')
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:102:64
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: all-regions partial failure preserves failed-region cache
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(find(b, "bavaria"))
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:111:95
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: failed adjacent-year portion is retained
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2027-01-05',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-12-22'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:121:116
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: cross-year repeats without complete coverage are idempotent and retain id
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 !== 1
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:132:44
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: legacy repeated replies merge without deleting other cache
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:138:28
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: nationwide repeat ignores lookup-region label
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'mx0cyo002j1emy'
+- 'old'
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:144:49
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: coverage without a current request cannot clear data
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'school-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'old',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'DE-SN',
+-     regionName: '',
+-     regions: [
+-       'DE-SN'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:161:83
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: equivalent remainders formed by subtraction are consolidated by a positive row
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+-   'DE-BY',
+    'DE-SN'
+  ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:188:49
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: contradictory existing geography survives whole-country coverage
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   {
+-     art: 'public-holiday',
+-     bis: '2026-10-24',
+-     country: 'DE',
+-     id: 'ambiguous',
+-     name: 'Autumn fixture',
+-     nationwide: false,
+-     region: 'AT-9',
+-     regionName: '',
+-     regions: [
+-       'AT-9'
+-     ],
+-     von: '2026-10-12'
+-   }
+- ]
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:193:114
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: unknown free-text regions are not conflated during a legacy merge
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:199:12
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+FAIL magnolie-organizer-windows/app/web: duplicate unbound legacy callback cannot add an unqualified copy
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      art: 'public-holiday',
+      bis: '2026-01-01',
++     country: '',
++     id: 'mx0cyo003vr91r',
+-     country: 'DE',
+-     id: 'mx0cyo00y99jfh',
+      name: 'Legacy national fixture',
+      nationwide: true,
+      region: '',
+      regionName: '',
+      regions: [],
+
+    at /workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:205:102
+    at Object.<anonymous> (/workspace/scratch/69a9d769e56f/Magnolie-Organizer/magnolie-organizer-windows/tests/holiday-cache.js:211:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+Holiday cache: 16/80 cases passed (full desktop scripts, controlled native responses).

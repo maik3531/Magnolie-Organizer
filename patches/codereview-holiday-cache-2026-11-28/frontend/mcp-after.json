@@ -1,0 +1,35 @@
+{
+  "node": "v24.22.3",
+  "results": [
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "mode": "success",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "mode": "failed HTTP",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer-windows/app/web",
+      "mode": "failed save",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "mode": "success",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "mode": "failed HTTP",
+      "passed": true
+    },
+    {
+      "web": "magnolie-organizer/web",
+      "mode": "failed save",
+      "passed": true
+    }
+  ]
+}

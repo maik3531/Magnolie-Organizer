@@ -1,0 +1,78 @@
+{
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "base_tree": "dac30a55fccc3c71cc9085c9c9d89445aa603580",
+  "result_tree": "f4f94a2c2cf73a064448d3208f31d471e150dbe4",
+  "forward_exact": true,
+  "reverse_exact": true,
+  "checks": [
+    {
+      "args": [
+        "read-tree",
+        "1749c92eb42801c38eaba31b272d8c0e27be9164"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "apply",
+        "--cached",
+        "--check",
+        "/workspace/scratch/69a9d769e56f/holiday-cache-delivery/holiday-cache-855.patch"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "apply",
+        "--cached",
+        "/workspace/scratch/69a9d769e56f/holiday-cache-delivery/holiday-cache-855.patch"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "write-tree"
+      ],
+      "returncode": 0,
+      "stdout": "f4f94a2c2cf73a064448d3208f31d471e150dbe4\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "apply",
+        "--cached",
+        "--reverse",
+        "--check",
+        "/workspace/scratch/69a9d769e56f/holiday-cache-delivery/holiday-cache-855.patch"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "apply",
+        "--cached",
+        "--reverse",
+        "/workspace/scratch/69a9d769e56f/holiday-cache-delivery/holiday-cache-855.patch"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "write-tree"
+      ],
+      "returncode": 0,
+      "stdout": "dac30a55fccc3c71cc9085c9c9d89445aa603580\n",
+      "stderr": ""
+    }
+  ]
+}
