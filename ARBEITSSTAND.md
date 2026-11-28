@@ -260,6 +260,12 @@ aufgeführt.
   darunter verschlüsselte Bestätigung des Einzelversands, Entzug nach
   Anmeldung und Wiederanlauf. Die automatische Fernverbindung und
   installierte Fernabnahme bleiben offen.
+  Linux prüft die gemeinsame Richtung der Zeiterfassung vor Einreihung
+  und Versand. „Nur importieren“ sperrt Desktop-Zeiteinträge und
+  verwirft bereits eingereihte Pakete mit diesen Daten. Kalenderpakete
+  ohne Zeiteinträge, Importanforderung und Eingang bleiben möglich.
+  121 Hosttests bestanden, einschließlich SQLite-Rollback beim Wechsel
+  der Richtung. Windows und der neue Zeit-Automatiktrigger bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

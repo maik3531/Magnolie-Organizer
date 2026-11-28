@@ -1,6 +1,8 @@
 """V7 service routing and session fences with capture-only authenticated channels."""
 import copy
+import sqlite3
 from uuid import uuid4
+import pytest
 from test_personal_sync import _personal_service
 from test_time_sync import record
 import magnolie_telefon as phone
@@ -150,3 +152,63 @@ def test_delayed_ui_packet_cannot_borrow_a_new_consent_epoch(tmp_path, monkeypat
     count = len(channel.sent)
     with pytest.raises(PermissionError): service.send_personal_sync(peer, time.BATCH, old)
     assert len(channel.sent) == count
+
+
+def test_import_only_denies_desktop_records_but_preserves_calendar_and_phone_import(tmp_path, monkeypatch):
+    service, peer_id, channel, incoming, events = ready(tmp_path, monkeypatch)
+    peer = service.store.peer(peer_id)
+    public = peer["static_public"]
+    service.store.change_shared_setting(peer_id, public, "time_mode", "phone_import")
+    policies = service.store.time_settings(peer_id)
+    header = time.request_body(policies["local"], policies["remote"])
+    record_batch = dict(header, entries=[record()])
+    with pytest.raises(PermissionError):
+        service.send_time_records(peer_id, record_batch["entries"])
+    with pytest.raises(PermissionError):
+        service.send_personal_sync(peer_id, time.BATCH, record_batch)
+    assert not service.store.has_kind(peer_id, time.BATCH)
+    # A pre-upgrade queue can contain an obsolete time batch already.
+    old = service.store.queue(peer_id, time.BATCH, record_batch, phone.DAY_MS)
+    calendar = dict(enabled=False, country="DE", regions=[], holidays=[])
+    projected = service.send_personal_sync(peer_id, time.BATCH, dict(header, entries=[], calendar=calendar))
+    assert service.store.outbox_policy(peer_id, old["message_id"]) is None
+    assert channel.sent[-1]["message_id"] == projected
+    assert channel.sent[-1]["body"]["calendar"] == calendar
+    service._payload(peer, channel, dict(type="ack", message_id=projected, status="accepted", error="none"))
+    request_id = service.send_personal_sync(peer_id, time.REQUEST, header)
+    assert channel.sent[-1]["message_id"] == request_id
+    service._payload(peer, channel, incoming)
+    staged = next(value for kind, value in events if kind == "personal_time_batch")
+    assert service.commit_time_sync(peer_id, incoming["message_id"], staged["commit_token"], True)
+
+
+def test_direction_change_rolls_back_on_outbox_failure_without_purging_other_time_data(tmp_path, monkeypatch):
+    service, peer_id, channel, incoming, events = ready(tmp_path, monkeypatch)
+    peer = service.store.peer(peer_id)
+    public = peer["static_public"]
+    service.store.change_shared_setting(peer_id, public, "time_mode", "two_way")
+    policies = service.store.time_settings(peer_id)
+    header = time.request_body(policies["local"], policies["remote"])
+    stale = service.store.queue(peer_id, time.BATCH, dict(header, entries=[record()]), phone.DAY_MS)
+    empty = service.store.queue(peer_id, time.BATCH, dict(header, entries=[]), phone.DAY_MS)
+    queued_request = service.store.queue(peer_id, time.REQUEST, header, phone.DAY_MS)
+    service._payload(peer, channel, incoming)
+    staged = next(value for kind, value in events if kind == "personal_time_batch")
+    before = service.store.shared_settings(peer_id, public)
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("""CREATE TRIGGER fail_time_revoke BEFORE DELETE ON outbox
+                      WHEN OLD.kind = 'personal_sync.time_batch'
+                      BEGIN SELECT RAISE(ABORT, 'synthetic write failure'); END""")
+    with pytest.raises(sqlite3.IntegrityError):
+        service.store.change_shared_setting(peer_id, public, "time_mode", "phone_import")
+    assert service.store.shared_settings(peer_id, public) == before
+    assert service.store.outbox_policy(peer_id, stale["message_id"]) == "any"
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("DROP TRIGGER fail_time_revoke")
+    service.store.change_shared_setting(peer_id, public, "time_mode", "phone_import")
+    assert service.store.outbox_policy(peer_id, stale["message_id"]) is None
+    assert service.store.outbox_policy(peer_id, empty["message_id"]) == "any"
+    assert service.store.outbox_policy(peer_id, queued_request["message_id"]) == "any"
+    assert service.commit_time_sync(peer_id, incoming["message_id"], staged["commit_token"], True)
+    service.store.change_shared_setting(peer_id, public, "time_mode", "two_way")
+    assert not service._send_message(channel, peer_id, stale)

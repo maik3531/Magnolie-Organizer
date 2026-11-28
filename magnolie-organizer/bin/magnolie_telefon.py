@@ -635,9 +635,25 @@ class PhoneStore:
             db.execute("DELETE FROM outbox WHERE peer_id=? AND kind IN (?,?)",
                        (peer_id, time_sync_contract.REQUEST, time_sync_contract.BATCH))
 
-    def time_batch_turn(self, peer_id, message_id=None):
+    def time_records_export_allowed(self, peer):
+        shared = self.shared_settings(peer["device_id"], peer["static_public"])
+        return shared is None or shared_sync_contract.effective(shared)["time_mode"] == "two_way"
+
+    def _discard_time_entry_batches(self, db, peer_id):
+        rows = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND kind=?",
+                          (peer_id, time_sync_contract.BATCH)).fetchall()
+        discarded = [(peer_id, message_id) for message_id, payload in rows
+                     if strict_json(self._decrypt(payload, "outbox", message_id))["body"].get("entries")]
+        db.executemany("DELETE FROM outbox WHERE peer_id=? AND message_id=?", discarded)
+
+    def time_batch_turn(self, peer_id, message_id=None, *, discard_entries=False):
         """One unacknowledged desktop batch keeps calendar projections ordered."""
         with sqlite3.connect(self.database_path) as db:
+            if discard_entries:
+                # An older shipment may predate native enforcement. It must
+                # not block the ordered calendar stream or a phone import.
+                db.execute("BEGIN IMMEDIATE")
+                self._discard_time_entry_batches(db, peer_id)
             row = db.execute("SELECT message_id FROM outbox WHERE peer_id=? AND kind=? AND expires_ms>? ORDER BY created_ms,rowid LIMIT 1",
                              (peer_id, time_sync_contract.BATCH, now_ms())).fetchone()
         return row is None if message_id is None else row is not None and row[0] == message_id
@@ -2723,6 +2739,10 @@ class PhoneStore:
             if self._shared_settings_binding(peer_id, expected_public)[0] != key:
                 raise PermissionError("shared_settings_peer_changed")
             if row is None or updated != previous:
+                old_mode = shared_sync_contract.effective(previous)["time_mode"]
+                new_mode = shared_sync_contract.effective(updated)["time_mode"]
+                if (row is None or old_mode != new_mode) and "phone_import" in (old_mode, new_mode):
+                    self._discard_time_entry_batches(db, peer_id)
                 sealed = self._encrypt(canonical(updated), "shared_settings", key)
                 db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, sealed))
         return updated
@@ -8107,6 +8127,8 @@ class PhoneService:
                 return False
             if body.get("trigger") == "auto_wifi" and self.connection_transports.get(peer_id) != "wifi":
                 return False
+            if outgoing and body.get("entries") and not self.store.time_records_export_allowed(peer):
+                return False
             return time_sync_contract.allowed(body, remote if outgoing else local, local if outgoing else remote,
                 True, True, True, [7], [7])
         except (RuntimeError, PermissionError):
@@ -8167,7 +8189,7 @@ class PhoneService:
         with self.lock:
             policies = self.store.time_settings(peer_id)
             header = time_sync_contract.request_body(policies.get("local"), policies.get("remote"), trigger)
-            if not self._time_allowed(peer_id, header, outgoing=True):
+            if not self._time_allowed(peer_id, dict(header, entries=entries), outgoing=True):
                 raise PermissionError("Time synchronization is not permitted.")
             packets = time_sync_contract.batches(policies["local"], policies["remote"], entries, calendar, trigger)
             if trigger == "manual" and self.connection_transports.get(peer_id) == "bluetooth":
@@ -9216,12 +9238,12 @@ class PhoneService:
                 if message["body"] != self.store.time_settings(peer_id).get("local"):
                     self.store.acknowledge(peer_id, message["message_id"])
                     return False
-            elif not self._time_allowed(peer_id, message["body"], outgoing=True, channel=channel):
-                return False
-            if message["kind"] == time_sync_contract.BATCH and not self.store.time_batch_turn(peer_id, message["message_id"]):
-                return False
-            if message["kind"] == time_sync_contract.REQUEST and not self.store.time_batch_turn(peer_id):
-                return False
+            else:
+                batch_id = message["message_id"] if message["kind"] == time_sync_contract.BATCH else None
+                if (not self.store.time_batch_turn(peer_id, batch_id,
+                        discard_entries=not self.store.time_records_export_allowed(peer))
+                        or not self._time_allowed(peer_id, message["body"], outgoing=True, channel=channel)):
+                    return False
             time_sync_contract.validate(message["kind"], message["body"], True)
             channel.send(message)
             if message["kind"] == time_sync_contract.SETTINGS:
