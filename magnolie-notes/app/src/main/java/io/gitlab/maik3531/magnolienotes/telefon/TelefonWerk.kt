@@ -3299,7 +3299,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         queue.removeKind(peer.device_id, "personal_sync.custom_settings")
                         queue.queue(peer.device_id, "personal_sync.custom_settings", it, 86_400_000)
                     }
-                    if (transport == TelefonTransportArt.WIFI && automaticWifi(peer)) requestCustom("auto_wifi")
+                    if (transport == TelefonTransportArt.WIFI && !usesCommonPreferences(peer) && automaticWifi(peer))
+                        requestCustom("auto_wifi")
                 }
                 startPersonalSyncOnSecureWifi(peer, channel, generation)
                  beginMediaSupport(peer, channel, generation)
@@ -3596,6 +3597,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
         val replies = mutableListOf<JsonObject>()
         val reportWrites = mutableMapOf<JsonObject, (() -> Unit) -> Unit>()
+        val customSettingsSession = if (message["kind"] == JsonPrimitive("personal_sync.custom_settings"))
+            synchronized(this) { noteSessions[channel] } else null
         val epoch = identifierEpoch
         val permissions = identifierPermissionMask()
         peerEffect(sessionPeer, generation) {
@@ -3614,6 +3617,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val reportWrite = reportWrites[reply]
                 if (reportWrite == null) channel.send(reply)
                 else reportWrite { channel.send(reply) }
+            }
+            if (customSettingsSession != null && reply["type"] == JsonPrimitive("ack") &&
+                reply["status"]?.jsonPrimitive?.content in setOf("accepted", "duplicate")) {
+                peerEffect(sessionPeer, generation) {
+                    if (noteSessions[channel] === customSettingsSession &&
+                        sessionTransportAktuell(channel, generation, establishedOnly = false))
+                        customSettingsSession.customSettingsReceived = message.getValue("body").jsonObject
+                }
             }
             observeMediaSupportControl(sessionPeer, message, reply, channel, generation, true)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, true)
@@ -5259,7 +5270,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         peerEffect(peer, generation) { current -> queueSharedSettings(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueContentScope(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueAutomaticSharedWifiSync(current, channel, generation) }
-        if (!controlsOnly) peerEffect(peer, generation) { current -> queueAutomaticConnectionSync(current, channel, generation) }
+        if (!controlsOnly) peerEffect(peer, generation) { current ->
+            queueAutomaticConnectionSync(current, channel, generation)
+            queueAutomaticCustomWifi(current, channel, generation)
+        }
         peerEffect(peer, generation) { current -> queueScopedContentRun(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->
             if (entry.payload["kind"] == JsonPrimitive(MediaSyncSettings.KIND)) {
@@ -5353,12 +5367,20 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 if (kind.startsWith("personal_sync.")) {
                     val body = entry.payload["body"] as JsonObject
                     if (kind.startsWith("personal_sync.custom_")) {
+                        val session = noteSessions[channel]
                         if (kind == "personal_sync.custom_request" && queue.hasKind(peer.device_id, "personal_sync.custom_settings")) return@forEach
+                        if (kind == "personal_sync.custom_request" && body["trigger"] == JsonPrimitive("auto_wifi") &&
+                            usesCommonPreferences(current) &&
+                            (session?.automaticCustomRequestId != entry.messageId ||
+                                automaticCustomWifiBody(current, channel, generation) != body)) {
+                            queue.acknowledge(peer.device_id, entry.messageId); return@forEach
+                        }
                         if (!customTransmissionAllowed(current, kind, body)) {
                             queue.acknowledge(peer.device_id, entry.messageId); return@forEach
                         }
                         // Keep the final authorization check and socket write ordered with revocation.
                         channel.send(entry.payload)
+                        if (kind == "personal_sync.custom_settings") session?.customSettingsSent = entry.payload
                         queue.sent(entry.messageId, queue.attempts(entry.messageId))
                         return@forEach
                     }
@@ -5601,6 +5623,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }
             if (!session.acknowledgeContentScope(id, status, error)) return@peerEffect
             handleAck(peer.device_id, id, status, error)
+            val sent = session.customSettingsSent
+            if (sent?.get("message_id") == JsonPrimitive(id) && status in setOf("accepted", "duplicate") &&
+                originalChannel != null && noteSessions[originalChannel] === session &&
+                sessionTransportAktuell(originalChannel, generation))
+                session.customSettingsAcknowledged = sent.getValue("body").jsonObject
         }
     }
 
@@ -5837,10 +5864,30 @@ class TelefonWerk private constructor(private val context: Context, private val 
         return body.takeIf { customTransmissionAllowed(peer, "personal_sync.custom_request", it) }
     }
 
-    private fun queueCustomRequest(peer: TelefonPeer, trigger: String, body: JsonObject) {
+    private fun queueCustomRequest(peer: TelefonPeer, trigger: String, body: JsonObject): JsonObject {
         queue.removeKind(peer.device_id, "personal_sync.custom_request")
-        queue.queue(peer.device_id, "personal_sync.custom_request", body, 86_400_000,
+        return queue.queue(peer.device_id, "personal_sync.custom_request", body, 86_400_000,
             transportPolicy = if (trigger == "auto_wifi") "wifi_only" else "any")
+    }
+
+    private fun automaticCustomWifiBody(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long): JsonObject? {
+        val session = noteSessions[channel] ?: return null
+        if (!sessionTransportAktuell(channel, generation) || activeTransport?.first != TelefonTransportArt.WIFI ||
+            !noteModeReady(peer, session)) return null
+        val common = commonValues(peer) ?: return null
+        if (common["auto_mode"] != JsonPrimitive("wifi") || common["custom_enabled"] != JsonPrimitive(true) ||
+            !PersonalDesktopFeatures.customAvailable(peer)) return null
+        val scope = Ablage.hole(context).bestand.value.personalCustom
+        if (scope.local == null || scope.local != session.customSettingsAcknowledged ||
+            scope.remote == null || scope.remote != session.customSettingsReceived) return null
+        return customRequest(peer, "auto_wifi")
+    }
+
+    private fun queueAutomaticCustomWifi(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
+        val session = noteSessions[channel] ?: return
+        if (session.automaticCustomRequestId != null || queue.hasKind(peer.device_id, "personal_sync.custom_settings")) return
+        val body = automaticCustomWifiBody(peer, channel, generation) ?: return
+        session.automaticCustomRequestId = queueCustomRequest(peer, "auto_wifi", body).string("message_id")
     }
 
     @Synchronized private fun requestCustom(trigger: String): Boolean {

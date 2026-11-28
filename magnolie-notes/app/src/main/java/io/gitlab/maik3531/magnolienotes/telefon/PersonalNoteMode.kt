@@ -138,6 +138,10 @@ internal class PersonalNoteSession {
     var timeSnapshot: String? = null
     var sharedSent: JsonObject? = null
     var sharedReceived: JsonObject? = null
+    var customSettingsSent: JsonObject? = null
+    var customSettingsAcknowledged: JsonObject? = null
+    var customSettingsReceived: JsonObject? = null
+    var automaticCustomRequestId: String? = null
     // One authenticated WLAN transition awaiting agreement on its original
     // content choice and, for phone_scope, the current membership receipts.
     data class SharedWifiStart(val contentMode: String, val modules: Set<String>, val restoreEpoch: String)

@@ -181,6 +181,10 @@ class ScopedDataRuntimeTest {
     @Test fun automaticWifiWaitsForLateSettingsWithoutExpiringTheTransition() = exercise("auto-late-delayed")
     @Test fun automaticWifiImportWaitsForLateSharedSettings() = exercise("auto-late-import")
     @Test fun automaticWifiFullCollectionWaitsForLateSharedSettings() = exercise("auto-late-full")
+    @Test fun customWifiRequestStartsAfterLateModuleSettingsWithoutContentGrants() = exercise("custom-wlan-late")
+    @Test fun customWifiRequestUsesSettingsReceivedDuringReaderSetup() = exercise("custom-wlan-setup")
+    @Test fun customWifiRequestDoesNotStartAfterModuleRevocation() = exercise("custom-wlan-revoked")
+    @Test fun customWifiRequestDoesNotStartOnBluetooth() = exercise("custom-wlan-bluetooth")
     @Test fun unchangedWifiReconnectDoesNotQueueAnotherRun() = exercise("auto-late-unchanged")
     @Test fun resumedValidAutomaticRunDoesNotCreateADuplicateAfterCompletion() = exercise("auto-late-active")
     @Test fun automaticWifiOffThenOnDoesNotReviveAnOldPendingTransition() = exercise("auto-late-off")
@@ -213,6 +217,56 @@ class ScopedDataRuntimeTest {
         repeat(3) { pump() }
         assertFalse(queue.hasActiveAutoRun(peerId))
         assertTrue(sent().none { it["kind"] == JsonPrimitive("personal_sync.request") })
+    }
+
+    private fun checkLateCustomWifi(mode: String, work: TelefonWerk, peer: TelefonPeer, channel: TelefonSecureChannel,
+        queue: TelefonQueue, pump: () -> Unit, sent: () -> List<JsonObject>, acknowledge: (String) -> Unit) {
+        fun receive(kind: String, body: JsonObject) =
+            work.receiveMessage(peer, TelefonNachrichten.message(kind, body, 60000), channel, 0)
+        fun List<JsonObject>.customRequests() = filter { it["kind"] == JsonPrimitive("personal_sync.custom_request") }
+        val before = sent()
+        receive(PersonalDesktopFeatures.KIND, buildJsonObject {
+            put("format", 6); put("revision", 1); put("custom_tab", true); put("tree", false)
+        })
+        pump()
+        val setup = before + sent()
+        assertTrue(setup.customRequests().isEmpty())
+        val advertised = setup.last { it["kind"] == JsonPrimitive("personal_sync.custom_settings") &&
+            it["body"]?.jsonObject?.get("enabled") == JsonPrimitive(true) }
+        val local = advertised.getValue("body").jsonObject
+        val remote = buildJsonObject {
+            put("format", 4); put("scope", "custom"); put("enabled", true)
+            put("revision", 1); put("epoch", UUID.randomUUID().toString())
+        }
+        val activeReader = field(TelefonWerk::class.java, "activeChannel")
+        if (mode == "custom-wlan-setup") activeReader.set(work, null)
+        receive("personal_sync.custom_settings", remote)
+        if (mode == "custom-wlan-setup") activeReader.set(work, channel)
+        pump()
+        assertTrue("The local Custom setting has not been acknowledged", sent().customRequests().isEmpty())
+        if (mode == "custom-wlan-revoked") receive("personal_sync.custom_settings", JsonObject(remote + mapOf(
+            "enabled" to JsonPrimitive(false), "revision" to JsonPrimitive(2), "epoch" to JsonPrimitive(UUID.randomUUID().toString()))))
+        acknowledge(advertised.string("message_id"))
+        repeat(2) { pump() }
+        val requests = sent().customRequests()
+        if (mode in setOf("custom-wlan-bluetooth", "custom-wlan-revoked")) {
+            assertTrue(requests.isEmpty())
+            assertFalse(queue.hasKind(peer.device_id, "personal_sync.custom_request"))
+            return
+        }
+        assertEquals("A late, authenticated Custom setting must start one WLAN request", 1, requests.size)
+        val request = requests.single()
+        val body = request.getValue("body").jsonObject
+        assertEquals("auto_wifi", body.string("trigger"))
+        assertEquals("wifi_only", queue.outboxPolicy(peer.device_id, request.string("message_id")))
+        assertEquals(local["epoch"], body["sender_epoch"])
+        assertEquals(remote["epoch"], body["receiver_epoch"])
+        assertFalse(queue.hasActiveAutoRun(peer.device_id))
+        acknowledge(request.string("message_id"))
+        receive("personal_sync.custom_settings", remote)
+        repeat(3) { pump() }
+        assertTrue(sent().customRequests().isEmpty())
+        assertFalse(queue.hasKind(peer.device_id, "personal_sync.custom_request"))
     }
 
     private fun checkCompetingConnectionRequest(
@@ -530,6 +584,7 @@ class ScopedDataRuntimeTest {
 
     private fun exercise(mode: String, format: Int = 3) {
         val automaticReconnect = mode.startsWith("auto-late-")
+        val customWifi = mode.startsWith("custom-wlan-")
         val connectionStart = mode.startsWith("start-auto-connection")
         val connectionAutomation = mode.startsWith("receive-auto-connection") || connectionStart
         val multiConnectionReply = mode == "receive-auto-connection-multi-report-reply"
@@ -620,9 +675,9 @@ class ScopedDataRuntimeTest {
             val missingRemoteFormat = mode == "receive-auto-connection-remote-format"
             val newerFormat = if (format == 14 || missingRemoteFormat) listOf(14) else emptyList()
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
-                own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
+                own_device = true, remote_own_device = true, personal_notes_sync_granted = !customWifi, personal_tasks_sync_granted = !customWifi,
                 capabilities_revision = if (connectionAutomation) 2 else 0,
-                remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
+                remote_personal_notes_sync_granted = !customWifi, remote_personal_tasks_sync_granted = !customWifi,
                 personal_deletions_sync_granted = deletionGrant, remote_personal_deletions_sync_granted = deletionGrant,
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
                 remote_personal_notes_sync_versions = (listOf(1, 2, 3, 5, 9, 10) + connectionVersions + newerFormat +
@@ -699,9 +754,13 @@ class ScopedDataRuntimeTest {
             if (connectionAutomation && !lateAdvertisement) queueConnectionAdvertisement(peer.capabilities_revision)
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
             if (automaticReconnect) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("wifi"))
+            if (customWifi) {
+                work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("wifi"))
+                local = work.changeSharedSetting(peerId, peer.static_public, "custom_enabled", JsonPrimitive(true))
+            }
             if (connectionAutomation) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("connection"))
             if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode.startsWith("actor-deletions-origin") || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
-            val transport = if (connectionStart) TelefonTransportArt.BLUETOOTH else TelefonTransportArt.WIFI
+            val transport = if (connectionStart || mode == "custom-wlan-bluetooth") TelefonTransportArt.BLUETOOTH else TelefonTransportArt.WIFI
             field(TelefonWerk::class.java, "activeTransport").set(work, transport to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -713,7 +772,7 @@ class ScopedDataRuntimeTest {
                 @Suppress("UNCHECKED_CAST")
                 val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
                 sessions[channel] = session
-                if (connectionStart) field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                if (connectionStart || customWifi) field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                 work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, shared, 60000), channel, 0)
                 val pump = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java,
                     Long::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
@@ -740,6 +799,10 @@ class ScopedDataRuntimeTest {
                     work.handleSessionAck(peer, TelefonNachrichten.ack(id, status, error), session, 0L, transport)
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
+                if (customWifi) {
+                    checkLateCustomWifi(mode, work, peer, channel, queue, { pump.invoke(work, peer, channel, 0L, false) }, ::sent, { ack(it) })
+                    return@use
+                }
                 val manifest = requireNotNull(session.localContentScope)
                 if (connectionStart) {
                     sent()

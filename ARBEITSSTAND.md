@@ -12,6 +12,10 @@ aufgeführt.
   die bestätigte gemeinsame Einstellung auf derselben Verbindung. Danach
   kann genau ein Lauf für den gewählten Inhalt starten. 168 Release-JVM-Fälle
   einschließlich verschlüsselter Gegenproben für beide Modi bestanden.
+  Der Custom-WLAN-Abruf wartet unabhängig vom Notiz- und Aufgabenabgleich
+  auf die beidseitig bestätigten Custom-Einstellungen derselben Verbindung.
+  164 Release-JVM-Fälle einschließlich Aufbauphase, Widerruf und Bluetooth
+  bestanden.
   Notes nimmt Verbindungsautomatik erst an, wenn die aktuelle lokale
   Capability-Revision über genau diese Verbindung gesendet wurde.
   Ein fehlender oder veralteter Versandbeleg hält den Lauf vor der
