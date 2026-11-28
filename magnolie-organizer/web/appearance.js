@@ -66,6 +66,17 @@
       { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
       { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
     ],
+    "italian-ballot": [
+      { d: "M13 35H67L71 67H9ZM13 35L21 28H59L67 35M23 40H57M9 67H71", fill: "none", "data-motif-part": "ballot-box" },
+      { d: "M27 28L23 14L50 6L56 27M29 17L34 20L40 12", fill: "none", "data-motif-part": "ballot-paper" },
+      { d: "M9 15L14 21M67 11L62 18M8 51H3M72 51H77M28 73H52", fill: "none", "data-motif-part": "festive-rays" }
+    ],
+    "polish-banner": [
+      { d: "M18 7V70M12 70H24", fill: "none", "data-motif-part": "flagpole" },
+      { d: "M18 13C34 5 49 23 66 14V46C49 55 34 37 18 45Z", fill: "none", "data-motif-part": "flag" },
+      { d: "M18 29C34 21 49 39 66 30", fill: "none", "data-motif-part": "horizontal-bands" },
+      { d: "M8 16L4 11M72 19L77 15M34 59L29 65M53 58L58 65M41 68V75", fill: "none", "data-motif-part": "festive-rays" }
+    ],
     "unity-gate": [
       { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
       { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
@@ -127,6 +138,8 @@
   // Verified national festival identities, not translated calendar names.
   const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
   const nationalMotifs = Object.freeze({
+    "it-republic-day": "italian-ballot",
+    "pl-independence-day": "polish-banner",
     "de-unity-day": "unity-gate",
     "at-national-day": "neutrality-parliament",
     "ch-national-day": "swiss-lantern",
@@ -137,6 +150,13 @@
   });
   function nationalFestival(value, country) {
     const { year, month, day } = value;
+    // Italy celebrated on June 2 in 1947 and 1948 before the permanent law.
+    // Law 200/1986 puts the 40th anniversary on June 2 rather than June 1.
+    if (country === "IT" && year >= 1947 && month === 6) {
+      const firstSunday = year >= 1977 && year <= 2000 && year !== 1986;
+      if (firstSunday ? day <= 7 && value.date.getUTCDay() === 0 : day === 2) return "it-republic-day";
+    }
+    if (country === "PL" && (year === 1937 || year === 1938 || year >= 1989) && month === 11 && day === 11) return "pl-independence-day";
     if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
@@ -297,6 +317,7 @@
     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
+      ["italian-ballot", "Italy"], ["polish-banner", "Poland"],
       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);

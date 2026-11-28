@@ -30,10 +30,36 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
             "Changing the saved country updates the actual background immediately");
         }
         for (const [date, land, motif] of [
+          ["1946-06-02", "IT", "none"],
+          ["1947-06-02", "IT", "italian-ballot"],
+          ["1948-06-02", "IT", "italian-ballot"],
+          ["1949-06-02", "IT", "italian-ballot"],
+          ["1976-06-02", "IT", "italian-ballot"],
+          ["1977-06-02", "IT", "none"],
+          ["1977-06-05", "IT", "italian-ballot"],
+          ["1986-06-01", "IT", "none"],
+          ["1986-06-02", "IT", "italian-ballot"],
+          ["1987-06-07", "IT", "italian-ballot"],
+          ["2000-06-04", "IT", "italian-ballot"],
+          ["2001-06-02", "IT", "italian-ballot"],
+          ["2001-06-03", "IT", "none"],
+          ["1936-11-11", "PL", "none"],
+          ["1937-11-11", "PL", "polish-banner"],
+          ["1938-11-11", "PL", "polish-banner"],
+          ["1939-11-11", "PL", "none"],
+          ["1988-11-11", "PL", "none"],
+          ["1989-11-11", "PL", "polish-banner"],
+          ["2026-06-02", "PL", "none"],
+          ["2026-11-11", "IT", "none"]
+        ]) {
+          assert.equal(b.w.MagnolieAppearance.holiday(date, land), motif, `${land} ${date}`);
+        }
+        for (const [date, land, motif] of [
           ["2026-10-03", "DE", "unity-gate"], ["2026-10-26", "AT", "neutrality-parliament"],
           ["2026-08-01", "CH", "swiss-lantern"], ["2026-07-14", "FR", "french-rosette"],
           ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
-          ["2026-06-23", "LU", "luxembourg-concert"]
+          ["2026-06-23", "LU", "luxembourg-concert"], ["2026-06-02", "IT", "italian-ballot"],
+          ["2026-11-11", "PL", "polish-banner"]
         ]) {
           b.t.zustand().kalender.tag = date;
           await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -90,7 +116,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       for (const [motif, country] of [
         ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
         ["french-rosette", "France"], ["kings-crown", "Netherlands"],
-        ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]
+        ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"],
+        ["italian-ballot", "Italy"], ["polish-banner", "Poland"]
       ]) {
         assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
         choose("holiday", motif);
@@ -98,7 +125,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
       }
       choose("holiday", "unknown");
-      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "luxembourg-concert");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "polish-banner");
       choose("date", "2026-12-06");
       choose("holiday", "auto");
       assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "boots");

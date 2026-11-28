@@ -26,11 +26,22 @@ kopiert oder als Programmbestandteil übernommen.
   (Koningsdag, Krone, seit 2014 am 27. April bzw. am Samstag 26. April bei
   Sonntag); Deutschland (3. Oktober ab 1990, Brandenburger Tor) und Österreich
   (26. Oktober ab 1965, Parlamentsmotiv), Belgien (21. Juli ab 1890,
-  dreigeteiltes Festbanner) und Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
-  konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin).
+  dreigeteiltes Festbanner), Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
+  konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin),
+  Italien (Republikfest, Wahlurne) und Polen (11. November 1937/38 und ab
+  1989, zweigeteiltes Festbanner).
+  Das italienische Motiv folgt dem 2. Juni ab den belegten Feiern 1947/48,
+  1977–2000 dem ersten Junisonntag mit der gesetzlichen Ausnahme am
+  2. Juni 1986 und seit 2001 wieder dem 2. Juni.
   Die Regeln sind unabhängig von
   Programmsprache und funktionieren offline. Sie erzeugen keine Kalenderdaten, ändern keine Schalter und
   leiten keine Zugehörigkeit aus Namen, Sprache oder Religion ab.
+- Quellen Italien: [Dekret 387/1947](https://www.gazzettaufficiale.it/eli/id/1947/05/31/047U0387/sg),
+  [Festgeschichte des Verteidigungsministeriums](https://www.difesa.it/primopiano/verso-il-2-giugno-la-storia-dello-sfilamento-su-via-dei-fori-imperiali/34716.html),
+  [Gesetz 260/1949 mit Verweis auf 54/1977 und 336/2000](https://presidenza.governo.it/ufficio_cerimoniale/normativa/legge_19490527_260.pdf),
+  [Gesetz 200/1986](https://www.gazzettaufficiale.it/eli/id/1986/05/23/086U0200/sg).
+  Polen: [Gesetz von 1937](https://eli.gov.pl/eli/DU/1937/255/ogl),
+  [Wiederherstellung 1989](https://eli.gov.pl/eli/DU/1989/34/ogl).
 - Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
   https://www.info.gouv.fr/actualite/pourquoi-le-14-juillet-est-il-notre-fete-nationale ,
   https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day ,
