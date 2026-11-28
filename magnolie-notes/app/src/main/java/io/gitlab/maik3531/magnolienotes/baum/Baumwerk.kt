@@ -1002,7 +1002,11 @@ class Baumwerk private constructor(
                 })
             }
             val transporte = bekannteTransporte.filter { it !is WlanTransport || !it.wartetAufLan() }
-            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) continue // wait, no failed-attempt/deletion
+            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) {
+                // A LAN permission wait consumes no delivery attempt.
+                versucht--
+                continue
+            }
             if (transporte.isEmpty()) {
                 fehlversuch(sendung, "Für diesen Zweig ist kein Weg bekannt.")
                 continue

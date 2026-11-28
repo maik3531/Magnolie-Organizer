@@ -2,14 +2,17 @@ package io.gitlab.maik3531.magnolienotes.baum
 
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.daten.*
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
 import javax.crypto.spec.SecretKeySpec
 
 @RunWith(RobolectricTestRunner::class)
@@ -271,5 +274,64 @@ class FernAbgleichTest {
         assertTrue(waiting.naechsterVersuch > waiting.angelegt)
         assertEquals(0, retry.postfachAbarbeiten())
         assertEquals(1, calls)
+    }
+
+    @Test fun deniedLanDoesNotExhaustTheBudgetBeforeAnAllowedExplicitRoute() {
+        val remote = identity("remote")
+        val (storage, first, proof) = fixture(remote)
+        val task = Aufgabe("chosen", "Chosen", standPartner = listOf(remote.kennung))
+        storage.setzeAufgabe(task)
+        assertEquals(1, first.fernEinzelAbgleichen("task", task.id, listOf(proof), false))
+        val local = identity("local")
+        val waiting = List(70) { index ->
+            Sendung("lan-$index", "wire-$index", local.kennung, "stand", "{}", syncEpoch = proof.epoch)
+        }
+        storage.aendereBaum { old ->
+            old.copy(partner = old.partner + peer(local).copy(adresse = "127.0.0.1", fernAdresse = ""),
+                postfach = waiting + old.postfach)
+        }
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val application = context.applicationInfo
+        val sdk = Build.VERSION.SDK_INT
+        val target = application.targetSdkVersion
+        var delivered = 0
+        var session: Sitzung.Offen? = null
+        val work = Baumwerk.fuerFernAbgleichTest(storage, context, { host, port ->
+            assertEquals(proof.partner.fernAdresse, host)
+            assertEquals(proof.partner.fernPort, port)
+            object : Transport {
+                override val bezeichnung = "$host:$port"
+                override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+                    if (pfad == "/magnolie/v2/sitzung") {
+                        val answer = Sitzung.baueAntwort(remote, proof.eigeneKennung, proof.eigenerSchluessel, nutzlast)
+                        session = answer.sitzung
+                        return answer.nachricht
+                    }
+                    assertEquals("/magnolie/v2/nachricht", pfad)
+                    val open = requireNotNull(session)
+                    val (body, _) = Sitzung.oeffneUmschlag(open, remote.kennung, proof.eigeneKennung, nutzlast)
+                    assertEquals("Chosen", text(body, "titel"))
+                    delivered++
+                    return Sitzung.baueQuittung(open, nutzlast)
+                }
+                override fun schliessen() { session?.loeschen() }
+            }
+        }) { true }
+        try {
+            // Exercise the API/target-37 gate on the available SDK-35 JVM fixture.
+            ReflectionHelpers.setStaticField(Build.VERSION::class.java, "SDK_INT", 37)
+            application.targetSdkVersion = 37
+            LanFreigabe.initialisieren(context)
+            assertTrue(LanFreigabe.erforderlich())
+            assertFalse(LanFreigabe.erlaubt())
+            assertEquals(1, work.postfachAbarbeiten())
+            assertEquals(0, work.postfachAbarbeiten())
+            assertEquals(1, delivered)
+            assertEquals(waiting, storage.baum.value.postfach)
+        } finally {
+            application.targetSdkVersion = target
+            ReflectionHelpers.setStaticField(Build.VERSION::class.java, "SDK_INT", sdk)
+        }
     }
 }

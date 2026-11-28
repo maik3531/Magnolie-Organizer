@@ -43,6 +43,14 @@ aufgeführt.
   Brücke mit exakter Regions- und Jahresabdeckung. Ungebundene Antworten
   bleiben wirkungslos. Der vollständige Webtest bestand.
 
+- [#691](https://github.com/maik3531/Magnolie-Organizer/issues/691):
+  Notes zählt Sendungen, die ausschließlich auf LAN-Freigabe warten, nicht
+  mehr gegen das Postfachkontingent. Im Test bleiben 70 LAN-Sendungen
+  unverändert im Postfach, während der nachfolgende explizite Fernversand
+  genau einmal zugestellt wird. 46 Release-JVM-Tests bestanden, darunter
+  der simulierte API-/Target-37-Rechtefall. Reguläres Target 35 und native
+  API-37-Abnahme bleiben unverändert.
+
 - [#395](https://github.com/maik3531/Magnolie-Organizer/issues/395):
   Linux normalisiert gelesene Wiederherstellungsarchive ohne zweite JSON-Kopie.
   Archivbytes und gelesene Daten blieben im Vergleich identisch. 25 Journal-/
