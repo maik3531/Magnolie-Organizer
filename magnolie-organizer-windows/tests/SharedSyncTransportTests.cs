@@ -1160,8 +1160,9 @@ internal static class SharedSyncTransportTests
                 }
                 return Task.FromResult<TelefonAck?>(null);
             }
-            TelefonConnection Connect(bool supported = true, MemoryStream? wire = null) => new TelefonConnection(peer, wire ?? new MemoryStream(), new byte[16], new byte[72],
-                store, Receive, CancellationToken.None, "wifi") { SharedLocalCapabilities = () => (supported ? negotiated : legacyCapabilities)["items"]!.DeepClone().AsObject() };
+            TelefonConnection Connect(bool supported = true, MemoryStream? wire = null, string transport = "wifi") =>
+                new TelefonConnection(peer, wire ?? new MemoryStream(), new byte[16], new byte[72], store, Receive, CancellationToken.None, transport)
+                { SharedLocalCapabilities = () => (supported ? negotiated : legacyCapabilities)["items"]!.DeepClone().AsObject() };
             var caps = Message("capabilities.update", negotiated);
             var allowed = TelefonProtocolContract.DesktopGrants(); allowed["personal_notes_sync"] = true; allowed["personal_tasks_sync"] = true;
             var grants = Message("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = allowed });
@@ -1295,6 +1296,39 @@ internal static class SharedSyncTransportTests
                 var runs = new PersonalSyncStore(store); var runId = request["run_id"]!.GetValue<string>();
                 TestAssert.That(JsonNode.DeepEquals(PhoneContentScope.Reference(next), runs.ScopedRunReference(peer.Id, peer.PublicKey, runId,
                     DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())), "Scoped data dispatcher did not bind its request.");
+
+                using var bluetoothWire = new MemoryStream();
+                using (var bluetooth = Connect(wire: bluetoothWire, transport: "bluetooth"))
+                {
+                    await bluetooth.HandlePlainAsync(caps); await bluetooth.HandlePlainAsync(grants); await bluetooth.HandlePlainAsync(own);
+                    await bluetooth.HandlePlainAsync(Message(SharedSyncSettings.Kind, echoed));
+                    foreach (var part in nextParts) await bluetooth.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
+                    TestAssert.That(JsonNode.DeepEquals(next, bluetooth.CurrentContentScope(PhoneContentScope.Reference(next))),
+                        "Bluetooth fixture did not establish fresh controls and membership.");
+                    var automatic = request.DeepClone().AsObject();
+                    var autoRunId = Guid.NewGuid().ToString("D");
+                    automatic["run_id"] = autoRunId;
+                    automatic["trigger"] = "auto_wifi";
+                    var automaticBody = PhoneContentScope.Wrap("personal_sync.request", automatic, next);
+                    var bluetoothRequest = Message(PhoneContentScope.DataKind, automaticBody);
+                    await bluetooth.HandlePlainAsync(bluetoothRequest);
+                    var bluetoothAck = (await DrainAsync(bluetoothWire)).Single(value =>
+                        JsonNode.DeepEquals(value["message_id"], bluetoothRequest["message_id"]));
+                    TestAssert.That(bluetoothAck["status"]?.GetValue<string>() == "rejected" &&
+                        bluetoothAck["error"]?.GetValue<string>() == "not_granted", "Bluetooth accepted a WLAN-only request.");
+                    var checkedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                    TestAssert.That(runs.LoadRun(peer.Id, autoRunId, checkedAt) is null &&
+                        runs.ScopedRunReference(peer.Id, peer.PublicKey, autoRunId, checkedAt) is null,
+                        "Rejected Bluetooth WLAN-only request left a durable scoped run.");
+
+                    var wifiRequest = Message(PhoneContentScope.DataKind, automaticBody);
+                    await scoped.HandlePlainAsync(wifiRequest);
+                    var wifiAck = (await DrainAsync(scopeWire)).Single(value => JsonNode.DeepEquals(value["message_id"], wifiRequest["message_id"]));
+                    TestAssert.That(wifiAck["status"]?.GetValue<string>() == "accepted" &&
+                        runs.LoadRun(peer.Id, autoRunId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())?.Policy == "wifi_only",
+                        "The same request could not start on WLAN with its WLAN-only policy.");
+                }
+
                 var rawRequest = Message("personal_sync.request", request);
                 await scoped.HandlePlainAsync(rawRequest);
                 using (var db = store.OpenDatabase())

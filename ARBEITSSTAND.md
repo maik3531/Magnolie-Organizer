@@ -83,7 +83,9 @@ aufgeführt.
   Anfragen vor dem Speichern: Ein Bluetooth-Request hinterlässt weder
   Lauf noch Sammlungsbindung. 69 Hosttests bestanden. Notes prüft den
   WLAN-Trigger ebenfalls vor dem Speichern und nimmt dieselbe Anfrage
-  anschließend über WLAN an. 129 Release-JVM-Tests bestanden.
+  anschließend über WLAN an. 129 Release-JVM-Tests bestanden. Windows
+  prüft ebenfalls vor dem Speichern und behält `not_granted` für Bluetooth
+  und `wifi_only` für den WLAN-Lauf bei. Sieben native .NET-Gruppen bestanden.
   Die Automatik über weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt

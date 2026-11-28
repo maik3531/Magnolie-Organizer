@@ -144,7 +144,11 @@ internal sealed partial class TelefonConnection
                     throw new InvalidDataException("Conflicting scoped message identity.");
                 var runs = new PersonalSyncStore(store);
                 if (kind == "personal_sync.request")
+                {
+                    if (body["trigger"]!.GetValue<string>() == "auto_wifi" && transport != "wifi")
+                        throw new InvalidOperationException("WLAN-only request received on another transport.");
                     runs.RememberScopedRun(peer.Id, peer.PublicKey, body, wrapped["scope"]!.AsObject(), Now(), TelefonProtocolContract.Integer(message["expires_ms"]));
+                }
                 else if (!JsonNode.DeepEquals(wrapped["scope"], runs.ScopedRunReference(peer.Id, peer.PublicKey, body["run_id"]!.GetValue<string>(), Now())))
                     throw new InvalidOperationException("Scoped run binding missing or different.");
             }
