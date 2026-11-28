@@ -683,9 +683,9 @@ class NativeGalleryIncomingRuntimeTest {
             val selected = published(); val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
             return f.io { nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, fingerprint, f.book(), permit) }.also { inspection = it }
         }
-        fun operationBinding(): NativeFileOperationBinding {
+        fun operationBinding(selected: DeviceFileManifest = manifest): NativeFileOperationBinding {
             val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel
-            return channel.session.operationBinding(manifest.fingerprint)!!
+            return channel.session.operationBinding(selected.fingerprint)!!
         }
         fun rotatePcSession() {
             val own = DeviceFileControlEnvelope.validate(link.frames.last { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) })
@@ -824,12 +824,12 @@ class NativeGalleryIncomingRuntimeTest {
             val priorInserts = if (collideWithPriorOrigin) 1 else 0
             assertEquals(priorInserts, h.provider.inserts + secondProvider.inserts)
             h.imageBatchReady = true
-            if (changeEarlierRow) {
-                val previous = h.link.onMessage
-                h.link.onMessage = { message ->
-                    previous(message)
-                    if (message.string("kind") == DeviceFileSavedEnvelope.KIND)
-                        secondProvider.afterReadOpen = { h.provider.generation++ }
+            val previous = h.link.onMessage
+            h.link.onMessage = { message ->
+                previous(message)
+                if (message.string("kind") == DeviceFileSavedEnvelope.KIND) {
+                    assertDurablePcSaved(h, joined, offer, message)
+                    if (changeEarlierRow) secondProvider.afterReadOpen = { h.provider.generation++ }
                 }
             }
             val run = h.f.io { h.startDispatched(offer) }
@@ -865,11 +865,67 @@ class NativeGalleryIncomingRuntimeTest {
                     body.getValue("members").jsonObject.mapValues { it.value.jsonObject.string("publication_sha256") })
                 assertTrue(h.link.frames.indexOf(savedMessage) in 0 until h.link.frames.indexOf(message))
                 assertTrue(message.long("expires_ms") <= saved.expires)
+                assertFreshPcSavedReadback(h, offer, joined, savedMessage, GalleryMediaType.IMAGES, 2)
             }
             assertArrayEquals(h.raw, h.file.readBytes()); assertArrayEquals(secondBytes, secondFile.readBytes())
             assertEquals(2, h.provider.inserts + secondProvider.inserts)
             assertEquals(2, h.provider.publishes + secondProvider.publishes)
             assertEquals(0, h.provider.rwOpens + secondProvider.rwOpens)
+        }
+    }
+
+    private fun assertDurablePcSaved(h: Harness, manifest: DeviceFileManifest, offer: JsonObject, saved: JsonObject) {
+        val expected = DeviceFileSavedEnvelope.parse(saved, manifest).members.map { it.receiptSha256 }
+        PhotoSourceJobIndex.openExisting(h.f.indexRoot, h.f.protection).use { reopened ->
+            assertEquals(expected, reopened.incomingPcSaved(manifest, offer, saved)?.map { it.fingerprint })
+            val differentId = JsonPrimitive(java.util.UUID.randomUUID().toString())
+            val differentEnvelope = JsonObject(saved + ("message_id" to differentId))
+            assertThrows(PhotoFolderScopeError::class.java) { reopened.incomingPcSaved(manifest, offer, differentEnvelope) }
+            val outerBody = JsonObject(offer.getValue("body").jsonObject + ("settings" to JsonObject(emptyMap())))
+            val differentOffer = JsonObject(offer + ("body" to outerBody))
+            assertThrows(PhotoFolderScopeError::class.java) { reopened.incomingPcSaved(manifest, differentOffer, saved) }
+        }
+    }
+
+    private fun assertFreshPcSavedReadback(h: Harness, offer: JsonObject, manifest: DeviceFileManifest,
+        saved: JsonObject, kind: GalleryMediaType, format: Int) {
+        h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), kind, h.f.book()) }
+        h.handshake()
+        val consent = h.positive(kind)
+        h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }
+        h.handshake()
+        val current = h.operationBinding(manifest).binding
+        val previous = DeviceFileSavedEnvelope.parse(saved, manifest)
+        assertNotEquals(previous.permissionEpoch, current.permissionEpoch)
+        val nonce = "e".repeat(64)
+        val request = TelefonNachrichten.message(NativeGallerySavedReadbackRequest.KIND, buildJsonObject {
+            put("format", 1)
+            put("offer", offer)
+            put("saved", saved)
+            put("nonce", nonce)
+            put("binding_sha256", DeviceFileControl.digest(
+                "magnolie-pc-saved-readback-control-v1\u0000", current.snapshot()))
+        }, DeviceFileControl.MAX_TTL_MS, System.currentTimeMillis())
+        val frames = h.link.frames.size
+        val protectedRows = h.f.rows()
+        val run = h.f.io {
+            h.runtime.beginSavedPcReadback(h.link.channel, h.link.receive(request), h.f.book(), mixed = false) { h.token }
+        }.also { h.inspection = it }
+        assertTrue(run.awaitIoEnded(10000))
+        run.nativeFailure()?.let { throw it }
+        val response = run.actualReadbackOutput()!!
+        assertEquals(listOf(response), h.link.frames.drop(frames))
+        assertEquals(DevicePublishedReadbackEnvelope.KIND, response.string("kind"))
+        val body = response.getValue("body").jsonObject
+        assertEquals(JsonPrimitive(format), body["format"])
+        assertEquals(JsonPrimitive(nonce), body["readback_nonce"])
+        assertEquals(JsonPrimitive(current.permissionEpoch), body["permission_epoch"])
+        assertEquals(offer["message_id"], body["offer_id"])
+        assertEquals(protectedRows, h.f.rows())
+        assertThrows(PhotoFolderScopeError::class.java) {
+            h.f.io {
+                h.runtime.beginSavedPcReadback(h.link.channel, h.link.receive(request), h.f.book(), mixed = false) { h.token }
+            }
         }
     }
 
@@ -920,6 +976,11 @@ class NativeGalleryIncomingRuntimeTest {
             h.assertReceiveOnly()
             prepareVideoMetadata(h.provider, h.file)
             val packet = h.pcOffer()
+            val previous = h.link.onMessage
+            h.link.onMessage = { message ->
+                previous(message)
+                if (message.string("kind") == DeviceFileSavedEnvelope.KIND) assertDurablePcSaved(h, h.manifest, packet, message)
+            }
             val run = start(packet)
             assertTrue(run.awaitIoEnded(10000)); run.nativeFailure()?.let { throw it }
             val saved = DeviceFileSavedEnvelope.parse(run.actualSavedOutput()!!, h.manifest)
@@ -934,6 +995,7 @@ class NativeGalleryIncomingRuntimeTest {
             assertEquals(packet["message_id"], body["offer_id"])
             assertEquals(saved.members.single().receiptSha256, body.string("publication_sha256"))
             assertTrue(response.long("expires_ms") <= saved.expires && saved.expires <= packet.long("expires_ms"))
+            assertFreshPcSavedReadback(h, packet, h.manifest, run.actualSavedOutput()!!, GalleryMediaType.VIDEO, 1)
             assertArrayEquals(h.raw, h.file.readBytes())
             assertEquals(1, h.provider.inserts)
             assertEquals(1, h.provider.publishes)

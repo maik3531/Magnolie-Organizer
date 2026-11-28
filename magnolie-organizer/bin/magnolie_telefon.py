@@ -2404,7 +2404,11 @@ class SecureChannel:
         acquiring the writer and encrypting but before consuming a sequence.
         """
         raw = canonical(payload)
-        if (len(raw) > 4096 or not callable(current) or type(timeout) not in (int, float) or not 0 < timeout <= 2 or
+        # A whole-batch readback challenge carries exact historical metadata
+        # for every member. It uses the same bounded writer and application cap.
+        saved_readback = isinstance(payload, dict) and payload.get('kind') == 'file_transfer.published.recover'
+        limit = APPLICATION_MAX if saved_readback else 4096
+        if (len(raw) > limit or not callable(current) or type(timeout) not in (int, float) or not 0 < timeout <= 2 or
                 (at_write is not None and not callable(at_write))):
             raise ValueError('invalid ephemeral control send')
         deadline = time.monotonic() + timeout

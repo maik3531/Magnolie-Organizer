@@ -107,10 +107,12 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
         startNative { _ -> prepare() to null }
     internal fun startReadback(prepare: () -> NativeGalleryPublishedReadback): NativeGalleryPublishedReadRun =
         startNative { _ -> prepare().let { it.owner to it } }
-    private class BatchReadback(val offer: JsonObject, val saved: JsonObject, val channel: TelefonSecureChannel)
+    private class BatchReadback(val offer: JsonObject, val saved: JsonObject, val channel: TelefonSecureChannel,
+        val recovery: NativeGallerySavedReadbackRequest?)
     internal fun startBatchReadback(offer: JsonObject, saved: JsonObject, channel: TelefonSecureChannel,
+        recovery: NativeGallerySavedReadbackRequest? = null,
         prepare: () -> NativeGalleryPublishedInspection): NativeGalleryPublishedReadRun =
-        startNative(batch = BatchReadback(offer, saved, channel)) { _ -> prepare() to null }
+        startNative(batch = BatchReadback(offer, saved, channel, recovery)) { _ -> prepare() to null }
     private class ArchiveCopy(val protection: DeviceTransferProtection, val book: NativeGalleryTrashBookPermit,
         val pcWrite: NativeGalleryPcWriteAdmission? = null)
     internal fun startArchive(protection: DeviceTransferProtection, book: NativeGalleryTrashBookPermit,
@@ -148,7 +150,8 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
                 if (archive?.pcWrite != null) writeRequest = rows.preparePublishedPcWriteToApplication(owner, archive.pcWrite,
                     archive.protection, run.cancellation)
                 else if (archive != null) archived = rows.archivePublishedPcToApplication(owner, archive.protection, archive.book, run.cancellation)
-                else if (batch != null) message = rows.readAndSendPublishedBatch(owner, batch.offer, batch.saved, batch.channel, run.cancellation)
+                else if (batch != null) message = rows.readAndSendPublishedBatch(owner, batch.offer, batch.saved,
+                    batch.channel, run.cancellation, batch.recovery)
                 else if (recovery == null) observation = rows.inspectPublished(owner, run.cancellation)
                 else message = recovery.perform(rows, run.cancellation)
             } catch (error: Throwable) { failure = error }

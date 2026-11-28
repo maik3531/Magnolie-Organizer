@@ -90,12 +90,14 @@ class _NativeSourceRetirementJournal:
         self._jobs._catalog.observe(catalog);return result
 
     def write(self,owner,expected,body):
+        from magnolie_media_saved_source_end import _NativePcSavedSourceEnd
         from magnolie_media_source_recovery import (
             _NativeSourceRetirementRecovery, _NativeBatchSourceRetirementRecovery, _NativePcVideoRetirementRecovery,
         )
         recovery=type(owner) in (_NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery,_NativePcVideoRetirementRecovery)
-        batch=type(owner) in (_NativeBatchSourceRetirement,_NativeBatchSourceRetirementRecovery)
-        if (not recovery and type(owner) not in (_NativeSourceRetirement,_NativeBatchSourceRetirement)
+        saved_end=type(owner) is _NativePcSavedSourceEnd
+        batch=type(owner) in (_NativeBatchSourceRetirement,_NativeBatchSourceRetirementRecovery) or saved_end and owner._batch
+        if (not recovery and not saved_end and type(owner) not in (_NativeSourceRetirement,_NativeBatchSourceRetirement)
                 or owner._journal is not self):
             raise TransferError('media_source_retirement_live_owner_required')
         if recovery and expected is None:
@@ -109,7 +111,8 @@ class _NativeSourceRetirementJournal:
             db.execute('BEGIN IMMEDIATE');catalog=self._jobs._catalog.verify(db,key);before=self._read(db,key,job)
             if expected is None:
                 if before is not None:raise TransferError('media_source_retirement_existing_intent_held')
-                body=dict(body,format=3 if type(owner) is _NativeBatchSourceRetirement else 2 if owner._sender._retry_spec is not None else 1,
+                format_number=3 if batch else 2 if not saved_end and owner._sender._retry_spec is not None else 1
+                body=dict(body,format=format_number,
                     scope=self._jobs._scope,database_key=list(key),job_id=job)
                 if body['state']!='archive_planned':raise TransferError('media_source_retirement_invalid_transition')
             elif (before is None or before.version!=expected.version or before.body['state']!='archive_planned'
@@ -175,6 +178,13 @@ def _verify_retirement_exchange(jobs,db,key,ready,body,*,pc_trail=()):
     job=body['job_id'];original=_read_source_exchange(jobs,db,key,job,ready)
     if original is None or original.version!=body['exchange_version']:
         raise TransferError('media_source_retirement_original_exchange_required')
+    if 'recovery' in original.body:
+        # _read_source_exchange authenticated the original and fresh readback
+        # separately, with the protected original job and current static pair.
+        if ((body['format'], ready.body['format'], original.body['format']) not in ((1,3,4),(3,4,5))
+                or db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone()):
+            raise TransferError('media_source_retirement_original_exchange_required')
+        return original
     if body['format']==3:
         if (ready.body['format']!=4 or original.body['format']!=5
                 or db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone()):

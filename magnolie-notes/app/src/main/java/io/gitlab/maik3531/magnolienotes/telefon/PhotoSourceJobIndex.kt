@@ -986,6 +986,74 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         saved
     }
 
+    /** Historical exact Saved-to-row correlation. Callers still need fresh receive
+     * consent and must verify the selected provider rows on the new connection. */
+    internal fun incomingPcSaved(manifest: DeviceFileManifest, offer: JsonObject,
+        message: JsonObject): List<GalleryIncomingPublication>? = gated {
+        val saved = DeviceFileSavedEnvelope.parse(message, manifest, message.long("created_ms"))
+        val name = INCOMING_PC_SAVED_PREFIX + saved.acceptanceSha256
+        val cipher = meta(name) ?: return@gated null
+        val record = parse(protection.open(cipher, "photo-source-jobs-v1/" + name))
+        val ids = (record["publication_ids"] as? JsonArray)?.map { raw ->
+            (raw as? JsonPrimitive)?.takeIf { it.isString && DeviceFileControl.hash(it.content) }?.content
+                ?: fail("gallery_incoming_pc_saved_changed")
+        } ?: fail("gallery_incoming_pc_saved_changed")
+        if (record.keys != setOf("offer_sha256", "saved_sha256", "publication_ids") ||
+            record["offer_sha256"] != JsonPrimitive(DeviceFileControl.digest(INCOMING_PC_OFFER_DOMAIN, offer)) ||
+            record["saved_sha256"] != JsonPrimitive(DeviceFileControl.digest(INCOMING_PC_SAVED_DOMAIN, message)) ||
+            ids.size != saved.members.size || ids.distinct().size != ids.size)
+            fail("gallery_incoming_pc_saved_changed")
+        ids.zip(saved.members).map { (id, receipt) ->
+            val publication = incomingPublication(id) ?: fail("gallery_incoming_pc_saved_changed")
+            if (publication.state != "published" || publication.fingerprint != receipt.receiptSha256 ||
+                publication.body.getValue("origin").jsonObject.string("file_id") != receipt.fileId)
+                fail("gallery_incoming_pc_saved_changed")
+            publication
+        }
+    }
+
+    internal fun recordIncomingPcSaved(owner: NativeGalleryIncomingOwner, acceptance: GalleryIncomingAcceptance,
+        offer: JsonObject, message: JsonObject, publications: List<GalleryIncomingPublication>, wall: () -> Long) = gated {
+        writableMembership()
+        val manifest = owner.manifest
+        val saved = DeviceFileSavedEnvelope.parse(message, manifest, wall())
+        val accepted = acceptance.body
+        val innerOffer = JsonObject(offer + mapOf("kind" to JsonPrimitive(DeviceFileOfferEnvelope.KIND),
+            "body" to offer.getValue("body").jsonObject.getValue("offer")))
+        if (saved.acceptanceSha256 != acceptance.id || incomingAcceptance(acceptance.id)?.body != accepted ||
+            accepted["offer_sha256"] != JsonPrimitive(DeviceFileControl.digest("magnolie-incoming-offer-v1\u0000", innerOffer)) ||
+            accepted["scope_sha256"] != JsonPrimitive(owner.scope.fingerprint(manifest)) ||
+            accepted["binding"] != owner.binding.snapshot() || saved.permissionEpoch != owner.binding.permissionEpoch ||
+            saved.destinationToken != owner.binding.destinationToken || saved.expires > acceptance.expires ||
+            message.long("created_ms") < accepted.long("created_ms") || publications.size != saved.members.size ||
+            publications.zip(saved.members).any { (publication, receipt) ->
+                val origin = publication.body.getValue("origin").jsonObject
+                val pcOrigin = publication.pcOrigin
+                pcOrigin == null || pcOrigin.body != owner.scope.pcOrigins[receipt.fileId]?.body ||
+                    pcOrigin.previousPublication != null || publication.state != "published" ||
+                    publication.body["scope_sha256"] != accepted["scope_sha256"] ||
+                    listOf("binding", "pairing_epoch", "manifest_sha256", "transfer_id").any { origin[it] != accepted[it] } ||
+                    origin["file_id"] != JsonPrimitive(receipt.fileId) ||
+                    publication.fingerprint != receipt.receiptSha256 ||
+                    incomingPublication(publication.id)?.body != publication.body
+            }) fail("gallery_incoming_pc_saved_changed")
+        val name = INCOMING_PC_SAVED_PREFIX + acceptance.id
+        val body = buildJsonObject {
+            put("offer_sha256", DeviceFileControl.digest(INCOMING_PC_OFFER_DOMAIN, offer))
+            put("saved_sha256", DeviceFileControl.digest(INCOMING_PC_SAVED_DOMAIN, message))
+            put("publication_ids", JsonArray(publications.map { JsonPrimitive(it.id) }))
+        }
+        val cipher = protection.seal(frame(body), "photo-source-jobs-v1/" + name)
+        transaction {
+            owner.requireLocal()
+            if (wall() >= saved.expires || meta(name) != null) fail("gallery_incoming_pc_saved_changed")
+            putMeta(name, cipher)
+            owner.requireLocal()
+        }
+        if (incomingPcSaved(manifest, offer, message)?.map { it.body } != publications.map { it.body })
+            fail("gallery_incoming_pc_saved_changed")
+    }
+
     internal fun reserveIncomingPublication(planned: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
         writableMembership(); current()
         if (planned.state != "planned" || planned.row != null) fail("gallery_incoming_planned_required")
@@ -1469,6 +1537,9 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         private const val MEMBER_HEADER = "magnolie-private-photo-source-jobs-v2"
         private const val GALLERY_POLICY = "gallery-policy-v1"
         private const val GALLERY_FENCE = "gallery-policy-v1-repair"
+        internal const val INCOMING_PC_SAVED_PREFIX = "gallery-incoming-pc-saved-v1/"
+        private const val INCOMING_PC_SAVED_DOMAIN = "magnolie-gallery-incoming-pc-saved-v1\u0000"
+        private const val INCOMING_PC_OFFER_DOMAIN = "magnolie-gallery-incoming-pc-offer-v1\u0000"
         private val PRIVATE_FILE = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
         private val PRIVATE_DIRECTORY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)

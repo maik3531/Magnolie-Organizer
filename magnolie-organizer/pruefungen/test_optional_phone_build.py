@@ -41,6 +41,9 @@ def test_actual_desktop_stage_contains_exact_selected_modules_and_resolves_all_r
     assert (runtime / 'magnolie_media_preview.py').exists() is photo
     assert (runtime / 'magnolie_media_offer.py').exists() is photo
     assert (runtime / 'magnolie_media_mixed_preflight.py').exists() is photo
+    for module in ('magnolie_media_saved_readback.py', 'magnolie_media_saved_recovery_proof.py',
+                   'magnolie_media_saved_source_end.py'):
+        assert (runtime / module).exists() is photo
     assert (runtime / 'magnolie_phone_webcam.py').exists() is camera
     assert (runtime / 'magnolie_phone_camera_setup.py').exists() is camera
     assert (runtime / 'magnolie_phone_camera_install.py').exists() is camera

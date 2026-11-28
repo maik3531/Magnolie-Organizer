@@ -3236,6 +3236,28 @@ class TelefonWerk private constructor(private val context: Context, private val 
             channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
             return // Phone requests are never a desktop-to-phone legacy command.
         }
+        if (message["kind"] == JsonPrimitive(NativeGallerySavedReadbackRequest.KIND)) {
+            if (!privatePcReceiveChecked) return
+            val route = synchronized(this) {
+                val owner = galleryFileConnection?.takeIf { it.channel === channel && !it.isEnded }
+                val transport = activeTransport?.takeIf { it.first == TelefonTransportArt.WIFI }
+                if (owner == null || transport == null || !sessionTransportAktuell(channel, generation)) null
+                else owner to transport.second
+            } ?: return
+            val (connection, pipe) = route
+            val documents = Ablage.hole(context)
+            fun live() = activeChannel === channel && pairingGeneration == generation &&
+                activeTransport?.second === pipe && !connection.isEnded && nativeGalleryHandlersReady
+            try {
+                val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+                    Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+                }
+                connection.receiveSavedPcReadback(channel, message, book, ::live)
+            } catch (_: PhotoFolderScopeError) {
+                // An unaffiliated or revoked historical request does not open an incoming run.
+            }
+            return
+        }
         if (message["kind"] == JsonPrimitive(MediaMixedPreflight.REQUEST)) {
             if (!nativePcMixedChecked) return
             val route = synchronized(this) {

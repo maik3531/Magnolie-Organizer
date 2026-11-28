@@ -5,7 +5,7 @@ from pathlib import Path
 import socket
 import sys
 from tempfile import TemporaryDirectory
-from threading import Thread
+from threading import Event, Thread
 from time import monotonic
 from unittest.mock import patch
 from uuid import uuid4
@@ -17,6 +17,8 @@ from magnolie_file_accept_message import KIND as ACCEPT
 from magnolie_file_saved_message import KIND as SAVED
 from magnolie_file_published_readback import KIND as READBACK
 from magnolie_media_mixed_preflight import RESULT as MIXED_READY
+from magnolie_media_saved_readback import pending_original
+from magnolie_media_saved_source_end import _NativePcSavedSourceEnd
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_media_source_choice import NativeCollectionRoot, native_folder_witness
 from magnolie_media_source_jobs import _NativeSourceJobs
@@ -101,8 +103,15 @@ class MixedDesktop(PhoneService):
     """Real control, shared agreement, picker, manual action and original source END."""
     phase = 'settings'
     interrupt_source_end = None
+    interrupt_after_saved = None
+    interrupted_channel = None
+    interrupted_session = None
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
+        if channel is self.interrupted_channel:
+            # shutdown can leave a frame in the receive buffer. Nothing
+            # from that socket is delivered past the injected loss.
+            return
         super()._payload(peer, channel, payload, scoped_reference)
         support = self._native_media_support.get(channel)
         if support is None or not support.supports(channel):
@@ -116,7 +125,59 @@ class MixedDesktop(PhoneService):
         def sync():
             self.photo_sync_action(peer_id, fpr, dict(action='sync_shared'))
 
-        if self.phase == 'settings' and owner is None:
+        if self.phase == 'resume-settings' and owner is None:
+            state = self.photo_sync_state(peer_id)['shared_media']
+            self.photo_sync_action(peer_id, fpr, dict(action='shared_setting', field='direction',
+                                   value='pc_to_phone', version=state['version']))
+            self.phase = 'resume-controls'
+        elif self.phase == 'resume-controls' and owner is not None:
+            remote = owner._controls._remote
+            if owner._private_mixed_collection_intent() is not None and remote is not None and remote.grants.receive_files:
+                # The old owner has drained. Verify the persisted original
+                # before starting any new worker against the same database.
+                ready, exchange, _ = pending_original(_NativeSourceJobs(owner._authority), (self.interrupt_after_saved,))
+                assert ready.body['job_id'] == self.job
+                assert exchange.body['phase'] == 'peer_saved' and exchange.body['peer_saved'] == self.saved
+                assert exchange.body['peer_readback'] is None
+                self.phase = 'resume-run'
+                sync()
+        elif self.phase == 'resume-run' and kind == MIXED_READY:
+            self.phase = 'resume-check'
+
+            def inspect_recovery():
+                session = owner.desktop_session()
+                if not self.recovered_archive.wait(45) or not session.join(45):
+                    import faulthandler
+                    faulthandler.dump_traceback(file=sys.stderr)
+                    sender = owner._media_sender
+                    phase = sender._record.body['phase'] if sender is not None and sender._record is not None else None
+                    raise AssertionError((self.recovered_archive.is_set(), self.phase, phase, session.snapshot()))
+                status = session.snapshot()
+                if status['state'] == 'complete':
+                    assert len(self.ended) == 2 and owner._media_sender is None
+                    self._require_archived(owner)
+                    assert all(path.read_bytes() == raw for path, raw in self.originals.items())
+                print('after-saved-retry', status['state'], status['error'] or 'none', flush=True)
+                self.heartbeat = True
+                channel.send(dict(type='close', reason='normal'))
+
+            Thread(target=inspect_recovery, name='after-saved-retry-proof').start()
+        elif self.phase == 'resume-check' and kind == READBACK:
+            assert owner._media_sender is None
+            is_batch = self.interrupt_after_saved == 'images'
+            assert payload['body']['format'] == (2 if is_batch else 1)
+            assert payload['body']['offer_id'] == self.offer['message_id']
+            # The grant epoch persists across a reconnect when no grants
+            # were changed. The FS1 reader and native control handshake rotate.
+            assert channel is not self.interrupted_channel
+            assert owner._controls._session_epoch != self.interrupted_control_session
+            members = payload['body']['members'] if is_batch else {payload['body']['file_id']: payload['body']}
+            assert {file_id: member['publication_sha256'] for file_id, member in members.items()} == {
+                member['file_id']: member['receipt_sha256'] for member in self.saved['body']['receipts']}
+            self.ended.append(self.job)
+            self.phase = 'offer'
+            print('reconnect readback accepted', self.interrupt_after_saved, file=sys.stderr, flush=True)
+        elif self.phase == 'settings' and owner is None:
             state = self.photo_sync_state(peer_id)['shared_media']
             self.photo_sync_action(peer_id, fpr, dict(action='shared_setting', field='direction',
                                    value='pc_to_phone', version=state['version']))
@@ -180,9 +241,24 @@ class MixedDesktop(PhoneService):
             assert payload['body']['offer_id'] == self.offer['message_id']
             self._require_archived(owner)
             self.phase = 'copy'
+            if channel is not self.interrupted_channel and self.resumed and self.interrupt_after_saved:
+                print('reconnect outstanding offer accepted', expected_kind, file=sys.stderr, flush=True)
         elif self.phase == 'copy' and kind == SAVED:
             self.saved = payload
             self.phase = 'readback'
+            if self.resumed and self.interrupt_after_saved:
+                print('reconnect outstanding Saved accepted', self.offer['body']['media_type'], file=sys.stderr, flush=True)
+            if self.interrupt_after_saved == self.offer['body']['media_type'] and self.interrupted_channel is None:
+                sender = owner._media_sender
+                exchange = sender._record.body
+                assert exchange['phase'] == 'peer_saved' and exchange['peer_saved'] == payload
+                assert exchange['peer_readback'] is None
+                self.interrupted_channel = channel
+                self.interrupted_control_session = owner._controls._session_epoch
+                self.interrupted_session = owner.desktop_session()
+                self.phase = 'resume-settings'
+                channel.sock.shutdown(socket.SHUT_RDWR)
+                print(self.interrupt_after_saved + '-saved-without-readback', flush=True)
         elif self.phase == 'readback' and kind == READBACK:
             assert payload['body']['format'] == (2 if self.offer['body']['format'] == 3 else 1)
             assert payload['body']['offer_id'] == self.offer['message_id']
@@ -200,6 +276,8 @@ class MixedDesktop(PhoneService):
                 sync()
                 return
             if len(self.ended) == 2:
+                if self.interrupt_after_saved:
+                    return # The reconnect proof owner reads both original END records.
                 session = owner.desktop_session()
                 assert session.join(35) and session.snapshot()['state'] == 'complete', session.snapshot()
                 assert session.snapshot()['saved_files'] == (1 if self.interrupt_source_end == 'images' else 2)
@@ -252,7 +330,8 @@ class MixedDesktop(PhoneService):
         assert all(journal.lookup(job).body['state'] == 'archived' for job in self.ended)
 
 
-def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, interrupt_source_end=None):
+def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, interrupt_source_end=None,
+         interrupt_after_saved=None):
     with TemporaryDirectory(prefix='magnolie-media-paired-') as root, socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(('127.0.0.1', 0)); listener.listen(1); listener.settimeout(10)
         desktop = MixedDesktop if mixed else Desktop
@@ -264,6 +343,8 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, 
         NativeDesktopFileConnection._data_handlers_ready = True
         if mixed:
             service.interrupt_source_end = interrupt_source_end
+            service.interrupt_after_saved = interrupt_after_saved
+            service.recovered_archive = Event()
             service._native_pc_image_batch_checked = service._native_pc_video_checked = service._native_pc_mixed_checked = True
             book = Path(root) / 'daten.json'
             book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":30}}}', encoding='utf-8')
@@ -299,7 +380,17 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, 
 
             retirement_init(owner, sender, backups, selected, boundary=fault)
 
-        for resumed in range(2 if reconnect else 1):
+        original_source_end = _NativePcSavedSourceEnd.run
+
+        def recovered_source_end(end):
+            result = original_source_end(end)
+            assert service.resumed and end._job == service.job
+            assert result.body['state'] == 'archived'
+            print('reconnected-original-archived', flush=True)
+            service.recovered_archive.set()
+            return result
+
+        for resumed in range(2 if reconnect or interrupt_after_saved else 1):
             service.resumed = bool(resumed)
             service.ping = service.settings_owner = None
             service.heartbeat = False
@@ -311,12 +402,19 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, 
                     # process, without editing or reading a user's build configuration.
                     with (patch.object(phone.optional_phone, 'available', lambda name: name == 'photo_sync'),
                           patch.object(phone, 'desktop_capabilities', fixture_capabilities),
+                          patch.object(_NativePcSavedSourceEnd, 'run',
+                                       recovered_source_end if interrupt_after_saved else original_source_end),
                           patch.object(retirement, '__init__',
                                        interrupt_retirement if interrupt_source_end else retirement_init)):
                         service._session(client, start)
                 except EOFError:
-                    if not service.heartbeat:
+                    if not (service.heartbeat or interrupt_after_saved and not resumed and service.interrupted_session):
                         raise
+            if interrupt_after_saved and not resumed:
+                assert service.interrupted_session is not None and service.interrupted_session.join(20)
+                assert not service._native_file_connections and not service._native_media_support
+                print('interrupted-parent-drained', flush=True)
+                continue
             assert service.heartbeat and not service._native_media_support and not service._native_file_connections
             assert not video_sender or service.closed_video_owner
             print('same-parent-pong', flush=True)
@@ -324,10 +422,12 @@ def main(test_settings=False, reconnect=False, video_sender=False, mixed=False, 
 
 if __name__ == '__main__':
     recovery_commands = {'--pc-send-mixed-recovery': 'images', '--pc-send-mixed-video-recovery': 'video'}
-    assert sys.argv[1:] in ([], ['--settings'], ['--reconnect'], ['--video-sender'],
+    saved_commands = {'--pc-send-mixed-interrupt-saved': 'images', '--pc-send-mixed-interrupt-video-saved': 'video'}
+    interrupt_after_saved = saved_commands.get(sys.argv[1]) if len(sys.argv) == 2 else None
+    assert interrupt_after_saved or sys.argv[1:] in ([], ['--settings'], ['--reconnect'], ['--video-sender'],
                            ['--pc-send-mixed'], *([command] for command in recovery_commands))
     recovery = recovery_commands.get(sys.argv[1]) if len(sys.argv) == 2 else None
     main(test_settings=bool(sys.argv[1:]), reconnect=sys.argv[1:] == ['--reconnect'],
          video_sender=sys.argv[1:] == ['--video-sender'],
-         mixed=sys.argv[1:] == ['--pc-send-mixed'] or recovery is not None,
-         interrupt_source_end=recovery)
+         mixed=sys.argv[1:] == ['--pc-send-mixed'] or recovery is not None or interrupt_after_saved is not None,
+         interrupt_source_end=recovery, interrupt_after_saved=interrupt_after_saved)

@@ -11,9 +11,10 @@ import java.util.concurrent.atomic.AtomicReference
  * Sending is possible only inside the rows owner's unexported actual-completion
  * permit, after full original readback and native media inspection. */
 internal class NativeGalleryPublishedReadback private constructor(internal val owner: NativeGalleryPublishedInspection,
-    private val offer: JsonObject, private val channel: TelefonSecureChannel) : AutoCloseable {
+    private val offer: JsonObject, private val channel: TelefonSecureChannel,
+    private val recovery: NativeGallerySavedReadbackRequest?) : AutoCloseable {
     private val origin = owner.selected.body.getValue("origin").jsonObject
-    private val nonce = NativeHex.lower(ByteArray(32).also(SecureRandom()::nextBytes))
+    private val nonce = recovery?.nonce ?: NativeHex.lower(ByteArray(32).also(SecureRandom()::nextBytes))
     private val offerSha256 = DeviceFileControl.digest("magnolie-published-readback-offer-v1\u0000", offer)
     private val started = AtomicBoolean(false)
     private val ended = AtomicBoolean(false)
@@ -28,8 +29,14 @@ internal class NativeGalleryPublishedReadback private constructor(internal val o
         if (DeviceFileControl.digest("magnolie-published-readback-offer-v1\u0000", offer) != offerSha256) fail()
         val binding = owner.bindingForReadback(origin.string("manifest_sha256"))
         val now = System.currentTimeMillis()
-        val manifest = DeviceFileOfferEnvelope.validate(offer, binding.senderId, binding.receiverId, now)
-        if (now < offer.long("created_ms") || now >= offer.long("expires_ms")) fail()
+        recovery?.requireLive(now)
+        val manifest = if (recovery == null) {
+            if (now < offer.long("created_ms") || now >= offer.long("expires_ms")) fail()
+            DeviceFileOfferEnvelope.validate(offer, binding.senderId, binding.receiverId, now)
+        } else {
+            if (recovery.media.offer != offer || recovery.control.binding != binding) fail()
+            recovery.media.manifest
+        }
         val file = manifest.files.singleOrNull() ?: fail()
         val body = owner.selected.body
         if (manifest.fingerprint != origin.string("manifest_sha256") || manifest.transferId != origin.string("transfer_id") ||
@@ -61,17 +68,20 @@ internal class NativeGalleryPublishedReadback private constructor(internal val o
         }
         val binding = owner.bindingForReadback(DevicePublishedReadbackEnvelope.destinationToken(context))
         val body = DevicePublishedReadbackEnvelope.encodeBody(context, binding)
-        val now = System.currentTimeMillis(); val remaining = minOf(DeviceFileControl.MAX_TTL_MS, offer.long("expires_ms") - now)
+        val now = System.currentTimeMillis()
+        val remaining = minOf(DeviceFileControl.MAX_TTL_MS, (recovery?.expires ?: offer.long("expires_ms")) - now)
         if (remaining <= 0) fail()
         val message = TelefonNachrichten.message(DevicePublishedReadbackEnvelope.KIND, body, remaining, now)
-        DevicePublishedReadbackEnvelope.parse(message, offer, binding, owner.kind, now)
+        if (recovery == null) DevicePublishedReadbackEnvelope.parse(message, offer, binding, owner.kind, now)
         check(); channel.send(message); check(); output.set(message)
     }
     internal fun actualOutput(): JsonObject? = output.get()
     override fun close() { ended.set(true); owner.close() }
     companion object {
-        internal fun capture(owner: NativeGalleryPublishedInspection, offer: JsonObject, channel: TelefonSecureChannel): NativeGalleryPublishedReadback =
-            try { NativeGalleryPublishedReadback(owner, offer, channel) } catch (error: Throwable) { owner.close(); throw error }
+        internal fun capture(owner: NativeGalleryPublishedInspection, offer: JsonObject, channel: TelefonSecureChannel,
+            recovery: NativeGallerySavedReadbackRequest? = null): NativeGalleryPublishedReadback =
+            try { NativeGalleryPublishedReadback(owner, offer, channel, recovery) }
+            catch (error: Throwable) { owner.close(); throw error }
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_published_native_readback_required")
     }
 }

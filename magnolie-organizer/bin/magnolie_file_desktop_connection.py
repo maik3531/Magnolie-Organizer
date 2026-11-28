@@ -15,7 +15,7 @@ import time
 import uuid
 from cryptography.exceptions import InvalidTag
 
-from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFileControlSession
+from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFileControlSession, _hex
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_sources import _body
 import magnolie_file_sources as source_messages
@@ -138,6 +138,7 @@ class NativeDesktopFileConnection:
             and self._private_pc_video_runtime and self._private_pc_image_runtime)
         self._mixed_preflight = None
         self._mixed_preflight_scope = None
+        self._saved_pc_readback = None
         self._mixed_pass = None
         self._private_outgoing_bound = None
         self._wifi_output_choice = None
@@ -406,6 +407,13 @@ class NativeDesktopFileConnection:
             return self._send_controls(clock)
 
     def receive(self, message, *, clock=now_ms):
+        if message.get('kind') == PUBLISHED_READBACK and self._saved_pc_readback is not None:
+            with self._operation(incoming=True):
+                owner = self._saved_pc_readback
+                if owner is None:
+                    raise TransferError('media_saved_readback_current_owner_required')
+                owner(message, clock())
+                return
         if message.get('kind') in (ACCEPT,CHUNK_REQUEST,SAVED,PUBLISHED_READBACK):
             sender=self._media_sender
             if sender is None:raise TransferError('media_source_sender_actual_preparation_required')
@@ -859,6 +867,130 @@ class NativeDesktopFileConnection:
                 return recover_pending_pc_source_end(source, current, kinds)
             finally:
                 source.close()
+
+    def recover_pending_pc_source(self, native_current, kinds, stopped, mixed=None):
+        """Read back and archive the pending PC original without creating a sender."""
+        from magnolie_media_saved_readback import create_request, pending_original, require_reply
+        from magnolie_media_saved_recovery_proof import record_recovered_pc_exchange
+        from magnolie_media_saved_source_end import _NativePcSavedSourceEnd
+        from magnolie_media_source_jobs import _NativeSourceJobs
+        from magnolie_media_retention import NativeMediaRetention
+
+        source = self._media_pc_source
+        if source is None:
+            return None
+        jobs = _NativeSourceJobs(source._authority)
+        original = pending_original(jobs, kinds)
+        if original is None:
+            return None
+        ready, exchange, manifest = original
+        kind = ready.body['media_type']
+        preferences = self._preferences
+        with self._operation(incoming=True):
+            expected = preferences.read()
+            action = preferences.issue_action()
+            action.consume(preferences)
+            permission, _ = source._source_permission(action, expected, kind)
+            controls = self._controls
+            token = self._private_worker_intent(kind,mixed=mixed)
+            peer = self._authority.current_peer()
+            if (token is None or peer is None or peer.pairing_epoch != ready.body['pairing_epoch']
+                    or manifest.receiver_id != peer.peer_id or ready.body['source_policy_sha256'] != expected.version
+                    or expected.policy is None or expected.policy.collection_roots is None
+                    or expected.policy.collection_roots.wire() != ready.body['root_catalog']):
+                raise TransferError('media_saved_readback_original_context_required')
+            with NativeMediaRetention(self._authority.binding.native_directory) as retention:
+                if retention.saved_book_version() != ready.body['book_version']:
+                    raise TransferError('media_source_original_book_required')
+            origin = (next(iter(ready.body['members'].values()))['local_origin']
+                      if kind == 'images' else ready.body['local_origin'])
+            with closing(preferences.open_collection_roots()) as roots:
+                if roots.witness().wire() != ready.body['root_catalog']:
+                    raise TransferError('media_source_recovery_original_root_required')
+                selected = next((root for root in roots.read().roots
+                    if root.id == origin['root_id'] and root.version == origin['root_version']), None)
+                if selected is None:
+                    raise TransferError('media_source_recovery_original_root_required')
+                with closing(roots.open_root(selected, native_current)):
+                    native_current()
+            with controls._gate:
+                binding = controls.binding(manifest.fingerprint,sender_is_local=True)
+                control_session = (controls._session_epoch, controls._remote.challenge) if binding is not None else None
+        if control_session is None:
+            raise TransferError('media_saved_readback_binding_required')
+        def owner_current():
+            native_current()
+            permission()
+            if (stopped() or self._media_pc_source is not source or self._controls is not controls
+                    or self._authority.current_peer() != peer
+                    or self._private_worker_intent(kind,mixed=mixed) is not token):
+                raise TransferError('media_saved_readback_current_owner_required')
+            if mixed is not None:
+                mixed.require_worker(self._desktop_session)
+            with controls._gate:
+                if (controls.binding(manifest.fingerprint,sender_is_local=True) != binding
+                        or (controls._session_epoch, controls._remote.challenge) != control_session):
+                    raise TransferError('media_saved_readback_binding_required')
+            return True
+
+        def require_idle():
+            owner_current()
+            if (self._saved_pc_readback is not None or self._media_sender is not None
+                    or self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+                    or self._source_pending is not None or self._source_run is not None or self._collection_preparation_active()):
+                raise TransferError('media_saved_readback_current_owner_required')
+
+        if 'recovery' in exchange.body:
+            with self._operation(incoming=True):
+                require_idle()
+                return _NativePcSavedSourceEnd(source, ready, exchange, owner_current).run()
+
+        request = create_request(exchange.body['offer'], exchange.body['peer_saved'], binding, now_ms())
+        deadline = time.monotonic() + MAX_TTL_MS/1000
+        event = threading.Event()
+        reply = None
+
+        def current():
+            writer_current()
+            owner_current()
+
+        def observe(message, clock):
+            nonlocal reply
+            current()
+            raw = message.get('body')
+            if reply is not None or type(raw) is not dict or not _hex(raw.get('destination_token')):
+                raise TransferError('media_saved_readback_invalid_reply')
+            reply_binding = controls.binding(raw['destination_token'],sender_is_local=True)
+            require_reply(message, request, binding, reply_binding, clock)
+            current()
+            reply = message
+            event.set()
+
+        def writer_current():
+            if (self._closed.is_set() or stopped() or time.monotonic() >= deadline
+                    or now_ms() >= request['expires_ms'] or self._media_transport._intent is not token):
+                raise TransferError('media_saved_readback_current_owner_required')
+
+        try:
+            with self._operation(incoming=True):
+                require_idle()
+                writer_current()
+                self._saved_pc_readback = observe
+                self._channel.send_ephemeral(request, writer_current)
+                current()
+            while not event.wait(.1):
+                writer_current()
+            with self._operation(incoming=True):
+                current()
+                if pending_original(jobs, kinds) != original:
+                    raise TransferError('media_saved_readback_original_exchange_required')
+                recovered = record_recovered_pc_exchange(jobs, ready, exchange, binding, request, reply, current)
+                self._saved_pc_readback = None
+                return _NativePcSavedSourceEnd(source, ready, recovered, owner_current).run()
+        finally:
+            with self._gate:
+                if self._saved_pc_readback is observe:
+                    self._saved_pc_readback = None
 
     def prepare_worker_pc_image_batch(self,worker,expected,selected,members):
         from magnolie_media_source_collection_pass import NativeCollectionPass
@@ -4585,6 +4717,8 @@ class NativePhotoDesktopSession:
                 if operation=='sync_shared' and private_output is not None:
                     output_kinds=('images','video') if mixed_admission is not None else (private_output[0],)
                     self.connection.recover_pending_pc_source_end(shared_constraint.require_current,output_kinds,mixed_admission)
+                    self.connection.recover_pending_pc_source(
+                        shared_constraint.require_current,output_kinds,self._stop.is_set,mixed_admission)
                 from magnolie_media_retention import maintain_native_media_trash
                 if not private_media or private_output is None:
                     maintain_native_media_trash(self.connection._authority.binding.native_directory,shared_constraint.require_current)

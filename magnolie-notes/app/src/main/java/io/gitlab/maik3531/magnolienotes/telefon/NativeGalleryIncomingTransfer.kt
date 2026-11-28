@@ -17,7 +17,8 @@ import java.util.concurrent.atomic.AtomicReference
 internal class NativeGalleryIncomingTransfer private constructor(private val owner: NativeGalleryIncomingOwner,
     private val channel: TelefonSecureChannel, private val index: PhotoSourceJobIndex,
     private val rows: NativeGalleryIncomingRows, private val mimeTypes: Map<String, String>,
-    internal val acceptance: GalleryIncomingAcceptance, private val wall: () -> Long) : AutoCloseable {
+    internal val acceptance: GalleryIncomingAcceptance, private val wall: () -> Long,
+    private val pcOffer: JsonObject?) : AutoCloseable {
     private class Pending(val request: DeviceFileChunkRequest) {
         val ready = CountDownLatch(1)
         val sent = AtomicBoolean(false)
@@ -154,6 +155,10 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
                 }))
             }, acceptance.expires - now, now)
             DeviceFileSavedEnvelope.parse(message, owner.manifest, now)
+            pcOffer?.let { original ->
+                current()
+                index.recordIncomingPcSaved(owner, acceptance, original, message, published, wall)
+            }
             current(); channel.send(message); current(); publishedOutput = published.toList(); savedSent.set(true)
             return message // Actual output only, never peer ACK, quota retirement or bilateral completion.
         } catch (error: Exception) { close(); throw error }
@@ -168,7 +173,7 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
     companion object {
         internal fun prepare(owner: NativeGalleryIncomingOwner, channel: TelefonSecureChannel, index: PhotoSourceJobIndex,
             rows: NativeGalleryIncomingRows, offer: JsonObject, mimeTypes: Map<String, String>,
-            wall: () -> Long = System::currentTimeMillis): NativeGalleryIncomingTransfer {
+            wall: () -> Long = System::currentTimeMillis, pcOffer: JsonObject? = null): NativeGalleryIncomingTransfer {
             if (Looper.myLooper() == Looper.getMainLooper()) fail("gallery_incoming_worker_io_required")
             owner.requireChannel(channel)
             if (mimeTypes.keys != owner.manifest.files.map { it.id }.toSet()) fail("gallery_incoming_media_metadata_required")
@@ -188,7 +193,7 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
                 index.reserveIncomingAcceptance(value, owner::requireLocal)
             }
             owner.requireChannel(channel)
-            return NativeGalleryIncomingTransfer(owner, channel, index, rows, mimeTypes.toMap(), saved, wall)
+            return NativeGalleryIncomingTransfer(owner, channel, index, rows, mimeTypes.toMap(), saved, wall, pcOffer)
         }
         private fun fail(code: String): Nothing = DeviceFileControl.fail(code)
     }

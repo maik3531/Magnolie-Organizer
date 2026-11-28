@@ -42,6 +42,17 @@ def test_actual_ephemeral_and_normal_writes_share_original_crypto_sequence_witho
     assert receive(channel, peer) == {'type': 'pong'} and channel.send_seq == 2
 
 
+def test_readback_metadata_can_exceed_control_cap_without_enlarging_other_controls(link):
+    channel, peer = link
+    value = dict(type='message', kind='file_transfer.published.recover', body={'fixture': 'a' * 8192})
+    with pytest.raises(ValueError, match='invalid ephemeral control send'):
+        channel.send_ephemeral(dict(value, kind='file_transfer.media_mixed_preflight'), lambda: None)
+    assert channel.send_seq == 0
+    channel.send_ephemeral(value, lambda: None)
+    assert receive(channel, peer) == value and channel.send_seq == 1
+    assert channel.sock.gettimeout() == .1
+
+
 def test_busy_original_writer_has_a_deadline_and_does_not_publish_or_close_parent(link):
     channel, peer = link
     channel.lock.acquire()

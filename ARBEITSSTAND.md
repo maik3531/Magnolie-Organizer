@@ -226,8 +226,15 @@ aufgeführt.
   MP4-Saved/v1 kann der manuelle Lauf auch dessen unterbrochenen
   Quellenabschluss lokal fortsetzen. Im gekoppelten Mischlauf behielt
   Notes genau eine Veröffentlichung je Typ, und der Folgelauf
-  übertrug keine Medien. Unterbrechungen vor dem vollständigen Rücklesen,
-  gemischte WLAN-Automatik und Änderungen vorhandener Galeriezeilen
+  übertrug keine Medien. Bei einem Verbindungsabbruch nach dauerhaftem
+  Saved, aber vor der Rücklesung, kann „Jetzt synchronisieren“ in der
+  privaten Linux-/Notes-Konfiguration bereits veröffentlichte
+  Originale über eine frisch bestätigte Verbindung erneut rücklesen.
+  Im gekoppelten Test wurden Foto-v2 und MP4-v1 jeweils nach einem
+  eigenen TCP-Abbruch bytegleich überprüft, lokal gesichert und im
+  ursprünglichen Job abgeschlossen. Notes veröffentlichte jede Datei
+  genau einmal. Installierte Paketpaare, gemischte WLAN-Automatik,
+  Windows-Wiederaufnahme und Änderungen vorhandener Galeriezeilen
   bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl

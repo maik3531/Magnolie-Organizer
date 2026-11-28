@@ -101,9 +101,27 @@ class NativeMediaSupportSessionTest {
         pairedSession(testSettings = false, mixed = true, recoverEnd = GalleryMediaType.VIDEO)
     }
 
+    @Test
+    @Config(shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
+        GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun manualRetryReadsAnAlreadySavedPhotoAfterTransportLossWithoutRepublishingIt() {
+        org.junit.Assume.assumeTrue(BuildConfig.PRIVATE_PC_MIXED_PREFLIGHT)
+        pairedSession(testSettings = false, mixed = true, interruptAfterSaved = GalleryMediaType.IMAGES)
+    }
+
+    @Test
+    @Config(shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
+        GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun manualRetryReadsAnAlreadySavedVideoAfterTransportLossWithoutRepublishingIt() {
+        org.junit.Assume.assumeTrue(BuildConfig.PRIVATE_PC_MIXED_PREFLIGHT)
+        pairedSession(testSettings = false, mixed = true, interruptAfterSaved = GalleryMediaType.VIDEO)
+    }
+
     private fun pairedSession(testSettings: Boolean, reconnect: Boolean = false, videoSender: Boolean = false,
         imageBatchPeer: File? = null, sendImages: Boolean = false, mixed: Boolean = false,
-        recoverEnd: GalleryMediaType? = null) {
+        recoverEnd: GalleryMediaType? = null, interruptAfterSaved: GalleryMediaType? = null) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -128,6 +146,8 @@ class NativeMediaSupportSessionTest {
             assertTrue(script.isFile)
             val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
                 when {
+                    interruptAfterSaved == GalleryMediaType.IMAGES -> listOf("--pc-send-mixed-interrupt-saved")
+                    interruptAfterSaved == GalleryMediaType.VIDEO -> listOf("--pc-send-mixed-interrupt-video-saved")
                     recoverEnd == GalleryMediaType.IMAGES -> listOf("--pc-send-mixed-recovery")
                     recoverEnd == GalleryMediaType.VIDEO -> listOf("--pc-send-mixed-video-recovery")
                     mixed -> listOf("--pc-send-mixed")
@@ -174,7 +194,8 @@ class NativeMediaSupportSessionTest {
             val session = TelefonWerk::class.java.getDeclaredMethod("session", TelefonPeer::class.java,
                 TelefonTransportArt::class.java, TelefonRoehre::class.java, String::class.java, String::class.java,
                 Boolean::class.javaPrimitiveType, kotlin.jvm.functions.Function0::class.java).apply { isAccessible = true }
-            repeat(if (reconnect) 2 else 1) {
+            var checkInterruptedGallery: (() -> Unit)? = null
+            repeat(if (reconnect || interruptAfterSaved != null) 2 else 1) { attempt ->
                 TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
                     // Local archive and a quiet rerun intentionally send no
                     // frames. Keep the stage and wire deadlines independent.
@@ -185,9 +206,20 @@ class NativeMediaSupportSessionTest {
                     })
                     val reader = tasks.submit { session.invoke(work, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {}) }
                     try {
-                        if (mixed) checkMixedPass(context as Application, work, { pump, seconds ->
+                        if (mixed && attempt == 0) checkInterruptedGallery = checkMixedPass(context as Application, work, { pump, seconds ->
                             readHost(pumpUi = pump, seconds = seconds)
-                        }, { line -> hostInput.write("$line\n"); hostInput.flush() })
+                        }, { line -> hostInput.write("$line\n"); hostInput.flush() }, interruptAfterSaved)
+                        if (interruptAfterSaved != null && attempt == 1) {
+                            assertEquals("reconnected-original-archived", readHost(pumpUi = true, seconds = 55))
+                            val outcome = readHost(pumpUi = true, seconds = 75)
+                            val expected = "after-saved-retry complete none"
+                            if (expected != outcome) {
+                                val readerError = runCatching { reader.get(4, TimeUnit.SECONDS) }.exceptionOrNull()
+                                assertEquals("${errors.readText().takeLast(6000)}\n${readerError?.stackTraceToString().orEmpty().take(6500)}",
+                                    expected, outcome)
+                            }
+                            checkNotNull(checkInterruptedGallery).invoke()
+                        }
                         if (imageBatchPeer != null) {
                             assertEquals("image-batch-live", readHost())
                             val channel = field(TelefonWerk::class.java, "activeChannel").get(work) as TelefonSecureChannel
@@ -287,8 +319,17 @@ class NativeMediaSupportSessionTest {
                             assertEquals(1, gallery.publishes)
                             assertEquals(0, gallery.rwOpens)
                         }
-                        assertEquals("same-parent-pong", readHost(pumpUi = videoSender))
-                        reader.get(5, TimeUnit.SECONDS)
+                        if (interruptAfterSaved != null && attempt == 0) {
+                            assertEquals("interrupted-parent-drained", readHost(pumpUi = true, seconds = 26))
+                            val failure = assertThrows(java.util.concurrent.ExecutionException::class.java) {
+                                reader.get(5, TimeUnit.SECONDS)
+                            }
+                            val io = (failure.cause as? java.lang.reflect.InvocationTargetException)?.targetException
+                            assertTrue("Unexpected failure on the intentionally dropped connection: $io", io is java.io.IOException)
+                        } else {
+                            assertEquals("same-parent-pong", readHost(pumpUi = videoSender))
+                            reader.get(5, TimeUnit.SECONDS)
+                        }
                     } catch (error: Exception) {
                         val galleryProgress = gallery?.let {
                             " Gallery progress: inserts=${it.inserts}, writes=${it.writeOpens}, publications=${it.publishes}, reads=${it.readOpens}."
@@ -325,7 +366,7 @@ class NativeMediaSupportSessionTest {
     }
 
     private fun checkMixedPass(app: Application, work: TelefonWerk, readHost: (Boolean, Long) -> String,
-        command: (String) -> Unit) {
+        command: (String) -> Unit, interruptAfterSaved: GalleryMediaType?): (() -> Unit)? {
         GalleryIncomingRowsTest().mountedPrimaryVolume()
         val image = File(app.cacheDir, "paired-mixed.png")
         val video = File(app.cacheDir, "paired-mixed.mp4")
@@ -402,6 +443,26 @@ class NativeMediaSupportSessionTest {
             activity.pause().stop().destroy()
         }
         ping("b15ff3d5-b4b5-4948-adb7-99795dcadb42")
+        if (interruptAfterSaved != null) {
+            assertEquals("${interruptAfterSaved.uriSegment}-saved-without-readback", readHost(true, 65))
+            val checkPhoto = {
+                assertArrayEquals(png, image.readBytes())
+                assertEquals(1, photos.inserts)
+                assertEquals(1, photos.publishes)
+                assertEquals(1, photos.writeOpens)
+                assertEquals(0, photos.rwOpens)
+            }
+            val checkVideo = {
+                assertArrayEquals(mp4, video.readBytes())
+                assertEquals(1, videos.inserts)
+                assertEquals(1, videos.publishes)
+                assertEquals(1, videos.writeOpens)
+                assertEquals(0, videos.rwOpens)
+            }
+            checkPhoto()
+            if (interruptAfterSaved == GalleryMediaType.VIDEO) checkVideo() else assertEquals(0, videos.inserts)
+            return { checkPhoto(); checkVideo() }
+        }
         assertEquals("mixed-archived-both-end-unchanged", readHost(true, 110))
         assertArrayEquals(png, image.readBytes())
         assertArrayEquals(mp4, video.readBytes())
@@ -412,6 +473,7 @@ class NativeMediaSupportSessionTest {
             assertTrue(target.readOpens > 0)
             assertEquals(0, target.rwOpens)
         }
+        return null
     }
 
     private fun confirmImageReceiving(work: TelefonWerk, owner: NativeGalleryFileConnection) {

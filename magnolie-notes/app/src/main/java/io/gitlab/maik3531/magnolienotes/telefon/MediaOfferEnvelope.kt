@@ -43,8 +43,8 @@ internal object MediaOfferEnvelope {
     }
 
     internal fun validateNewPcImageBatch(message: JsonObject, senderId: String, receiverId: String,
-        mixed: Boolean = false): NativeMediaOffer {
-        val media = validate(message, senderId, receiverId, allowPcBatch = true)
+        mixed: Boolean = false, now: Long = System.currentTimeMillis()): NativeMediaOffer {
+        val media = validate(message, senderId, receiverId, now, allowPcBatch = true)
         val intent = MediaSyncTransport.IntentToken(media.settings)
         if (!media.pcBatch || media.kind != GalleryMediaType.IMAGES ||
             !(if (mixed) intent.privatePcMixed() else intent.privatePcImageBatchOnly()) ||

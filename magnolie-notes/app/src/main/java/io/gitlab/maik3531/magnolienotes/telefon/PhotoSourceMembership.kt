@@ -101,7 +101,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
             fail("photo_jobs_membership_quota_changed")
         val metadata = mutableListOf<JsonObject>()
         var incomingRecords = 0
-        var incomingAcceptances = 0
+        val incomingAcceptanceIds = mutableSetOf<String>()
         var knownPhoneMedia = 0
         var pcReplacementPlans = 0
         var pcStages = 0
@@ -122,8 +122,14 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                     fail("gallery_incoming_publication_capacity")
                 val acceptance = name.startsWith(GalleryIncomingAcceptance.PREFIX) &&
                     DeviceFileControl.hash(name.removePrefix(GalleryIncomingAcceptance.PREFIX))
-                if (acceptance && ++incomingAcceptances > GalleryIncomingAcceptance.MAX_RECORDS)
-                    fail("gallery_incoming_acceptance_capacity")
+                if (acceptance) {
+                    incomingAcceptanceIds.add(name.removePrefix(GalleryIncomingAcceptance.PREFIX))
+                    if (incomingAcceptanceIds.size > GalleryIncomingAcceptance.MAX_RECORDS)
+                        fail("gallery_incoming_acceptance_capacity")
+                }
+                // Sorted metadata places the original acceptance before its one Saved record.
+                val incomingPcSaved = name.startsWith(PhotoSourceJobIndex.INCOMING_PC_SAVED_PREFIX) &&
+                    name.removePrefix(PhotoSourceJobIndex.INCOMING_PC_SAVED_PREFIX) in incomingAcceptanceIds
                 val known = name.startsWith(GalleryKnownPhoneMedia.PREFIX) && DeviceFileControl.hash(name.removePrefix(GalleryKnownPhoneMedia.PREFIX))
                 if (known && ++knownPhoneMedia > GalleryKnownPhoneMedia.MAX_RECORDS) fail("gallery_known_phone_media_capacity")
                 val pcPlan = name.startsWith(GalleryPcReplacementPlan.PREFIX) &&
@@ -134,8 +140,9 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                 val pcBeforeWrite = name.startsWith(GalleryPcPreWriteRecord.PREFIX) && PC_RECORD_ID.matches(name.removePrefix(GalleryPcPreWriteRecord.PREFIX))
                 if (pcBeforeWrite && ++pcBeforeWrites > GalleryPcPreWriteRecord.MAX_RECORDS) fail("gallery_pc_before_write_capacity")
                 if ((name !in setOf("format", "gallery-policy-v1", "gallery-policy-v1-repair") &&
-                    !incoming && !acceptance && !known && !pcPlan && !pcStage && !pcBeforeWrite && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
-                    metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS + GalleryIncomingPublication.MAX_RECORDS + GalleryIncomingAcceptance.MAX_RECORDS +
+                    !incoming && !acceptance && !incomingPcSaved && !known && !pcPlan && !pcStage && !pcBeforeWrite &&
+                    (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
+                    metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS + GalleryIncomingPublication.MAX_RECORDS + 2 * GalleryIncomingAcceptance.MAX_RECORDS +
                         GalleryKnownPhoneMedia.MAX_RECORDS + GalleryPcReplacementPlan.MAX_RECORDS + GalleryPcStageRecord.MAX_RECORDS + GalleryPcPreWriteRecord.MAX_RECORDS)
                     fail("photo_jobs_membership_unknown_metadata")
                 val bytes = it.getBlob(1)

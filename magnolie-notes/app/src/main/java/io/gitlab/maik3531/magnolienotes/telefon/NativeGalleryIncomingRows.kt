@@ -552,19 +552,25 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     /** Hold all original descriptors until the same worker sends the proof.
      * A later provider open must not invalidate an already checked member. */
     internal fun readAndSendPublishedBatch(owner: NativeGalleryPublishedInspection, offer: JsonObject,
-        saved: JsonObject, channel: TelefonSecureChannel, cancellation: CancellationSignal): JsonObject {
+        saved: JsonObject, channel: TelefonSecureChannel, cancellation: CancellationSignal,
+        recovery: NativeGallerySavedReadbackRequest? = null): JsonObject {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
             fail("gallery_incoming_io_android30_required")
         owner.requireIndex(index); owner.requireChannel(channel); owner.consume()
         val originalBinding = owner.bindingForReadback(owner.manifestSha256)
         val now = System.currentTimeMillis()
-        val manifest = DeviceFileOfferEnvelope.validate(offer, originalBinding.senderId, originalBinding.receiverId, now)
-        val accepted = DeviceFileSavedEnvelope.parse(saved, manifest, now)
-        val expires = minOf(offer.long("expires_ms"), accepted.expires)
+        recovery?.requireLive(now)
+        val manifest = if (recovery == null)
+            DeviceFileOfferEnvelope.validate(offer, originalBinding.senderId, originalBinding.receiverId, now)
+        else recovery.media.manifest
+        val accepted = DeviceFileSavedEnvelope.parse(saved, manifest, if (recovery == null) now else saved.long("created_ms"))
+        val expires = recovery?.expires ?: minOf(offer.long("expires_ms"), accepted.expires)
         val ttl = minOf(DeviceFileControl.MAX_TTL_MS, expires - now)
         if (manifest.fingerprint != owner.manifestSha256 ||
             owner.publications.keys != manifest.files.map { it.id }.toSet() ||
-            accepted.permissionEpoch != originalBinding.permissionEpoch || accepted.destinationToken != originalBinding.destinationToken ||
+            (if (recovery == null) accepted.permissionEpoch != originalBinding.permissionEpoch ||
+                accepted.destinationToken != originalBinding.destinationToken
+            else recovery.control.binding != originalBinding || recovery.media.offer != offer || recovery.saved != saved) ||
             saved.long("created_ms") < offer.long("created_ms") || accepted.expires > offer.long("expires_ms") ||
             accepted.members.any { owner.publications.getValue(it.fileId).fingerprint != it.receiptSha256 })
             fail("gallery_published_native_batch_readback_required")
@@ -577,6 +583,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 ttl - (DeviceFileControl.monotonicMs() - owner.issuedMs))
             fun current() {
                 cancellation.throwIfCanceled()
+                recovery?.requireLive()
                 if (remaining() <= 0 || System.currentTimeMillis() < offer.long("created_ms") ||
                     !NativeGalleryMediaIoLane.isOwnedBy(lane))
                     fail("gallery_published_native_batch_readback_required")
@@ -662,7 +669,8 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 put("format", 2); put("offer_id", offer.string("message_id")); put("manifest_sha256", manifest.fingerprint)
                 put("transfer_id", manifest.transferId); put("source_id", manifest.sourceId); put("media_type", owner.kind.uriSegment)
                 put("permission_epoch", originalBinding.permissionEpoch)
-                put("readback_nonce", NativeHex.lower(ByteArray(32).also(java.security.SecureRandom()::nextBytes)))
+                put("readback_nonce", recovery?.nonce ?:
+                    NativeHex.lower(ByteArray(32).also(java.security.SecureRandom()::nextBytes)))
                 put("members", JsonObject(members))
             }
             val binding = owner.bindingForReadback(DevicePublishedBatchReadbackEnvelope.destinationToken(context))
@@ -676,7 +684,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             val budget = minOf(remaining(), expires - issued)
             if (budget <= 0) fail("gallery_published_native_batch_readback_required")
             val message = TelefonNachrichten.message(DevicePublishedBatchReadbackEnvelope.KIND, body, budget, issued)
-            DevicePublishedBatchReadbackEnvelope.parse(message, offer, binding, owner.kind, issued)
+            if (recovery == null) DevicePublishedBatchReadbackEnvelope.parse(message, offer, binding, owner.kind, issued)
             current(); channel.send(message); current()
             return message
         } finally {

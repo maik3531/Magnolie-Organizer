@@ -109,6 +109,16 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
             GalleryMediaType.VIDEO -> privatePcVideoReceiveIntent()
         }
 
+    internal fun receiveSavedPcReadback(authenticatedChannel: TelefonSecureChannel, message: JsonObject,
+        book: NativeGalleryReceiveBookPermit, originalLive: () -> Boolean) {
+        if (authenticatedChannel !== channel || ended.get() || !originalLive())
+            DeviceFileControl.fail("gallery_incoming_foreign_connection")
+        val selected = runtime
+        selected.beginSavedPcReadback(channel, message, book, mixed = privatePcMixedReceiveIntent() != null) { kind ->
+            privatePcReceiveIntent(kind)?.takeIf { originalLive() && bound === selected }
+        }
+    }
+
     internal fun retireChangedPrivatePcReceive() {
         if ((privatePcVideoIntent != null || privatePcImageBatchIntent != null || privatePcMixedIntent != null) && !ended.get())
             bound?.retireChangedIncomingOwners()

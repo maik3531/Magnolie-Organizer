@@ -228,7 +228,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         if (media.settings != admission.intent.body) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
         return beginIncomingOwned(media.offer, media.kind, media.mimeTypes, book, media.originals, admission.intent,
             automaticReadback = true, requireReadbackAgreement = ::requireBoundary, pcOrigins = media.pcOrigins,
-            originalLive = ::current, batchOffer = message.takeIf { batch }, mixed = true)
+             originalLive = ::current, batchOffer = message.takeIf { batch }, mixed = true,
+             pcVideoOffer = message.takeUnless { batch })
     }
     internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
         automaticReadback: Boolean = false, requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun {
@@ -249,7 +250,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val media = MediaOfferEnvelope.validatePrivatePcVideoOriginal(message, peer.peerId, localIdentity.deviceId)
         if (intent.body != media.settings) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
         return beginIncomingOwned(media.offer, media.kind, media.mimeTypes, book, media.originals, intent,
-            automaticReadback = true, requireReadbackAgreement = {}, pcOrigins = media.pcOrigins, originalLive = originalLive)
+             automaticReadback = true, requireReadbackAgreement = {}, pcOrigins = media.pcOrigins,
+             originalLive = originalLive, pcVideoOffer = message)
     }
 
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
@@ -273,7 +275,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference>,
         expectedIntent: MediaSyncTransport.IntentToken?, automaticReadback: Boolean,
          requireReadbackAgreement: () -> Unit, pcOrigins: Map<String, GalleryPcMediaOrigin>,
-           originalLive: () -> Boolean = { true }, batchOffer: JsonObject? = null, mixed: Boolean = false): NativeGalleryIncomingRun = withOperation {
+            originalLive: () -> Boolean = { true }, batchOffer: JsonObject? = null, mixed: Boolean = false,
+            pcVideoOffer: JsonObject? = null): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
@@ -312,7 +315,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 manifest, kind, originalReferences, originalPcOrigins,
                  expectedControl = originalControl ?: DeviceFileControl.fail("gallery_incoming_current_owner_required"),
                  batchOffer = batchOffer, mixed = mixed)
-            try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
+             try {
+                 NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows,
+                     offer, types, pcOffer = batchOffer ?: pcVideoOffer)
+             }
             catch (error: Throwable) { owner.close(); throw error }
         }
     }
@@ -369,6 +375,52 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             } catch (error: Throwable) { owner.close(); throw error }
         }
     }
+
+    private val usedSavedReadbackNonces = mutableSetOf<String>()
+
+    internal fun beginSavedPcReadback(channel: TelefonSecureChannel, message: JsonObject,
+        book: NativeGalleryReceiveBookPermit, mixed: Boolean,
+        privateIntent: (GalleryMediaType) -> MediaSyncTransport.IntentToken?): NativeGalleryPublishedReadRun = withOperation {
+        fun rejected(): Nothing = DeviceFileControl.fail("gallery_saved_readback_current_owner_required")
+        if (channel !== nativeChannel || Looper.myLooper() == Looper.getMainLooper() || !incomingAvailable() ||
+            !incomingWorker.isQuiescent || !sourceWorker.isQuiescent || !pcWorker.isQuiescent ||
+            pendingPc.get() != null || syncRun != null || resumeRun != null || albumBatchOwner != null) rejected()
+        book.requireCurrent()
+        val peer = nativePeer()?.takeIf { it.owner === channel && it.pairingEpoch != null } ?: rejected()
+        val request = NativeGallerySavedReadbackRequest.parse(message, peer.peerId, localIdentity.deviceId, mixed,
+            { controls.session.operationBinding(it) })
+        val media = request.media
+        val kind = media.kind
+        val token = privateIntent(kind) ?: rejected()
+        val mixedAdmission = if (mixed) mixedPcAdmission.get() ?: rejected() else null
+        if (kind == GalleryMediaType.VIDEO && !videoAvailable() ||
+            MediaSyncSettings.effective(token.body) != MediaSyncSettings.effective(media.settings)) rejected()
+        fun live(): MediaSyncTransport.IntentToken? {
+            request.requireLive()
+            if (mixedAdmission != null &&
+                (mixedPcAdmission.get() !== mixedAdmission || !mixedAdmission.boundary())) rejected()
+            return privateIntent(kind)?.takeIf { it === token && currentIncomingIntent?.invoke(kind) === token }
+        }
+        if (live() !== token) rejected()
+        val publications = index.incomingPcSaved(media.manifest, request.original, request.saved) ?: rejected()
+        if (publications.any { it.body.getValue("origin").jsonObject["pairing_epoch"] != JsonPrimitive(peer.pairingEpoch!!) } ||
+            usedSavedReadbackNonces.size >= GalleryIncomingAcceptance.MAX_RECORDS ||
+            !usedSavedReadbackNonces.add(request.nonce)) rejected()
+        if (media.pcBatch) {
+            val selected = publications.associateBy { it.body.getValue("origin").jsonObject.string("file_id") }
+            publishedReadWorker.startBatchReadback(media.offer, request.saved, channel, request) {
+                NativeGalleryPublishedInspection.captureBatch(controls.session, index, book, nativePeer,
+                    ::live, selected, request.control)
+            }
+        } else {
+            publishedReadWorker.startReadback {
+                val owner = NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer,
+                    ::live, publications.single(), request.control)
+                NativeGalleryPublishedReadback.capture(owner, media.offer, channel, request)
+            }
+        }
+    }
+
     /** Exact native authenticated dispatcher input; never take the operation
      * gate behind a worker waiting for this very chunk. */
     internal fun observeIncomingChunk(channel: TelefonSecureChannel, message: JsonObject): Boolean {

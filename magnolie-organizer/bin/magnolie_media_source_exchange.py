@@ -64,10 +64,21 @@ def _read_source_exchange(jobs,db,key,job,ready):
     if not batch and len(cipher)>_NativeSourceExchange.MAX_BYTES+28:raise TransferError('media_source_exchange_invalid_record')
     if batch and ready.body['format']!=4:raise TransferError('media_source_exchange_invalid_record')
     from magnolie_file_transfer import FileManifest
-    _validate_exchange_body(body,key,jobs._scope,job,ready.body['nonce'],ready.version,
+    recovered = type(body) is dict and 'recovery' in body
+    original = dict(body, phase='peer_saved', peer_readback=None) if recovered else body
+    if recovered:
+        del original['recovery']
+    _validate_exchange_body(original,key,jobs._scope,job,ready.body['nonce'],ready.version,
         manifest=FileManifest.parse(ready.body['manifest']) if batch else None,
         predecessors=ready.body['predecessors'] if batch else None)
     if canonical(body)!=plain:raise TransferError('media_source_exchange_invalid_record')
+    if recovered:
+        from magnolie_media_saved_recovery_proof import verify_recovered_pc_exchange
+        peer = jobs._authority.current_peer()
+        if peer is None or ready.body.get('pairing_epoch') != peer.pairing_epoch:
+            raise TransferError('media_source_recovery_original_pairing_required')
+        verify_recovered_pc_exchange(body, ready.body, jobs._authority.identity.receiver_identity_sha256,
+                                     peer.identity_sha256)
     return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
 
 
