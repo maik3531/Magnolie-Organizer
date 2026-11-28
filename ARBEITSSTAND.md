@@ -12,7 +12,9 @@ aufgeführt.
   den Desktopquellen integriert. Die Wochenansicht folgt dem gewählten
   Feiertagsland und dem Datum. 40 Desktop-DOM-Läufe in 20 Sprachen sowie
   die SVG-Anzeige und rastergleiche Druckausgabe mit und ohne Motive im
-  WebKit-Host bestanden. Weitere Festidentitäten, Vorschau, Handbuch und
+  WebKit-Host bestanden. Das standardmäßig deaktivierte Entwicklerpanel
+  kann alle fünf Motive ausdrücklich auswählen; beide Oberflächen und
+  20 Sprachen geprüft. Weitere Festidentitäten, Handbuch und
   Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
 
 - [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):

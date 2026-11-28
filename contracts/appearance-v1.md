@@ -50,7 +50,8 @@ visuelle Vorschau bietet:
 - keine/Notes/KDE Connect/beide Verbindungstypen im Vorschau-Symbol;
 - Blüte/Kamera/Smartphone und unabhängig Synchronisierungspfeile;
 - automatische/keine/Eiskristall-/Sterndekoration;
-- automatische/keine/einzelne Feiertagsmotive und ein Testdatum;
+- automatische/keine/einzelne Feiertagsmotive, einschließlich der
+  fünf Nationalmotive DE, AT, CH, FR und NL, sowie ein Testdatum;
 - Zurücksetzen. Sperren, neuer Buchkontext und Abschalten des Entwicklermodus
   verwerfen die Übersteuerung ebenfalls; verspätete alte Bedienelemente greifen
   nicht mehr ein.

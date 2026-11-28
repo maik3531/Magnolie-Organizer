@@ -84,6 +84,22 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       choose("season", "stars"); assert.equal(d.querySelector("#magnolie-saison").dataset.season, "stars");
       assert.equal(d.querySelectorAll("#magnolie-saison > svg[data-season-accent]").length, 6);
       choose("holiday", "santa"); assert(d.querySelector('.wo-tag [data-appearance-watermark="santa"]'));
+      const holiday = panel.querySelector('[data-appearance-test="holiday"]');
+      const sample = panel.querySelector('[data-appearance-sample="watermark"]');
+      for (const [motif, country] of [
+        ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
+        ["french-rosette", "France"], ["kings-crown", "Netherlands"]
+      ]) {
+        assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
+        choose("holiday", motif);
+        assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, motif);
+        assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
+      }
+      choose("holiday", "unknown");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "kings-crown");
+      choose("date", "2026-12-06");
+      choose("holiday", "auto");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "boots");
       assert(d.querySelector("#magnolie-test-hinweis"));
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); assert.equal(b.messages.length, messages,
         "Visual developer controls must never send native connection, sync, camera or permission commands");
