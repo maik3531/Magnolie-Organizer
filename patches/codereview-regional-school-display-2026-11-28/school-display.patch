@@ -1,0 +1,66 @@
+diff --git a/magnolie-organizer/web/anwendung.js b/magnolie-organizer/web/anwendung.js
+--- a/magnolie-organizer/web/anwendung.js
++++ b/magnolie-organizer/web/anwendung.js
+@@ -11654,11 +11654,18 @@
+-  function feiertagPasstZurRegion(eintrag, nachweis = false) {
+-    const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
+-    if (ort.feiertage === false || nachweis && (!land || !ort.land)) return false;
+-    if (land && land !== ort.land) return false;
+-    if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
+-    const norm = code => code.includes("-") ? code : land + "-" + code;
+-    return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
+-  }
+-
+-  function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
+-    const liste = (feiertagVerzeichnis().get(iso) || []).slice();
++  function feiertagPasstZurAuswahl(eintrag, nachweis = false) {
++    const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
++    if (nachweis && (!land || !ort.land)) return false;
++    if (land && land !== ort.land) return false;
++    if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
++    const norm = code => code.includes("-") ? code : land + "-" + code;
++    return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
++  }
++
++  function feiertagPasstZurRegion(eintrag, nachweis = false) {
++    return DATEN.einstellungen.ort.feiertage !== false && feiertagPasstZurAuswahl(eintrag, nachweis);
++  }
++
++  function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
++    // Filter retrieved school holidays before deduplication and grouping.
++    // Unqualified legacy/imported appointments retain their existing treatment.
++    const liste = (feiertagVerzeichnis().get(iso) || []).filter(f =>
++      f.art !== "school-holiday" || feiertagPasstZurAuswahl(f));
+diff --git a/magnolie-organizer-windows/app/web/anwendung.js b/magnolie-organizer-windows/app/web/anwendung.js
+--- a/magnolie-organizer-windows/app/web/anwendung.js
++++ b/magnolie-organizer-windows/app/web/anwendung.js
+@@ -11366,11 +11366,18 @@
+-  function feiertagPasstZurRegion(eintrag, nachweis = false) {
+-    const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
+-    if (ort.feiertage === false || nachweis && (!land || !ort.land)) return false;
+-    if (land && land !== ort.land) return false;
+-    if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
+-    const norm = code => code.includes("-") ? code : land + "-" + code;
+-    return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
+-  }
+-
+-  function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
+-    const liste = (feiertagVerzeichnis().get(iso) || []).slice();
++  function feiertagPasstZurAuswahl(eintrag, nachweis = false) {
++    const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
++    if (nachweis && (!land || !ort.land)) return false;
++    if (land && land !== ort.land) return false;
++    if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
++    const norm = code => code.includes("-") ? code : land + "-" + code;
++    return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
++  }
++
++  function feiertagPasstZurRegion(eintrag, nachweis = false) {
++    return DATEN.einstellungen.ort.feiertage !== false && feiertagPasstZurAuswahl(eintrag, nachweis);
++  }
++
++  function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
++    // Filter retrieved school holidays before deduplication and grouping.
++    // Unqualified legacy/imported appointments retain their existing treatment.
++    const liste = (feiertagVerzeichnis().get(iso) || []).filter(f =>
++      f.art !== "school-holiday" || feiertagPasstZurAuswahl(f));
