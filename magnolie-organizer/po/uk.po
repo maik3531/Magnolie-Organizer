@@ -6453,6 +6453,9 @@ msgstr "Схема"
 msgid "Schleswig-Holstein"
 msgstr "Шлезвіг-Гольштейн"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "Не вдалося підтвердити охоплення даних про шкільні канікули за %(years)s."
+
 msgid "School holidays are not available for this region."
 msgstr "Для цього регіону немає даних про шкільні канікули."
 

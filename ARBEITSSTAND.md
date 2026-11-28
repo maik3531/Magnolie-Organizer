@@ -38,7 +38,7 @@ aufgeführt.
   bestanden; bytegleiche Swift-/Kotlin-Nachweise: 98 und 112 Fälle.
   Die reguläre Desktop-Auswahl, ihr Cachevertrag und die getrennte
   Schulgebietswahl im Desktop-Assistenten sind in #854 ergänzt.
-  die native Paketabnahme bleibt in #113.
+  Die native Paketabnahme bleibt in #113.
 
 - [#854](https://github.com/maik3531/Magnolie-Organizer/issues/854):
   Die Desktop-Auswahl kennt zwölf bestätigte französische Schulferiengebiete.
@@ -63,7 +63,11 @@ aufgeführt.
   Speicherung. 106 Einrichtungs-DOM-Fälle, der native Windows-Bau mit
   Kerngruppe sowie GTK- und WinForms-Dialogprüfungen in 20 Sprachen bestanden.
   Die beiden Handbuchseiten erklären diese Auswahl und den Abruf in
-  allen 20 Sprachen. Lückenanzeige und installierte Paketabnahme bleiben offen.
+  allen 20 Sprachen. Nach einem Abruf nennt der Desktop zur aktuellen
+  Auswahl Jahre ohne bestätigte Schulferienabdeckung neben den weiterhin
+  sichtbaren Feiertagen. 108 Desktop-DOM-, 14 MCP- und 106 Setup-DOM-Fälle
+  sowie acht Replays aufgezeichneter Providerantworten bestanden.
+  Installierte Paketabnahme bleibt offen.
 
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten

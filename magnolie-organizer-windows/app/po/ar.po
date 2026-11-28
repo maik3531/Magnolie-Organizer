@@ -5501,6 +5501,9 @@ msgstr "المخطط"
 msgid "Schleswig-Holstein"
 msgstr "شليسفيغ-هولشتاين"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "تعذّر تأكيد تغطية بيانات العطلات المدرسية للأعوام: %(years)s."
+
 msgid "School holidays are not available for this region."
 msgstr "العطلات المدرسية غير متاحة لهذه المنطقة."
 

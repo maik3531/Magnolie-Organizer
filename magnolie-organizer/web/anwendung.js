@@ -27893,6 +27893,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   let feiertageLaufen = false;
   let feiertageAnfrage = null;
+  const letzteSchulferienAbrufe = new WeakMap();
 
   function starteSetupFerienAbruf() {
     const o = DATEN.einstellungen.ort;
@@ -34294,16 +34295,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(holen);
   }
 
+  function feiertagsAuswahlPasst(anfrage) {
+    return anfrage?.daten === DATEN && ["land", "region", "ferien", "alleRegionen"]
+      .every(key => anfrage[key] === DATEN.einstellungen.ort[key]);
+  }
+
   function ortStandText() {
     const o = DATEN.einstellungen.ort;
-    if (feiertageLaufen && feiertageAnfrage?.daten === DATEN &&
-        ["land", "region", "ferien", "alleRegionen"].every(key => feiertageAnfrage[key] === o[key])) {
+    if (feiertageLaufen && feiertagsAuswahlPasst(feiertageAnfrage)) {
       return _("Retrieving holidays …");
     }
     if (!o.land) return _("Choose a country first.");
+    const abruf = letzteSchulferienAbrufe.get(DATEN);
+    const offen = feiertagsAuswahlPasst(abruf) ? abruf.offeneJahre : [];
+    const hinweis = offen.length ? " " + uebersetzt("School holiday coverage could not be confirmed for %(years)s.",
+      { years: offen.join(", ") }) : "";
     // The saved date and years are global. Only count rows whose geography matches this selection.
     const records = DATEN.feiertage.filter(f => feiertagPasstZurAuswahl(f, true));
-    if (!records.length) return _("There are no holidays in the organizer for this selection yet.");
+    if (!records.length) return _("There are no holidays in the organizer for this selection yet.") + hinweis;
     const feier = records.filter(f => f.art === "public-holiday").length;
     const ferien = records.filter(f => f.art === "school-holiday").length;
     const auswahl = o.alleRegionen
@@ -34315,7 +34324,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       "%(count)s holiday period", "%(count)s holiday periods", ferien));
     return uebersetzt("In the organizer%(selection)s: %(items)s%(years)s.", {
       selection: auswahl, items: teile.join(" " + _("and") + " "), years: ""
-    });
+    }) + hinweis;
   }
 
   function ortStandAktualisieren() {
@@ -34344,6 +34353,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     if (feiertageLaufen) return;
     feiertageLaufen = true;
+    letzteSchulferienAbrufe.delete(DATEN);
     feiertageAnfrage = { daten: DATEN, land: o.land, region: o.region, ferien: o.ferien,
       alleRegionen: o.alleRegionen, jahre: Array.isArray(jahre) ? jahre.slice() : [] };
     const knopfFeld = $("#ort-abrufen");
@@ -37832,8 +37842,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       feiertageLaufen = false;
       const anfrage = feiertageAnfrage;
       feiertageAnfrage = null;
-      if (anfrage && (anfrage.daten !== DATEN || ["land", "region", "ferien", "alleRegionen"]
-          .some((key) => anfrage[key] !== DATEN.einstellungen.ort[key]))) {
+      if (!feiertagsAuswahlPasst(anfrage)) {
         const knopf = $("#ort-abrufen"), stand = $("#ort-stand");
         if (knopf) knopf.disabled = false;
         if (stand) stand.textContent = ortStandText();
@@ -43362,6 +43371,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function entferneFeiertageDaten() {
     const count = DATEN.feiertage.length; DATEN.feiertage = [];
+    letzteSchulferienAbrufe.delete(DATEN);
     DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = [];
     ortStandAktualisieren();
     return count;
@@ -43504,6 +43514,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     DATEN.feiertage = merged;
     const settings = DATEN.einstellungen.ort; settings.abgerufen = Date.now(); settings.setupFerienAbruf = false;
     settings.jahre = [...new Set((settings.jahre || []).map(Number).concat(years))].filter(Number.isInteger).sort((a, b) => a - b);
+    if (schulferiengebiete && anfrage.ferien) {
+      const bestaetigt = scopeYears.get([country, "school-holiday", region].join("|"));
+      const offeneJahre = years.filter(year => !bestaetigt?.has(year)).sort((a, b) => a - b);
+      letzteSchulferienAbrufe.set(DATEN, { ...anfrage, offeneJahre });
+    }
     ortStandAktualisieren();
     return imported;
   }
@@ -43536,12 +43551,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (!country || settings.region && !country.regionen.some(item => item[0] === settings.region)) throw new MagnolieMcp.ToolError("invalid_region", "Select a supported country/region before retrieval");
           if (new Set(args.years).size !== args.years.length) throw new MagnolieMcp.ToolError("invalid_selection", "Holiday years must be unique");
           feiertageLaufen = true;
+          letzteSchulferienAbrufe.delete(book);
           try {
             const value = await mcpNativeAufruf("feiertage", feiertagsAbrufDaten(settings, country, args.years), "feiertageErgebnis", signal);
             if (signal.aborted || DATEN !== book || snapshot() !== before) throw new MagnolieMcp.ToolError("conflict", "Holiday settings changed during retrieval");
             if (value.fehler || !Array.isArray(value.feiertage) || !Array.isArray(value.jahre) || value.jahre.length !== args.years.length || value.jahre.some(year => !args.years.includes(year))) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval failed or returned unexpected years");
             mcpEditorPruefen();
-            const imported = wendeFeiertageDatenAn(value, { ...settings, jahre: args.years });
+            const imported = wendeFeiertageDatenAn(value, { ...settings, daten: book, jahre: args.years });
             if (imported === null) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval returned data outside the requested scope");
             return { imported_count: imported };
           } finally { feiertageLaufen = false; }

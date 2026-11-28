@@ -5328,6 +5328,9 @@ msgstr "योजना"
 msgid "Schleswig-Holstein"
 msgstr "श्लेस्विग-होल्स्टीन"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "%(years)s के लिए स्कूल की छुट्टियों की जानकारी का कवरेज पक्का नहीं हो सका।"
+
 msgid "School holidays are not available for this region."
 msgstr "इस क्षेत्र के लिए स्कूल की छुट्टियों की जानकारी उपलब्ध नहीं है।"
 

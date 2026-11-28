@@ -64,6 +64,9 @@ const results = [];
           assert.equal(response.result.structuredContent.imported_count, 1);
           assert.ok(saves > 0);
           assert.ok(JSON.parse(b.saves().at(-1).text).feiertage.some(item => item.name === `Verified ${region} fixture`));
+          b.t.oeffneEinstellungen();
+          b.w.document.querySelector("#einst-tab-ort").click();
+          assert.match(b.w.document.querySelector("#ort-stand").textContent, /coverage could not be confirmed for 2026/);
         } else if (mode === "failed HTTP" || foreign) {
           assert.equal(response.result.isError, true, JSON.stringify(response));
           assert.equal(saves, 0);

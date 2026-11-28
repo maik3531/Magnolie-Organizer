@@ -248,11 +248,13 @@ test("France exposes verified subdivisions and explicitly keeps the unfiltered r
     assert.deepEqual([request.land, request.region, request.regionen, request.regionErforderlich, request.ferien],
       ["FR", "", [], false, true]);
     b.reply({ abrufbereiche: [scope("", "school-holiday", 2026, "FR")] });
+    assert.match(d.querySelector("#ort-stand").textContent, /coverage could not be confirmed for 2026/);
     const picker = d.querySelector("#ort-region");
     picker.value = "FR-ZB";
     const priorRequests = b.messages.filter(item => item.cmd === "feiertage").length;
     picker.dispatchEvent(new b.w.Event("change", { bubbles: true }));
     assert.equal(b.messages.filter(item => item.cmd === "feiertage").length, priorRequests);
+    assert.doesNotMatch(d.querySelector("#ort-stand").textContent, /could not be confirmed/);
     assert.equal(b.start().region, "FR-ZB");
   } finally { b.close(); }
 });
@@ -265,6 +267,7 @@ test("French incomplete school year merges its verified periods and preserves ol
       abrufbereiche: [scope("FR-CO", "school-holiday", 2026, "FR")] });
     assert.ok(find(b, "old-corsica-autumn") && find(b, "other-zone"));
     assert.ok(b.entries().some(item => item.name === "published-term"));
+    assert.match(b.w.document.querySelector("#ort-stand").textContent, /coverage could not be confirmed for 2026/);
   } finally { b.close(); }
 });
 test("French nationwide public holidays remain applicable and full school response replaces only its subdivision", web => {
@@ -279,6 +282,7 @@ test("French nationwide public holidays remain applicable and full school respon
     assert.equal(find(b, "outdated-zone-a"), undefined);
     assert.ok(find(b, "other-zone"));
     assert.ok(b.t.feiertageAm(national.von, true).some(item => item.name === national.name));
+    assert.doesNotMatch(b.w.document.querySelector("#ort-stand").textContent, /could not be confirmed/);
     const reopened = boot(web, [], {}, b.save());
     try { assert.deepEqual(reopened.entries(), b.entries()); } finally { reopened.close(); }
   } finally { b.close(); }
@@ -350,6 +354,7 @@ for (const [land, region, other, administrative, groups] of [
       assert.equal(find(b, "old-national"), undefined);
       assert.ok(b.entries().some(item => item.name === "new-national"));
       assert.ok(!b.entries().some(item => item.name === "wrong-school"));
+      assert.match(b.w.document.querySelector("#ort-stand").textContent, /1 public holiday.*could not be confirmed for 2026/);
       b.start();
       b.reply({ abrufbereiche: coverage, feiertage: [groupRow("first-term", region, { von: "2025-12-22", bis: "2026-01-04" })] });
       assert.ok(find(b, "old-school"));
@@ -361,6 +366,37 @@ for (const [land, region, other, administrative, groups] of [
     } finally { b.close(); }
   });
 }
+
+test("only unconfirmed requested years are shown and an offline retry never rewrites the cache", web => {
+  const b = boot(web, [], { land: "NL", region: "NL-NO" }), d = b.w.document;
+  const group = (id, von, bis) => entry(id, { country: "NL", region: "NL-NO", regions: ["NL-NO"], von, bis, name: id });
+  const status = () => d.querySelector("#ort-stand").textContent;
+  try {
+    b.start(2);
+    b.reply({ jahre: [2026, 2027], abrufbereiche: [
+      scope("NL-NO", "school-holiday", 2026, "NL"), scope("NL-NO", "school-holiday", 2027, "NL")
+    ], feiertage: [group("winter-2025", "2025-12-20", "2026-01-04"), group("winter-2026", "2026-12-20", "2027-01-04")] });
+    assert.match(status(), /coverage could not be confirmed for 2027\.$/);
+    const cache = b.entries(), settings = plain(b.t.daten().einstellungen.ort);
+    const school = d.querySelector("#ort-ferien");
+    school.click();
+    assert.doesNotMatch(status(), /could not be confirmed/);
+    school.click();
+    assert.match(status(), /for 2027\.$/);
+    const reopened = boot(web, [], {}, b.save());
+    try {
+      reopened.t.oeffneEinstellungen();
+      reopened.w.document.querySelector("#einst-tab-ort").click();
+      assert.doesNotMatch(reopened.w.document.querySelector("#ort-stand").textContent, /could not be confirmed/);
+      assert.deepEqual(reopened.entries(), cache);
+    } finally { reopened.close(); }
+    b.start(2);
+    b.reply({ fehler: "Offline fixture" });
+    assert.equal(status(), "Retrieval failed.");
+    assert.deepEqual(b.entries(), cache);
+    assert.deepEqual(plain(b.t.daten().einstellungen.ort), settings);
+  } finally { b.close(); }
+});
 
 const results = [];
 for (const web of ["magnolie-organizer/web", "magnolie-organizer-windows/app/web"]) {

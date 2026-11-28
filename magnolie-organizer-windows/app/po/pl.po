@@ -5480,6 +5480,9 @@ msgstr "Schemat"
 msgid "Schleswig-Holstein"
 msgstr "Szlezwik-Holsztyn"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "Nie udało się potwierdzić zakresu danych o feriach szkolnych dla lat: %(years)s."
+
 msgid "School holidays are not available for this region."
 msgstr "Dane o feriach i wakacjach szkolnych nie są dostępne dla tego regionu."
 

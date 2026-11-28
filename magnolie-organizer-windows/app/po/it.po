@@ -5494,6 +5494,9 @@ msgstr "Schema"
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "Non è stato possibile confermare la copertura delle vacanze scolastiche per %(years)s."
+
 msgid "School holidays are not available for this region."
 msgstr "Le vacanze scolastiche non sono disponibili per questa regione."
 

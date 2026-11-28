@@ -6126,6 +6126,9 @@ msgstr "方案"
 msgid "Schleswig-Holstein"
 msgstr "石勒苏益格-荷尔斯泰因"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "无法确认 %(years)s 年的学校假期数据覆盖情况。"
+
 msgid "School holidays are not available for this region."
 msgstr "暂无此地区的学校假期信息。"
 

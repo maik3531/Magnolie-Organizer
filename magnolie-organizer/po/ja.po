@@ -6342,6 +6342,9 @@ msgstr "スキーム"
 msgid "Schleswig-Holstein"
 msgstr "シュレースヴィヒ＝ホルシュタイン"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "%(years)s 年の学校休暇データの収録範囲を確認できませんでした。"
+
 msgid "School holidays are not available for this region."
 msgstr "この地域の学校休暇情報は利用できません。"
 

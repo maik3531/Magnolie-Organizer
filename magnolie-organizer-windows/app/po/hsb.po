@@ -5522,6 +5522,9 @@ msgstr "Šema"
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "Pokryće šulskich prózdnin za %(years)s njeda so wobkrućić."
+
 msgid "School holidays are not available for this region."
 msgstr "Za tutón region šulske prózdniny k dispoziciji njejsu."
 

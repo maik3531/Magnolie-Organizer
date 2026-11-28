@@ -5420,6 +5420,9 @@ msgstr "Şema"
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "%(years)s için okul tatili verilerinin kapsamı doğrulanamadı."
+
 msgid "School holidays are not available for this region."
 msgstr "Bu bölge için okul tatili bilgileri mevcut değil."
 

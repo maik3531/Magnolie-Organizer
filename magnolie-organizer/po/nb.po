@@ -6399,6 +6399,9 @@ msgstr "Skjema"
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
 
+msgid "School holiday coverage could not be confirmed for %(years)s."
+msgstr "Dekningen av skoleferier kunne ikke bekreftes for %(years)s."
+
 msgid "School holidays are not available for this region."
 msgstr "Skoleferier er ikke tilgjengelige for denne regionen."
 
