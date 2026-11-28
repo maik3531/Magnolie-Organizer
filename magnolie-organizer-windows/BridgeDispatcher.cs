@@ -2417,6 +2417,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var downloadedBytes = 0;
             foreach (var year in years)
             {
+                // Refs #864/#865: the provider's Polish calendar data is known to be wrong for these years.
+                var fetchSchool = includeSchool && !(country == "PL" && year is 2026 or 2027);
                 var publicFetched = false;
                 foreach (var target in targets)
                 {
@@ -2429,7 +2431,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                             year, HolidayDownloadMaxBytes - downloadedBytes);
                         publicFetched = true;
                     }
-                    if (includeSchool)
+                    if (fetchSchool)
                     {
                         try
                         {

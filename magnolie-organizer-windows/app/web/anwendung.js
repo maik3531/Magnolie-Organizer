@@ -42531,7 +42531,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     DATEN.feiertage = merged;
     const settings = DATEN.einstellungen.ort; settings.abgerufen = Date.now(); settings.setupFerienAbruf = false;
     settings.jahre = [...new Set((settings.jahre || []).map(Number).concat(years))].filter(Number.isInteger).sort((a, b) => a - b);
-    if (schulferiengebiete && anfrage.ferien) {
+    if ((schulferiengebiete || country === "PL") && anfrage.ferien) {
       const bestaetigt = scopeYears.get([country, "school-holiday", region].join("|"));
       const offeneJahre = years.filter(year => !bestaetigt?.has(year)).sort((a, b) => a - b);
       letzteSchulferienAbrufe.set(DATEN, { ...anfrage, offeneJahre });
@@ -42576,7 +42576,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             mcpEditorPruefen();
             const imported = wendeFeiertageDatenAn(value, { ...settings, daten: book, jahre: args.years });
             if (imported === null) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval returned data outside the requested scope");
-            return { imported_count: imported };
+            const missing = letzteSchulferienAbrufe.get(book)?.offeneJahre;
+            return { imported_count: imported, ...(missing?.length ? { unconfirmed_school_holiday_years: missing } : {}) };
           } finally { feiertageLaufen = false; }
         }) }
     ];
@@ -43136,7 +43137,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
     if (name === "organizer_holidays_clear") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
     if (name === "organizer_holidays_settings_update") return shape({ persisted: yes }, ["persisted"]);
-    if (name === "organizer_holidays_retrieve") return shape({ imported_count: { type: "integer", minimum: 0 }, persisted: yes }, ["imported_count", "persisted"]);
+    if (name === "organizer_holidays_retrieve") return shape({ imported_count: { type: "integer", minimum: 0 }, persisted: yes,
+      unconfirmed_school_holiday_years: { type: "array", minItems: 1, maxItems: 3, items: { type: "integer", minimum: 1900, maximum: 2200 } }
+    }, ["imported_count", "persisted"]);
     if (name === "organizer_own_profile_read") return shape({ profile: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["profile", "revision"]);
     if (name === "organizer_own_profile_update") return shape(written, ["id", "persisted"]);
     if (name === "organizer_trash_revision_read") return shape({ total: { type: "integer", minimum: 0 }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["total", "revision"]);

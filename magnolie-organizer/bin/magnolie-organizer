@@ -18687,7 +18687,8 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
     abruf_bytes = 0
     for jahr in jahre:
         wege = [("PublicHolidays", "public-holiday")]
-        if ferien:
+        # Refs #864/#865: the provider's Polish calendar data is known to be wrong for these years.
+        if ferien and not (land == "PL" and jahr in (2026, 2027)):
             wege.append(("SchoolHolidays", "school-holiday"))
         for pfad, art in wege:
             # The PublicHolidays endpoint has no group filter. Request it once

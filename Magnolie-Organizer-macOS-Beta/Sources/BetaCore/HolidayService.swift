@@ -133,6 +133,8 @@ public struct HolidayService {
         let deadline = ProcessInfo.processInfo.systemUptime + 90
         for year in query.years {
             for (endpoint, kind) in kinds {
+                // Refs #864/#865: hold the known incorrect Polish school calendar years.
+                if kind == "school-holiday" && query.country == "PL" && (2026...2027).contains(year) { continue }
                 // Public holidays have no school-group filter.
                 let targets: [Region?] = groupSelection && kind == "public-holiday" ? [nil] : selections
                 for region in targets {

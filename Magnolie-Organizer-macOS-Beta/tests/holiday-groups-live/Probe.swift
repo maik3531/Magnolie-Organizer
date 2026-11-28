@@ -65,6 +65,13 @@ final class RawTransport: BoundedHTTPTransport {
     let de = Transport([row([], subdivisions: ["DE-BE"])])
     let dr = try await run("DE", ["DE-BE"], de)
     check("Germany subdivision unchanged", param(de.requests[1], "subdivisionCode") == "DE-BE" && dr.entries.first?.regions == ["DE-BE"])
+    let polish = Transport([])
+    let polishQuery = try HolidayService.Query(country: "PL", years: [2026, 2027, 2028], includeSchool: true)
+    let polishResult = try await HolidayService(transport: polish).fetchResult(polishQuery)
+    check("Poland holds only the known bad school years",
+          polish.requests.filter { $0.url.path == "/SchoolHolidays" }.compactMap { param($0, "validFrom") } == ["2028-01-01"] &&
+          polishResult.coverage.filter { $0.kind == "school-holiday" }.map(\.start) == ["2028-01-01"] &&
+          polishResult.coverage.filter { $0.kind == "public-holiday" }.map(\.start) == ["2026-01-01", "2027-01-01", "2028-01-01"])
     // Refs #857: replay the original provider bytes through the complete service.
     let fixtures = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
     func identity(_ start: String, _ end: String, _ name: String) -> String { [start, end, name].joined(separator: "\u{1f}") }

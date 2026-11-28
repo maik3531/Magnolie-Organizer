@@ -164,6 +164,8 @@ class HolidayService(
         var receivedBytes = 0
         for (year in query.years) for ((endpoint, kind) in kinds) for (region in
             if (groupSelection && kind == "public-holiday") listOf(null) else selections) {
+            // Refs #864/#865: hold the known incorrect Polish school calendar years.
+            if (kind == "school-holiday" && query.country == "PL" && year in 2026..2027) continue
             val groupScope = kind == "school-holiday" && schoolGroups.isNotEmpty() && (groupSelection || region == null)
             val remaining = remainingMillis()
             val fields = linkedMapOf("countryIsoCode" to query.country, "languageIsoCode" to query.language,

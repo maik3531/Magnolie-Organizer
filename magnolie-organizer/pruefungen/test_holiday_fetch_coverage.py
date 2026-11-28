@@ -79,6 +79,15 @@ class HolidayCoverageTests(unittest.TestCase):
         self.assertEqual(self.scopes(result), {expected_scope()})
         self.assertEqual(len(self.requests), 1)
 
+    def test_polish_provider_holds_only_the_known_bad_school_years(self):
+        result = self.fetch(land="PL", region="", jahre=[2026, 2027, 2028])
+        self.assertEqual([(path, fields["validFrom"]) for path, fields in self.requests],
+                         [("/PublicHolidays", f"{year}-01-01") for year in (2026, 2027, 2028)]
+                         + [("/SchoolHolidays", "2028-01-01")])
+        self.assertEqual(self.scopes(result),
+                         {expected_scope(region="", year=year, country="PL") for year in (2026, 2027, 2028)}
+                         | {expected_scope("school-holiday", "", 2028, "PL")})
+
     def test_missing_required_region_does_not_certify_school(self):
         result = self.fetch(region="", region_erforderlich=True)
         self.assertEqual(self.scopes(result), {expected_scope(region="")})

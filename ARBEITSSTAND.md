@@ -7,6 +7,16 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#865](https://github.com/maik3531/Magnolie-Organizer/issues/865):
+  OpenHolidays-Abrufe für polnische Schulferien 2026 und 2027 bleiben
+  ausgesetzt. Gesetzliche Feiertage werden weiter aktualisiert;
+  gespeicherte Ferien bleiben erhalten. Die Oberfläche und MCP weisen
+  die nicht bestätigten Jahre aus. Anbieterpfade: 36 Python-, 44 C#-,
+  99 Swift- und 113 Kotlin-Hostfälle; 110 Desktop- und 16 MCP-Fälle.
+  Im Replay blieben 28 gesetzliche Feiertage erhalten. Der Anbieterpatch
+  steht in #864, die Prüfung einer korrigierten API und weiterer Gebiete
+  in #860.
+
 - [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7242988889):
   Der native Windows-Abbruchtest nach geplantem Fotoabschluss hält
   beide Originale, Saved, bestätigtes Rücklesen und Sicherungsreferenzen.

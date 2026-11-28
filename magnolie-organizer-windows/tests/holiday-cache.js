@@ -88,6 +88,22 @@ test("public visibility is independent of replacement authority", web => {
   try { b.start(); b.reply({ abrufbereiche: [scope("DE-SN", "public-holiday")] }); assert.equal(b.entries().length, 0); }
   finally { b.close(); }
 });
+test("Polish school gaps preserve cache while refreshing public holidays", web => {
+  const polish = { country: "PL", region: "", regions: [], nationwide: true };
+  const b = boot(web, [entry("cached-school", polish), entry("cached-public", { ...polish, art: "public-holiday" })],
+    { land: "PL", region: "" });
+  try {
+    const before = find(b, "cached-school");
+    assert.equal(b.start(2).ferien, true);
+    b.reply({ jahre: [2026, 2027], abrufbereiche: [2026, 2027].map(year => scope("", "public-holiday", year, "PL")),
+      feiertage: [entry("new-public", { ...polish, art: "public-holiday", name: "Verified public holiday" })] });
+    assert.deepEqual(find(b, "cached-school"), before);
+    assert.equal(find(b, "cached-public"), undefined);
+    assert.ok(b.entries().some(item => item.name === "Verified public holiday"));
+    assert.match(b.w.document.querySelector("#ort-stand").textContent, /coverage could not be confirmed for 2026, 2027/);
+    assert.deepEqual(b.save().feiertage.find(item => item.id === "cached-school"), before);
+  } finally { b.close(); }
+});
 test("whole-country retrieval replaces nationwide and unqualified regional rows of known country", web => {
   const b = boot(web, [entry("national", { nationwide: true, art: "public-holiday", regions: [] }),
     entry("unqualified", { art: "public-holiday", region: "", regions: [] }), entry("school")], { region: "" });

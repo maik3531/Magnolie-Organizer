@@ -7,7 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 fun row(codes: List<String> = emptyList(), nationwide:Boolean=false, subdivisions:List<String> = emptyList(), name:String="Break", start:String="2026-12-20",end:String="2027-01-04", rawGroups:Any?=null):JSONObject = JSONObject(mapOf("startDate" to start,"endDate" to end,"name" to name,"nationwide" to nationwide,"groups" to (rawGroups ?: JSONArray(codes.map{JSONObject(mapOf("code" to it))})),"subdivisions" to JSONArray(subdivisions.map{JSONObject(mapOf("code" to it))})))
-fun run(country:String, regions:List<String>, school:Boolean=true, rows:(String,Map<String,String>)->List<JSONObject>):Pair<HolidayService.Result,List<Pair<String,Map<String,String>>>> {
+fun run(country:String, regions:List<String>, school:Boolean=true, years:List<Int> = listOf(2026), rows:(String,Map<String,String>)->List<JSONObject>):Pair<HolidayService.Result,List<Pair<String,Map<String,String>>>> {
     val requests=mutableListOf<Pair<String,Map<String,String>>>()
     val service=HolidayService(BoundedHttpTransport { request, _ ->
         val endpoint=request.uri.path.substringAfterLast('/')
@@ -15,7 +15,7 @@ fun run(country:String, regions:List<String>, school:Boolean=true, rows:(String,
         requests.add(endpoint to fields)
         Response(200,JSONArray(rows(endpoint,fields)).toString().encodeToByteArray())
     })
-    return service.fetch(HolidayService.Query(country,regions.map{HolidayService.Region(it,it)},listOf(2026),school)) to requests
+    return service.fetch(HolidayService.Query(country,regions.map{HolidayService.Region(it,it)},years,school)) to requests
 }
 fun main(args: Array<String>) {
     var passed=0; var total=0
@@ -49,6 +49,12 @@ fun main(args: Array<String>) {
         val(r,reqs)=run(country,listOf(region)){_,_->listOf(row(subdivisions=listOf(provider)))}
         checkCase("$country existing subdivision URL"){reqs.size==2&&reqs.all{it.second["subdivisionCode"]==provider&&"groupCode" !in it.second}}
         checkCase("$country existing coverage and ISO"){r.coverage.size==2&&r.entries.all{it.regions==listOf(region)}}
+    }
+    val (polish, polishRequests) = run("PL", emptyList(), years = listOf(2026, 2027, 2028)) { _, _ -> emptyList() }
+    checkCase("Poland holds only the known bad school years") {
+        polishRequests.filter { it.first == "SchoolHolidays" }.map { it.second["validFrom"] } == listOf("2028-01-01") &&
+            polish.coverage.filter { it.kind == "school-holiday" }.map { it.start } == listOf("2028-01-01") &&
+            polish.coverage.filter { it.kind == "public-holiday" }.map { it.start } == listOf("2026-01-01", "2027-01-01", "2028-01-01")
     }
     // Refs #857: exact bytes captured from the country and group endpoints.
     val fixtures = Path.of(args.single())

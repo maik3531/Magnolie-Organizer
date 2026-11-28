@@ -92,6 +92,15 @@ public sealed partial class HolidayFetchCoverageHost
                 var result = await Fetch(school: false); EqualScopes(result, Scope());
                 Check(result.Requests.Count == 1, "School endpoint requested after opt-out");
             }),
+            ("Polish provider holds only the known bad school years", async () => {
+                var result = await Fetch(country: "PL", region: "", years: [2026, 2027, 2028]);
+                EqualScopes(result, Scope(region: "", year: 2026, country: "PL"),
+                    Scope(region: "", year: 2027, country: "PL"), Scope(region: "", year: 2028, country: "PL"),
+                    Scope("school-holiday", "", 2028, "PL"));
+                Check(result.Requests.Where(request => request.Path == "/SchoolHolidays")
+                    .Select(request => request.Fields["validFrom"]).SequenceEqual(new[] { "2028-01-01" }),
+                    "The known bad Polish school years were requested or the neighboring year was blocked");
+            }),
             ("missing required region certifies no school", async () => {
                 var result = await Fetch(region: "", regionRequired: true); EqualScopes(result, Scope(region: ""));
                 Check(result.Requests.Count == 1, "School endpoint requested without required region");

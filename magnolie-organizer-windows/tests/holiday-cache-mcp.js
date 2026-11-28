@@ -7,12 +7,12 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
 const plain = value => JSON.parse(JSON.stringify(value));
 const old = (id, country = "DE", region = "DE-SN", art = "public-holiday") => ({ id, country, region, regions: [region], art,
   von: "2026-11-01", bis: "2026-11-01", name: "MCP cache fixture", nationwide: false });
-const modes = ["success", "failed HTTP", "failed save", "France scoped", "France foreign", "Belgium scoped", "Netherlands foreign"];
+const modes = ["success", "failed HTTP", "failed save", "France scoped", "France foreign", "Belgium scoped", "Netherlands foreign", "Poland held"];
 const results = [];
 (async () => {
   for (const web of harness.exports.roots) {
     for (const mode of modes) {
-      const [land, region] = ({ France: ["FR", "FR-ZA"], Belgium: ["BE", "BE-FR"], Netherlands: ["NL", "NL-NO"] })[mode.split(" ")[0]] || ["DE", "DE-SN"];
+      const [land, region] = ({ France: ["FR", "FR-ZA"], Belgium: ["BE", "BE-FR"], Netherlands: ["NL", "NL-NO"], Poland: ["PL", ""] })[mode.split(" ")[0]] || ["DE", "DE-SN"];
       const school = land !== "DE", foreign = mode.endsWith("foreign");
       const b = await harness.exports.boot(web, { einstellungen: { ort: { land, region, ferien: school } },
         feiertage: [old("local", land, region), old("foreign", "AT", "AT-9"), old("school", land, region, "school-holiday")] });
@@ -30,7 +30,7 @@ const results = [];
         await call(request(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "holiday-fixture", version: "1" } }));
         await call({ jsonrpc: "2.0", method: "notifications/initialized" });
         const read = (await call(request(2, "tools/call", { name: "organizer_holidays_read" }))).result.structuredContent;
-        if (school) assert.ok(read.countries.find(item => item.code === land).regionen.some(item => item[0] === region));
+        if (region && school) assert.ok(read.countries.find(item => item.code === land).regionen.some(item => item[0] === region));
         const before = plain(b.t.daten().feiertage), settings = plain(b.t.daten().einstellungen.ort);
         const post = b.w.webkit.messageHandlers.regression.postMessage;
         let nativeRequest, saves = 0;
@@ -38,7 +38,7 @@ const results = [];
           post(text); const message = JSON.parse(text);
           if (message.cmd === "feiertage") {
             nativeRequest = message;
-            const rows = !school ? [] : foreign
+            const rows = !school || land === "PL" ? [] : foreign
               ? [old("provider", "AT", "AT-9", "school-holiday")]
               : [{ ...old("provider", land, region, "school-holiday"), name: `Verified ${region} fixture` }];
             b.w.App.feiertageErgebnis(mode === "failed HTTP" ? { requestId: message.requestId, fehler: "Fixture unavailable" } : {
@@ -55,12 +55,13 @@ const results = [];
         assert.deepEqual(nativeRequest.jahre, [2026]);
         assert.equal(nativeRequest.region, region); assert.equal(nativeRequest.ferien, school);
         assert.equal(nativeRequest.regionErforderlich, !school);
-        if (mode === "success") {
+        if (mode === "success" || land === "PL") {
           assert.equal(response.result.isError, false, JSON.stringify(response)); assert.equal(response.result.structuredContent.persisted, true);
           assert.equal(response.result.structuredContent.imported_count, 0); assert.ok(saves > 0);
           assert.deepEqual(plain(b.t.daten().feiertage).map(item => item.id), ["foreign", "school"]);
+          if (land === "PL") assert.deepEqual(response.result.structuredContent.unconfirmed_school_holiday_years, [2026]);
         } else if (mode.endsWith("scoped")) {
-          assert.equal(response.result.structuredContent.persisted, true);
+          assert.equal(response.result.structuredContent.persisted, true, `${mode}: ${JSON.stringify(response)}`);
           assert.equal(response.result.structuredContent.imported_count, 1);
           assert.ok(saves > 0);
           assert.ok(JSON.parse(b.saves().at(-1).text).feiertage.some(item => item.name === `Verified ${region} fixture`));
