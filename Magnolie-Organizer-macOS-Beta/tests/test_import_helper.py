@@ -188,6 +188,24 @@ class ImportHelperTests(unittest.TestCase):
                 self.assertIn("CLASS:" + classification, result["aufgaben"][0]["icsRoundtrip"])
                 self.assertIn(lines[8], result["aufgaben"][0]["icsRoundtrip"])
 
+    def test_projected_calendar_keeps_nextcloud_leap_birthday_and_colours(self):
+        rule = "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1"
+        properties = ["X-NEXTCLOUD-BC-FIELD-TYPE:BDAY", "X-NEXTCLOUD-BC-UNKNOWN-YEAR:1",
+                      "COLOR:turquoise", "X-TEST-PROVIDER:retained"]
+        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "COLOR:gold", "BEGIN:VEVENT", "UID:provider-birthday",
+                 "SUMMARY:Example", "DTSTART;VALUE=DATE:19720229", "DTEND;VALUE=DATE:19720301", rule,
+                 *properties, "END:VEVENT", "BEGIN:VEVENT", "UID:calendar-colour", "SUMMARY:Ordinary event",
+                 "DTSTART;VALUE=DATE:20261128", "END:VEVENT", "END:VCALENDAR", ""]
+        result = self.same_as_desktop("\r\n".join(lines).encode(), "ics", "birthdays.ics")
+        birthday, = result["jahrestage"]
+        self.assertEqual((birthday["uid"], birthday["typ"], birthday["datum"], birthday["akzentFarbe"]),
+                         ("provider-birthday", "birthday", "--02-29", "#40e0d0"))
+        self.assertEqual(birthday["icsCalendarColor"], "COLOR:gold")
+        for line in [rule, *properties]:
+            self.assertIn(line, birthday["icsRoundtrip"])
+        appointment, = result["termine"]
+        self.assertEqual((appointment["uid"], appointment["akzentFarbe"]), ("calendar-colour", "#ffd700"))
+
     def test_zip_routes_use_the_same_bounded_desktop_dispatcher(self):
         directory = REPO / "magnolie-organizer/pruefungen/fixtures"
         source_or6 = next(data for _source, name, data, _proof in native_files() if name == "known-values.or6")

@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#866](https://github.com/maik3531/Magnolie-Organizer/issues/866):
+  Der macOS-Importhelfer projiziert die sieben benötigten Definitionen
+  für ICS-Farben und Nextcloud-Geburtstage aus der Desktopquelle.
+  20 Hosttests bestanden, darunter unbekanntes Schaltjahr, Kalender-
+  und Terminfarbe, ursprüngliche ICS-Daten und die Ablehnung
+  ungeprüfter Abhängigkeiten. Die UI-Projektion hat einen getrennten
+  Fehler an der Desktop-Brücke; die native Paketabnahme bleibt offen.
+
 - [#865](https://github.com/maik3531/Magnolie-Organizer/issues/865):
   OpenHolidays-Abrufe für polnische Schulferien 2026 und 2027 bleiben
   ausgesetzt. Gesetzliche Feiertage werden weiter aktualisiert;
