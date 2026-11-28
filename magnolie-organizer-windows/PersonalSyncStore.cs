@@ -31,9 +31,10 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         WriteMeta(key, "personal_run", new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = expires }, false, context);
     }
 
-    internal PersonalSyncRun? LoadRun(string peerId, string runId, long now)
+    internal PersonalSyncRun? LoadRun(string peerId, string runId, long now,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
-        var value = ReadMeta(RunKey(peerId, runId), "personal_run"); if (value is null) return null;
+        var value = ReadMeta(RunKey(peerId, runId), "personal_run", context); if (value is null) return null;
         var body = value["body"] as JsonObject ?? throw new InvalidDataException("Personal-Sync-Lauf beschädigt.");
         PersonalSyncContract.ValidateBody("personal_sync.request", body); var expires = TelefonProtocolContract.Integer(value["expires_ms"]);
         return new PersonalSyncRun(runId, body["trigger"]!.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any", expires, expires <= now, body.DeepClone().AsObject());
@@ -349,7 +350,9 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         Parameters(command, peerId, runId, reply); command.Parameters.AddWithValue("$records", recordsHash); command.Parameters.AddWithValue("$hash", hash); command.Parameters.AddWithValue("$metadata", encrypted); command.ExecuteNonQuery();
     }
 
-    internal void StageAttachment(string peerId, string runId, bool reply, string recordsHash, JsonObject descriptor, string direction, string policy, long expiresMs, IEnumerable<(int Index, byte[] Data)> chunks)
+    internal void StageAttachment(string peerId, string runId, bool reply, string recordsHash, JsonObject descriptor,
+        string direction, string policy, long expiresMs, IEnumerable<(int Index, byte[] Data)> chunks,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
         if (direction is not ("incoming" or "outgoing") || policy is not ("any" or "wifi_only")) throw new InvalidDataException("Attachment-Metadaten ungültig.");
         PersonalSyncContract.ValidateAttachmentDescriptor(descriptor);
@@ -360,7 +363,11 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         if (indexed.Select(item => item.Index).Distinct().Count() != indexed.Length || indexed.Any(item => item.Index < 0 || item.Index >= totalChunks || item.Data.Length != (item.Index + 1 < totalChunks ? PersonalSyncContract.ChunkRaw : size - (long)item.Index * PersonalSyncContract.ChunkRaw))) throw new InvalidDataException("Attachment-Chunk ungültig.");
         var metadata = new JsonObject { ["peer_id"] = peerId, ["run_id"] = runId, ["reply"] = reply, ["attachment_id"] = attachmentId, ["records_hash"] = recordsHash, ["sha256"] = hash, ["direction"] = direction, ["total_chunks"] = (size + PersonalSyncContract.ChunkRaw - 1) / PersonalSyncContract.ChunkRaw, ["size"] = size, ["mime"] = mime, ["expires_ms"] = expiresMs, ["complete"] = false, ["transport_policy"] = policy };
         var transferPrimary = TransferPrimary(peerId, runId, reply, recordsHash, hash, direction); var encryptedMetadata = store.Seal("personal_attachment_transfer", transferPrimary, TelefonCrypto.Canonical(metadata));
-        using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+        using var owned = context is null ? store.OpenDatabase() : null;
+        owned?.Open();
+        using var ownedTransaction = owned?.BeginTransaction();
+        var connection = context?.Connection ?? owned!;
+        var transaction = context?.Transaction ?? ownedTransaction!;
         var exists = Scalar(connection, transaction, "SELECT COUNT(*) FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction", peerId, runId, reply, recordsHash, hash, direction) != 0;
         if (exists)
         {
@@ -372,7 +379,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         EnsureAttachmentCapacity(connection, transaction, peerId, runId, reply, recordsHash, hash, direction, exists, encryptedChunks);
         using (var transfer = connection.CreateCommand()) { transfer.Transaction = transaction; transfer.CommandText = "INSERT OR IGNORE INTO personal_attachment_transfer VALUES($peer,$run,$reply,$records,$hash,$direction,$size,$mime,$policy,$expires,0,$metadata)"; Parameters(transfer, peerId, runId, reply); transfer.Parameters.AddWithValue("$records", recordsHash); transfer.Parameters.AddWithValue("$hash", hash); transfer.Parameters.AddWithValue("$direction", direction); transfer.Parameters.AddWithValue("$size", size); transfer.Parameters.AddWithValue("$mime", mime); transfer.Parameters.AddWithValue("$policy", policy); transfer.Parameters.AddWithValue("$expires", expiresMs); transfer.Parameters.AddWithValue("$metadata", encryptedMetadata); transfer.ExecuteNonQuery(); }
         foreach (var (index, encrypted) in encryptedChunks) { using var chunk = connection.CreateCommand(); chunk.Transaction = transaction; chunk.CommandText = "INSERT OR IGNORE INTO personal_attachment_chunk VALUES($peer,$run,$reply,$records,$hash,$direction,$index,$payload)"; Parameters(chunk, peerId, runId, reply); chunk.Parameters.AddWithValue("$records", recordsHash); chunk.Parameters.AddWithValue("$hash", hash); chunk.Parameters.AddWithValue("$direction", direction); chunk.Parameters.AddWithValue("$index", index); chunk.Parameters.AddWithValue("$payload", encrypted); chunk.ExecuteNonQuery(); }
-        transaction.Commit();
+        ownedTransaction?.Commit();
     }
 
     internal void StageAttachmentChunk(string peerId, string runId, bool reply, string recordsHash, string hash,

@@ -770,8 +770,40 @@ internal sealed partial class TelefonStore
         return EnqueueCore(peerId, "personal_sync.request", request, 3_600_000, now, policy, null, rememberRequest: true);
     }
 
+    internal void EnqueueInitialPersonalGroup(string peerId, JsonObject request, IReadOnlyList<JsonObject> batches,
+        string recordsHash, IReadOnlyList<(JsonObject Descriptor, byte[] Data)> sources, long now)
+    {
+        lock (gate)
+        {
+            if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+            using var connection = OpenDatabase();
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+            var context = (connection, transaction);
+            var personal = new PersonalSyncStore(this);
+            var runId = request["run_id"]!.GetValue<string>();
+            personal.RememberRun(peerId, request, now, context: context);
+            var run = personal.LoadRun(peerId, runId, now, context)
+                ?? throw new InvalidOperationException("personal_sync_run_missing");
+            if (run.Expired) throw new InvalidOperationException("personal_sync_run_expired");
+            var expires = Math.Min(run.ExpiresMs, checked(now + (run.Policy == "wifi_only" ? 3_600_000 : 86_400_000)));
+            foreach (var (descriptor, data) in sources)
+            {
+                var chunks = data.Chunk(PersonalSyncContract.ChunkRaw).Select((bytes, index) => (index, bytes));
+                personal.StageAttachment(peerId, runId, false, recordsHash, descriptor, "outgoing", run.Policy,
+                    expires, chunks, context);
+            }
+            EnqueueCore(peerId, "personal_sync.request", request, 3_600_000, now, run.Policy, null, false, context);
+            foreach (var batch in batches)
+                EnqueueCore(peerId, "personal_sync.batch", batch, 86_400_000, now, run.Policy, null, false, context);
+            if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+            transaction.Commit();
+        }
+    }
+
     private string EnqueueCore(string peerId, string kind, JsonObject body, long ttlMs, long now,
-        string transportPolicy, string? actorRunId, bool rememberRequest)
+        string transportPolicy, string? actorRunId, bool rememberRequest,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
         if (PhoneCameraControl.IsReserved(kind, body)) throw new InvalidDataException("webcam_ephemeral_control_required");
         if (PhoneScreenControl.IsReserved(kind, body)) throw new InvalidDataException("screen_ephemeral_control_required");
@@ -789,7 +821,11 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
-            using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+            using var owned = context is null ? OpenDatabase() : null;
+            owned?.Open();
+            using var ownedTransaction = owned?.BeginTransaction();
+            var connection = context?.Connection ?? owned!;
+            var transaction = context?.Transaction ?? ownedTransaction!;
             if (kind == "personal_sync.deletion_proposals")
                 RememberPersonalProposalKinds(connection, transaction,
                     actorRunId is null ? peerId : PersonalSyncActorContract.StoragePeer(actorRunId), body, true, now);
@@ -807,7 +843,8 @@ internal sealed partial class TelefonStore
             command.CommandText = "INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES($id,$peer,$kind,$created,$expires,$payload,0,$now,'',$policy)";
             command.Parameters.AddWithValue("$id", id); command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$kind", kind);
             command.Parameters.AddWithValue("$created", now); command.Parameters.AddWithValue("$expires", expires); command.Parameters.AddWithValue("$payload", payload); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$policy", transportPolicy);
-            command.ExecuteNonQuery(); transaction.Commit();
+            command.ExecuteNonQuery();
+            ownedTransaction?.Commit();
         }
         return id;
     }
@@ -821,7 +858,7 @@ internal sealed partial class TelefonStore
             if (RestoreFenced) return [];
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms";
+            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms,rowid";
             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
             var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
             using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));

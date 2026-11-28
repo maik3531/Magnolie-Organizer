@@ -932,17 +932,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (TimeSyncContract.IsKind(kind)) return await SendTimeBridgeAsync(id, kind, body);
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
             return await SendCustomBridgeAsync(id, kind, body);
-        PersonalSyncContract.ValidateBody(kind, body); var peer = RequireSolePeer(id); var now = Now(); PersonalSyncRun? run = null;
-        if (!NoteDirectionAllowed(id, kind, body, true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
+        PersonalSyncContract.ValidateBody(kind, body);
+        var now = Now();
+        PersonalSyncRun? run = null;
         if (kind != "personal_sync.request") run = personalSync.LoadRun(id, body["run_id"]!.GetValue<string>(), now) ?? throw new InvalidOperationException(T("The personal synchronization request is missing."));
-        if (kind is "personal_sync.batch" or "personal_sync.report" && body["format"]!.GetValue<int>() != run!.Request["format"]!.GetValue<int>())
-            throw new InvalidDataException(T("The personal synchronization run does not match."));
-        var needed = PersonalGrants(kind, body, run?.Request);
-        var settings = store.PersonalSettings(id);
-        if (!settings.OwnDevice || !settings.RemoteOwnDevice || needed.Count == 0 || needed.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
-        if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
-        if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
-        if (kind == "personal_sync.batch") PersonalSyncContract.ValidateSelectedRecords(run!.Request, body["records"]!.AsArray().OfType<JsonObject>());
+        ValidatePersonalSend(id, kind, body, run?.Request);
         if (run?.Expired == true) throw new InvalidOperationException(T("The personal synchronization run has expired."));
         TelefonConnection? connection;
         lock (gate) online.TryGetValue(id, out connection);
@@ -950,6 +944,52 @@ internal sealed partial class TelefonCoordinator : IDisposable
             ? store.EnqueuePersonalRequest(id, body, now)
             : store.Enqueue(id, kind, body, 86_400_000, now, run!.Policy);
         if (connection is not null) await connection.PumpOutboxNowAsync(); return messageId;
+    }
+
+    internal async Task SendInitialPersonalGroupAsync(string id, JsonObject request, IReadOnlyList<JsonObject> batches,
+        string recordsHash, IReadOnlyList<(JsonObject Descriptor, byte[] Data)> sources)
+    {
+        TelefonConnection? connection;
+        lock (gate)
+        {
+            PersonalSyncContract.ValidateBody("personal_sync.request", request);
+            var runId = request["run_id"]!.GetValue<string>();
+            if (batches.Count == 0) throw new InvalidDataException(T("Personal synchronization batches are missing."));
+            ValidatePersonalSend(id, "personal_sync.request", request, null);
+            foreach (var batch in batches)
+            {
+                PersonalSyncContract.ValidateBody("personal_sync.batch", batch);
+                if (batch["run_id"]!.GetValue<string>() != runId || batch["reply"]!.GetValue<bool>() ||
+                    batch["records_hash"]?.GetValue<string>() != recordsHash)
+                    throw new InvalidDataException(T("The personal synchronization run does not match."));
+                ValidatePersonalSend(id, "personal_sync.batch", batch, request);
+            }
+            if (sources.Count != 0 && store.NoteImportMode(id))
+                throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
+            store.EnqueueInitialPersonalGroup(id, request, batches, recordsHash, sources, Now());
+            online.TryGetValue(id, out connection);
+        }
+        if (connection is not null) await connection.PumpOutboxNowAsync();
+    }
+
+    private void ValidatePersonalSend(string id, string kind, JsonObject body, JsonObject? request)
+    {
+        var peer = RequireSolePeer(id);
+        if (!NoteDirectionAllowed(id, kind, body, true, request))
+            throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
+        if (kind is "personal_sync.batch" or "personal_sync.report" &&
+            body["format"]!.GetValue<int>() != request!["format"]!.GetValue<int>())
+            throw new InvalidDataException(T("The personal synchronization run does not match."));
+        var needed = PersonalGrants(kind, body, request);
+        var settings = store.PersonalSettings(id);
+        if (!settings.OwnDevice || !settings.RemoteOwnDevice || needed.Count == 0 || needed.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true))
+            throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
+        if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer))
+            throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
+        if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>())))
+            throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
+        if (kind == "personal_sync.batch")
+            PersonalSyncContract.ValidateSelectedRecords(request!, body["records"]!.AsArray().OfType<JsonObject>());
     }
 
     internal JsonObject CustomSettings(string id) => store.CustomSettings(id);
@@ -967,7 +1007,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
-    internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
+    internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing, JsonObject? request = null)
     {
         lock (gate)
         {
@@ -977,7 +1017,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
                 return online.GetValueOrDefault(id)?.ScopedDeletionAllowed(kind, body, outgoing) == true;
         }
-        var request = kind == "personal_sync.request" ? body : body["run_id"] is JsonValue value && value.TryGetValue<string>(out var itemRun)
+        request ??= kind == "personal_sync.request" ? body : body["run_id"] is JsonValue value && value.TryGetValue<string>(out var itemRun)
             ? personalSync.LoadRun(id, itemRun, Now())?.Request : null;
         if (request?["send_item"] is JsonObject selected)
         {

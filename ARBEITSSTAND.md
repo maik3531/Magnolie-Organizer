@@ -70,8 +70,11 @@ aufgeführt.
   Alte widersprüchliche Gruppen bleiben bis zum Ablauf gespeichert
   und blockieren gültige Gruppen nicht. 124 Hosttests für gruppierte
   Übertragung und Empfang sowie 73 für den Einzelbatch-Stand bestanden.
-  Die gemeinsame Transaktion für das nachgelagerte Windows-Staging und
-  die Automatik über weitere freigegebene Transporte bleiben offen.
+  Windows gibt einen gewöhnlichen gruppierten Initialstart erst nach
+  gemeinsamer Speicherung von Lauf, Anfrage, Batches und Anhängen an
+  den Transport. Sieben native .NET-Testgruppen bestanden, darunter
+  Rollback und identischer Retry bei Chunk- und Batch-SQL-Fehlern.
+  Die Automatik über weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

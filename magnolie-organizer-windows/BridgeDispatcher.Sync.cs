@@ -1380,14 +1380,21 @@ internal sealed partial class BridgeDispatcher
                 throw new InvalidDataException(T("The personal synchronization attachment identity does not match."));
             source.Descriptor = references[0].DeepClone().AsObject();
         }
-        if (!reply) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
-        foreach (var source in sources.Values)
+        if (!reply)
         {
-            var chunks = source.Data.Chunk(PersonalSyncContract.ChunkRaw).Select((data, index) => (index, data));
-            telefon.StagePersonalAttachment(peerId, runId, reply, recordsHash, source.Descriptor, "outgoing",
-                request["trigger"]?.GetValue<string>() == "auto_wifi" ? DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds() : DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(), chunks);
+            await telefon.SendInitialPersonalGroupAsync(peerId, request, batches, recordsHash,
+                sources.Values.Select(source => (source.Descriptor, source.Data)).ToArray());
         }
-        foreach (var batch in batches) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.batch", batch);
+        else
+        {
+            foreach (var source in sources.Values)
+            {
+                var chunks = source.Data.Chunk(PersonalSyncContract.ChunkRaw).Select((data, index) => (index, data));
+                telefon.StagePersonalAttachment(peerId, runId, true, recordsHash, source.Descriptor, "outgoing",
+                    request["trigger"]?.GetValue<string>() == "auto_wifi" ? DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds() : DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(), chunks);
+            }
+            foreach (var batch in batches) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.batch", batch);
+        }
         if (message.TryGetProperty("report", out var reportNode) && reportNode.ValueKind == JsonValueKind.Object)
             await telefon.StagePersonalReportAsync(peerId, JsonNode.Parse(reportNode.GetRawText())!.AsObject());
         if (message.TryGetProperty("commit", out var commit) && commit.ValueKind == JsonValueKind.Object)
