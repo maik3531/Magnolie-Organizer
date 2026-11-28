@@ -58,7 +58,17 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           ["2026-08-14", "LI", "none"],
           ["2026-08-16", "LI", "none"],
           ["2026-08-15", "CH", "none"],
-          ["2026-08-15", "", "none"]
+          ["2026-08-15", "", "none"],
+          ["1992-10-28", "CZ", "none"],
+          ["1993-10-28", "CZ", "czech-proclamation"],
+          ["2026-10-27", "CZ", "none"],
+          ["2026-10-29", "CZ", "none"],
+          ["1981-10-12", "ES", "none"],
+          ["1982-10-12", "ES", "spanish-ribbon"],
+          ["1987-10-12", "ES", "spanish-ribbon"],
+          ["2025-10-13", "ES", "none"],
+          ["2026-10-28", "ES", "none"],
+          ["2026-10-12", "CZ", "none"]
         ]) {
           assert.equal(b.w.MagnolieAppearance.holiday(date, land), motif, `${land} ${date}`);
         }
@@ -67,7 +77,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           ["2026-08-01", "CH", "swiss-lantern"], ["2026-07-14", "FR", "french-rosette"],
           ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
           ["2026-06-23", "LU", "luxembourg-concert"], ["2026-06-02", "IT", "italian-ballot"],
-          ["2026-11-11", "PL", "polish-banner"], ["2026-08-15", "LI", "liechtenstein-lights"]
+          ["2026-11-11", "PL", "polish-banner"], ["2026-08-15", "LI", "liechtenstein-lights"],
+          ["2026-10-28", "CZ", "czech-proclamation"], ["2026-10-12", "ES", "spanish-ribbon"]
         ]) {
           b.t.zustand().kalender.tag = date;
           await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -76,12 +87,16 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           assert.equal(watermarks().length, 1);
           assert.equal(watermarks()[0].dataset.appearanceWatermark, motif);
           assert.equal(watermarks()[0].getAttribute("aria-hidden"), "true");
-          if (land === "LI") {
+          const parts = {
+            LI: ["mountain-ridge", "illuminated-crown", "mountain-fires", "festive-rays"],
+            CZ: ["proclamation", "document-lines", "flag", "flag-wedge", "festive-rays"],
+            ES: ["banner", "horizontal-bands", "ribbon", "festive-rays"]
+          }[land];
+          if (parts) {
             assert.equal(watermarks()[0].getAttribute("focusable"), "false");
-            assert.deepEqual([...watermarks()[0].querySelectorAll("[data-motif-part]")].map(node => node.dataset.motifPart),
-              ["mountain-ridge", "illuminated-crown", "mountain-fires", "festive-rays"]);
+            assert.deepEqual([...watermarks()[0].querySelectorAll("[data-motif-part]")].map(node => node.dataset.motifPart), parts);
           }
-          selectCountry("ES");
+          selectCountry(land === "ES" ? "CZ" : "ES");
           assert.equal(watermarks().length, 0);
         }
         selectCountry("DE");
@@ -130,7 +145,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
         ["french-rosette", "France"], ["kings-crown", "Netherlands"],
         ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"],
-        ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"]
+        ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"],
+        ["czech-proclamation", "Czech Republic"], ["spanish-ribbon", "Spain"]
       ]) {
         assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
         choose("holiday", motif);
@@ -138,7 +154,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
       }
       choose("holiday", "unknown");
-      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "liechtenstein-lights");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "spanish-ribbon");
       choose("date", "2026-12-06");
       choose("holiday", "auto");
       assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "boots");

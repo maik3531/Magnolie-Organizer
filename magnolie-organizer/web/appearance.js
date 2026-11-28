@@ -83,6 +83,19 @@
       { d: "M18 51Q12 46 18 39Q18 44 22 45Q25 50 18 51ZM58 57Q52 52 58 45Q58 50 62 51Q65 56 58 57Z", fill: "none", "data-motif-part": "mountain-fires" },
       { d: "M12 18L16 22M64 18L68 14M40 3V6M33 72L30 76M48 72L51 76", fill: "none", "data-motif-part": "festive-rays" }
     ],
+    "czech-proclamation": [
+      { d: "M10 22H40V64H10ZM15 17H45V53", fill: "none", "data-motif-part": "proclamation" },
+      { d: "M16 30H34M16 37H34M16 44H29M16 51H32", fill: "none", "data-motif-part": "document-lines" },
+      { d: "M48 9V66M43 66H53M48 12H74V34H48", fill: "none", "data-motif-part": "flag" },
+      { d: "M48 12L61 23L48 34M61 23H74", fill: "none", "data-motif-part": "flag-wedge" },
+      { d: "M7 10L12 15M64 44L69 49M61 58L65 64M29 70V76", fill: "none", "data-motif-part": "festive-rays" }
+    ],
+    "spanish-ribbon": [
+      { d: "M11 17H69V49H11ZM11 17L7 12M69 17L73 12", fill: "none", "data-motif-part": "banner" },
+      { d: "M11 25H69M11 41H69", fill: "none", "data-motif-part": "horizontal-bands" },
+      { d: "M39 58C30 48 21 53 26 59Q30 64 39 61C48 50 57 53 54 59Q50 64 41 61M39 61L32 73M41 61L48 73", fill: "none", "data-motif-part": "ribbon" },
+      { d: "M29 6L33 11M51 6L47 11M5 57L10 62M70 57L75 62", fill: "none", "data-motif-part": "festive-rays" }
+    ],
     "unity-gate": [
       { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
       { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
@@ -147,6 +160,8 @@
     "it-republic-day": "italian-ballot",
     "pl-independence-day": "polish-banner",
     "li-national-day": "liechtenstein-lights",
+    "cz-independence-day": "czech-proclamation",
+    "es-national-day": "spanish-ribbon",
     "de-unity-day": "unity-gate",
     "at-national-day": "neutrality-parliament",
     "ch-national-day": "swiss-lantern",
@@ -166,6 +181,10 @@
     if (country === "PL" && (year === 1937 || year === 1938 || year >= 1989) && month === 11 && day === 11) return "pl-independence-day";
     // National celebration since 1940, retained by law in 1990.
     if (country === "LI" && year >= 1940 && month === 8 && day === 15) return "li-national-day";
+    // Modern Czech Republic retains the anniversary of the 1918 proclamation.
+    if (country === "CZ" && year >= 1993 && month === 10 && day === 28) return "cz-independence-day";
+    // Verified national rule: RD 3217/1981 effective 1982, Law 18/1987.
+    if (country === "ES" && year >= 1982 && month === 10 && day === 12) return "es-national-day";
     if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
@@ -327,6 +346,7 @@
     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
       ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"],
+      ["czech-proclamation", "Czech Republic"], ["spanish-ribbon", "Spain"],
       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);

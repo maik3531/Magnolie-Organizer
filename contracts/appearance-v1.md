@@ -29,8 +29,12 @@ kopiert oder als Programmbestandteil übernommen.
   dreigeteiltes Festbanner), Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
   konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin),
   Italien (Republikfest, Wahlurne), Polen (11. November 1937/38 und ab
-  1989, zweigeteiltes Festbanner) und Liechtenstein (15. August ab 1940,
-  Höhenfeuer mit stilisierter Feuerkrone).
+  1989, zweigeteiltes Festbanner), Liechtenstein (15. August ab 1940,
+  Höhenfeuer mit stilisierter Feuerkrone), Tschechien (28. Oktober ab 1993,
+  Proklamation und Flagge) und Spanien (12. Oktober ab 1982, Festbanner).
+  Tschechiens Motiv gilt für die heutige Republik und erinnert an die
+  Staatsgründung von 1918. Spaniens Motiv folgt dem Festdatum auch dann,
+  wenn ein arbeitsfreier Ersatztermin anders liegt.
   Das italienische Motiv folgt dem 2. Juni ab den belegten Feiern 1947/48,
   1977–2000 dem ersten Junisonntag mit der gesetzlichen Ausnahme am
   2. Juni 1986 und seit 2001 wieder dem 2. Juni.
@@ -46,6 +50,9 @@ kopiert oder als Programmbestandteil übernommen.
   Liechtenstein: [Regierungsbeschluss 1940](https://e-archiv.li/textDetail.aspx?backurl=auto&eID=1&etID=41401),
   [Gesetz von 1990](https://www.gesetze.li/chrono/pdf/1990034000) und
   [offizielles Festprogramm mit der Krone auf Tuass](https://staatsfeiertag.li/).
+  Tschechien: [Fortführung des Feiertags nach der Staatsteilung](https://www.mo.gov.cz/en/ministry-of-defence/newsroom/news/five-hundred-new-soldiers-take-oath-on-the-national-holiday--61702/).
+  Spanien: [Königliches Dekret 3217/1981](https://www.boe.es/eli/es/rd/1981/11/27/3217/con)
+  und [Gesetz 18/1987](https://www.boe.es/eli/es/l/1987/10/07/18/con).
 - Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
   https://www.info.gouv.fr/actualite/pourquoi-le-14-juillet-est-il-notre-fete-nationale ,
   https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day ,
