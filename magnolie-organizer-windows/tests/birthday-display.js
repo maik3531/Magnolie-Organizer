@@ -129,6 +129,18 @@ function check(web) {
     ]);
     assert.deepEqual(Array.from(T.daten().jahrestage, item => [item.kontaktId, item.datum]),
       [["first", "1990-12-24"], ["", "--12-25"]]);
+
+    load([birthday("yearless", { name: "Zulu", datum: "--12-25" }),
+      birthday("same-a", { name: "Bravo", datum: "1990-12-25" }),
+      birthday("same-b", { name: "Alfa", datum: "1990-12-25" }),
+      birthday("other-year", { name: "Charlie", datum: "1991-12-25" })]);
+    T.wechsel("jahrestage");
+    const rows = Array.from(w.document.querySelectorAll(".jahrestage-liste .zeile"));
+    assert.deepEqual(rows.map(row => row.querySelector(".obm").textContent), ["Alfa", "Bravo", "Charlie", "Zulu"]);
+    const ageText = row => /\bturns (\d+)/.exec(row.querySelector(".unt").textContent)?.[1];
+    assert.equal(ageText(rows[0]), ageText(rows[1]));
+    assert.equal(Number(ageText(rows[1])) - Number(ageText(rows[2])), 1);
+    assert.equal(ageText(rows[3]), undefined);
     console.log("BIRTHDAY DISPLAY PASSED: " + web);
   } finally { w.close(); }
 }

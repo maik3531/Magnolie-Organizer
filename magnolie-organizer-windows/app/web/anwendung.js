@@ -5989,10 +5989,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const TEXT_SORTIERER = new Map();
   const STANDARD_TEXT_SORTIERER = new Map();
 
-  function vergleicheStandardText(a, b) {
+  function standardTextVergleich() {
     const gebiet = formatGebiet();
     if (!STANDARD_TEXT_SORTIERER.has(gebiet)) STANDARD_TEXT_SORTIERER.set(gebiet, new Intl.Collator(gebiet));
-    return STANDARD_TEXT_SORTIERER.get(gebiet).compare(a, b);
+    return STANDARD_TEXT_SORTIERER.get(gebiet).compare;
+  }
+
+  function vergleicheStandardText(a, b) {
+    return standardTextVergleich()(a, b);
   }
 
   function vergleicheText(a, b) {
@@ -23684,10 +23688,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const inhaltL = $("#inhalt-links");
     inhaltL.classList.add("jahrestage-liste");
     const heute = isoHeute();
-    const sortiert = sichtbar
-      .map((jt) => ({ jt: jt, n: naechsterJahrestag(jt, heute) }))
-      .sort((a, b) => a.n.inTagen - b.n.inTagen ||
-        vergleicheStandardText(a.jt.name, b.jt.name));
+    const projektionen = new Map();
+    const vergleicheName = standardTextVergleich();
+    const sortiert = sichtbar.map(jt => {
+      if (!projektionen.has(jt.datum)) projektionen.set(jt.datum, naechsterJahrestag(jt, heute));
+      return { jt, n: projektionen.get(jt.datum) };
+    }).sort((a, b) => a.n.inTagen - b.n.inTagen || vergleicheName(a.jt.name, b.jt.name));
 
     if (!sortiert.length) {
       inhaltL.append(el("p", "leer-hinweis", _(

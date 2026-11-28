@@ -34,9 +34,10 @@ LARGE_BOOK_ROWS = int(os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ROWS", "0"))
 LARGE_BOOK_STARTUP_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_STARTUP_ONLY") == "1"
 LARGE_BOOK_SAVE_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_ONLY") == "1"
 LARGE_BOOK_SAVE_TRACE = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_TRACE") == "1"
+LARGE_BOOK_ANNIVERSARIES_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ANNIVERSARIES_ONLY") == "1"
 assert LARGE_BOOK_ROWS in (0, 10_000, 50_000) and not (LARGE_BOOK_ROWS and TRAY_SOAK_SECONDS)
-assert not (LARGE_BOOK_STARTUP_ONLY and LARGE_BOOK_SAVE_ONLY)
-assert not (LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_SAVE_ONLY) or LARGE_BOOK_ROWS
+assert sum((LARGE_BOOK_STARTUP_ONLY, LARGE_BOOK_SAVE_ONLY, LARGE_BOOK_ANNIVERSARIES_ONLY)) <= 1
+assert not (LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_SAVE_ONLY or LARGE_BOOK_ANNIVERSARIES_ONLY) or LARGE_BOOK_ROWS
 assert not LARGE_BOOK_SAVE_TRACE or LARGE_BOOK_SAVE_ONLY
 PROBE_TIMEOUT = 240 if LARGE_BOOK_ROWS else TRAY_SOAK_SECONDS + 90
 if BACKGROUND_PROBE:
@@ -824,6 +825,20 @@ def client():
 
             assert measure("open-cover", """document.querySelector('#deckel').click();
                 return document.querySelector('#buch').classList.contains('offen');""")
+            if LARGE_BOOK_ANNIVERSARIES_ONLY:
+                rows = """Array.from(document.querySelectorAll('.jahrestage-liste .zeile .obm'), node => node.textContent)"""
+                first = measure("navigate-jahrestage",
+                    """document.querySelector('[data-fokus="register:jahrestage"]').click(); return """ + rows + ";")
+                expanded = measure("show-more-jahrestage", """const more = Array.from(document.querySelectorAll('.jahrestage-liste button'))
+                    .find(button => button.textContent === 'Show more');
+                    if (!more) throw new Error('Missing Show more');
+                    more.click(); return """ + rows + ";")
+                assert first and len(first) < len(expanded) < counts["jahrestage"]
+                assert expanded[:len(first)] == first
+                state["large_book"]["anniversary_order_sha256"] = hashlib.sha256(
+                    json.dumps(expanded, ensure_ascii=False).encode()).hexdigest()
+                process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+                return
             if not LARGE_BOOK_SAVE_ONLY:
                 for section in ("kalender", "aufgaben", "adressen", "planer", "jahrestage", "notizen"):
                     selector_text = json.dumps(f'[data-fokus="register:{section}"]')
@@ -3370,6 +3385,8 @@ if TRAY_SOAK_SECONDS:
     print("Native TRAY SOAK PASS: registered product indicator and real Gtk tray menu hide/restore, synthetic navigation, window resizing and bounded resource samples; not a physical tray click/display/DPI or all-day endurance acceptance")
 elif LARGE_BOOK_STARTUP_ONLY:
     print("Native large-book GTK/WebKit startup and complete book counts PASS:", LARGE_BOOK_ROWS, "records per area")
+elif LARGE_BOOK_ANNIVERSARIES_ONLY:
+    print("Native large-book GTK/WebKit anniversary navigation and Show more PASS:", LARGE_BOOK_ROWS, "records per area")
 elif LARGE_BOOK_SAVE_ONLY:
     print("Native large-book GTK/WebKit single-entry save and disk readback PASS:", LARGE_BOOK_ROWS, "records per area")
 elif LARGE_BOOK_ROWS:

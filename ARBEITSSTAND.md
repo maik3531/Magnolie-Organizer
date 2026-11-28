@@ -286,14 +286,18 @@ aufgeführt.
   einen Index statt pro Kontakt in der gesamten Jahrestagsliste. Im
   Linux-Quelllauf mit GTK/WebKit und 250.000 synthetischen Einträgen
   war die Anwendung nach 8,26 Sekunden bereit; vorher lief die
-  Initialisierung in den Timeout. Die lange Jahrestagsansicht und der
-  Speicherbedarf beim Speichern bleiben offen.
+  Initialisierung in den Timeout. Beide Desktop-Oberflächen berechnen
+  gleiche Datumsprojektionen in der Jahrestagsansicht einmal pro
+  Anzeige. Im isolierten Linux-Vergleich sank die Zeit für das Öffnen
+  des Registers von 608 auf 194 ms und für „Mehr anzeigen“ von 543
+  auf 132 ms. Die sichtbare Reihenfolge blieb gleich.
   Der Linux-Speicherpfad berechnet den Buchhash für Notes und Kontakte
   bei demselben bestätigten Schreibvorgang nur einmal. Im isolierten
   250.000-Einträge-Test sank die Zeit bis zum SaveACK von 16,71 auf
   12,85 Sekunden; der neue Titel und alle Bestandszahlen wurden von der
-  Platte bestätigt. Die volle Aktionsfolge und lange Frame-Abstände
-  beim Speichern brauchen eine eigene Abnahme.
+  Platte bestätigt. Die volle Aktionsfolge erreichte vor dem
+  Ansichtsfix erneut das Speicherlimit. Speicherbedarf und lange
+  Frame-Abstände beim Speichern brauchen eine eigene Abnahme.
   Die native N100- und 30-Tage-Prüfung bleibt offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige
