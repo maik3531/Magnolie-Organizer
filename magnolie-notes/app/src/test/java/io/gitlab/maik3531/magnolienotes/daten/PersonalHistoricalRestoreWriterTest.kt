@@ -35,7 +35,8 @@ class PersonalHistoricalRestoreWriterTest {
             val collision = source.copy(art = "task", notiz = null, aufgabe = Aufgabe("unrelated-trash", titel = "Keep this trash"))
             val seeded = storage.bestand.value.copy(papierkorb = listOf(source, collision))
             synchronized(Ablage.SCHREIBSPERRE) {
-                Ablage::class.java.getDeclaredMethod("schreibeBestand", Bestand::class.java).apply { isAccessible = true }.invoke(storage, seeded)
+                Ablage::class.java.getDeclaredMethod("schreibeBestand", Bestand::class.java, Function0::class.java)
+                    .apply { isAccessible = true }.invoke(storage, seeded, null)
             }
             val before = storage.bestand.value; val saved = requireNotNull(storage.personalActorSavedBookState())
             val bytes = File(directory, "notizen.json").readBytes()

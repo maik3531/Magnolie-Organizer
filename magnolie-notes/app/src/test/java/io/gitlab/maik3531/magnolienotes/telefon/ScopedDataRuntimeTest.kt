@@ -9,6 +9,7 @@ import io.gitlab.maik3531.magnolienotes.daten.Aufgabe
 import io.gitlab.maik3531.magnolienotes.daten.Anhang
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSyncClock
+import io.gitlab.maik3531.magnolienotes.daten.PersonalSyncRecord
 import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -129,6 +130,38 @@ class ScopedDataRuntimeTest {
     @Test fun provenanceFormatUsesScopedTransportAndRetainsOriginalAppOnReceive() = exercise("receive", 14)
     @Test fun provenanceFormatProducesACompleteMatchingScopedReply() = exercise("receive-request", 14)
     @Test fun scopedWifiRequestOnBluetoothLeavesNoRunOrScope() = exercise("receive-auto-wifi-bluetooth", 14)
+    @Test fun scopedConnectionRequestOnCurrentBluetoothNeedsItsOwnRunPolicy() = exercise("receive-auto-connection", 14)
+    @Test fun scopedConnectionInitiatorWaitsForTheOriginalRequestAckBeforeItsBatch() =
+        exercise("start-auto-connection", 3)
+    @Test fun scopedConnectionInitiatorSavesTheReplyOriginalBeforeSendingItsResult() =
+        exercise("start-auto-connection-attachment", 3)
+    @Test fun scopedConnectionRejectsLowerFormatMissingFromPeerAnnouncement() =
+        exercise("receive-auto-connection-remote-format", 3)
+    @Test fun scopedConnectionRejectsLowerFormatMissingFromLocalCapabilities() =
+        exercise("receive-auto-connection-local-format", 3)
+    @Test fun scopedConnectionRequestRollsBackRunAndScopeWhenItsReceiptFails() = exercise("receive-auto-connection-atomic", 14)
+    @Test fun scopedConnectionBatchSavesOnlyOnTheOriginalReader() = exercise("receive-auto-connection-batch", 14)
+    @Test fun scopedConnectionBatchOnReplacementReaderLeavesBookAndStagingUntouched() = exercise("receive-auto-connection-batch-replaced", 14)
+    @Test fun scopedConnectionBatchLosingReaderBeforeReplacementPreservesTheBook() = exercise("receive-auto-connection-batch-write-reader", 14)
+    @Test fun scopedConnectionBatchRetriesItsFailedNativeSaveOnTheSameReader() = exercise("receive-auto-connection-batch-write-retry", 14)
+    @Test fun scopedConnectionReplyUsesOnlyTheOriginalAcknowledgedReaderAfterSave() = exercise("receive-auto-connection-reply", 14)
+    @Test fun scopedConnectionReplyRetriesAfterOutboxFailureWithoutSavingTwice() = exercise("receive-auto-connection-outbox-reply", 14)
+    @Test fun scopedConnectionReportWaitsForReplyAndItsOwnSentAcknowledgment() = exercise("receive-auto-connection-report-reply", 14)
+    @Test fun scopedConnectionReportRemainsHeldAfterTerminalReplyRejection() = exercise("receive-auto-connection-terminal-report-reply", 14)
+    @Test fun scopedConnectionReportWaitsForEveryExactReplyAndRollsBackItsFailedAck() =
+        exercise("receive-auto-connection-multi-report-reply", 14)
+    @Test fun scopedConnectionAttachmentDescriptorRequestsBytesWithoutApplyingTheBook() =
+        exercise("receive-auto-connection-attachment-request", 14)
+    @Test fun scopedConnectionAttachmentStagesOnlyCurrentWindowAndExactOriginalBytes() =
+        exercise("receive-auto-connection-attachment-window", 14)
+    @Test fun scopedConnectionAttachmentResultNeedsActualBookSaveEvenAfterRetry() =
+        exercise("receive-auto-connection-attachment-save", 14)
+    @Test fun scopedConnectionReplyAdvertisesSavedAttachmentButHoldsItsReport() =
+        exercise("receive-auto-connection-attachment-reply", 14)
+    @Test fun scopedConnectionReplySendsOnlyAcknowledgedWindowsOnItsOriginalReader() =
+        exercise("receive-auto-connection-attachment-send", 14)
+    @Test fun scopedConnectionAttachmentCompletionNeedsEverySentAckAndCommitsWithItsReceipt() =
+        exercise("receive-auto-connection-attachment-complete", 14)
     @Test fun provenanceFormatSurvivesManualScopeAndReceiptGates() = exercise("manual", 14)
     @Test fun provenanceFormatUsesTheNativeActorCommitAndCompletionReport() = exercise("actor-commit", 14)
     @Test fun provenanceFormatCanAdmitOneSelectedOrganizerNote() = exercise("single", 14)
@@ -148,8 +181,287 @@ class ScopedDataRuntimeTest {
     @Test fun aReplacedAuthenticatedChannelCannotStartItsPendingAutomaticRun() = exercise("auto-late-channel")
     @Test fun aReplacedOriginalPipeCannotStartItsPendingAutomaticRun() = exercise("auto-late-pipe")
 
+    private fun checkConnectionInitiator(work: TelefonWerk, peer: TelefonPeer, queue: TelefonQueue, manifest: JsonObject,
+                                        sendDue: () -> List<JsonObject>, ackScope: () -> Unit,
+                                        ack: (String, String, String) -> Unit, receive: (JsonObject) -> JsonObject,
+                                        failBookWrites: AtomicBoolean, failNextFlush: AtomicBoolean, replyOriginal: Boolean) {
+        val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync", TelefonPeer::class.java,
+            String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+        assertEquals(true, enqueue.invoke(work, peer, PersonalAutoSync.CONNECTION, null, false))
+        assertTrue("Request preceded the collection ACK", sendDue().isEmpty())
+        ackScope()
+        val requestFrame = sendDue().single()
+        val (kind, request) = PhoneContentScope.unwrap(requestFrame.getValue("body").jsonObject, manifest)
+        assertEquals("personal_sync.request", kind)
+        assertEquals(PersonalAutoSync.CONNECTION, request.string("trigger"))
+        val run = request.string("run_id")
+        val requestId = requestFrame.string("message_id")
+        assertEquals("connection_only", queue.personalRunPolicy(peer.device_id, run))
+        assertFalse(queue.scopedRequestAccepted(peer.device_id, run))
+        rejectPrematureConnectionReport(work, peer, queue, manifest, request)
+        assertTrue("Batch preceded the Request ACK", sendDue().isEmpty())
+        ack(requestId, "rejected", "temporary_failure")
+        replacementConnectionAck(work, peer, requestId)
+        assertFalse("A failure or a replacement reader released the batch", queue.scopedRequestAccepted(peer.device_id, run))
+        assertTrue(sendDue().isEmpty())
+        for (transport in TelefonTransportArt.entries) assertTrue(queue.due(peer.device_id, transport)
+            .none { it.payload.string("kind") in setOf("personal_sync.request", "personal_sync.batch") })
+        ack(requestId, "accepted", "none")
+        val batchFrame = sendDue().single()
+        val (batchKind, batch) = PhoneContentScope.unwrap(batchFrame.getValue("body").jsonObject, manifest)
+        assertEquals("personal_sync.batch", batchKind)
+        assertEquals(run, batch.string("run_id"))
+        val note = PersonalSyncProtokoll.decodeBatch(batch).single { it.kind == "note" && it.id == "phone-note" }
+        val task = PersonalSyncProtokoll.decodeBatch(batch).single { it.kind == "task" && it.id == "phone-task" }
+        val reply = outboundConnectionTestReply(peer.device_id, manifest, batch, task)
+        assertEquals("rejected", receive(reply).string("status"))
+        assertNull(queue.duplicateResult(peer.device_id, reply.string("message_id")))
+        val attachment = note.value.getValue("attachments").jsonArray.single().jsonObject
+        checkConnectionInitialOriginal(queue, peer.device_id, manifest, batchFrame, batch, attachment, sendDue, ack, receive)
+        if (replyOriginal) {
+            val target = PersonalSyncProtokoll.decodeBatch(batch).single { it.kind == "note" && it.id == "return-note" }
+            checkConnectionReplyOriginal(peer.device_id, queue, manifest, batch, target, sendDue, receive, ack, failBookWrites, failNextFlush)
+        } else checkConnectionReplySave(queue, peer.device_id, run, reply, receive, failBookWrites)
+    }
+
+    private fun outboundConnectionTestReply(peerId: String, manifest: JsonObject, batch: JsonObject, task: PersonalSyncRecord): JsonObject {
+        val value = JsonObject(task.value + mapOf("title" to JsonPrimitive("Organizer task update"),
+            "modified_ms" to JsonPrimitive(task.modifiedMs + 1)))
+        val clock = PersonalSync.merge(task.clock, listOf(PersonalSyncClock(peerId, 1)))
+        val changed = task.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = task.modifiedMs + 1, clock = clock)
+        val body = PersonalSyncProtokoll.batch(batch.string("run_id"), listOf(changed), 0, true, true,
+            batch.long("format").toInt(), PersonalSync.recordsHash(listOf(changed)))
+        return TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.batch", body, manifest), 60_000)
+    }
+
+    private fun checkConnectionReplySave(queue: TelefonQueue, peerId: String, run: String, reply: JsonObject,
+                                         receive: (JsonObject) -> JsonObject, failBookWrites: AtomicBoolean) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val path = java.io.File(context.filesDir, "notizen.json")
+        val before = path.readBytes()
+        val documents = Ablage.hole(context)
+        failBookWrites.set(true)
+        try {
+            assertEquals("temporary_failure", receive(reply).string("error"))
+        } finally {
+            failBookWrites.set(false)
+        }
+        assertArrayEquals(before, path.readBytes())
+        assertEquals("Mobile task", documents.bestand.value.aufgaben.single { it.id == "phone-task" }.titel)
+        assertFalse(queue.personalDirectionApplied(peerId, run, true))
+        assertEquals("duplicate", receive(reply).string("status"))
+        assertTrue(queue.personalDirectionApplied(peerId, run, true))
+        assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+        val after = path.readBytes()
+        assertFalse(before.contentEquals(after))
+        assertEquals("duplicate", receive(reply).string("status"))
+        assertArrayEquals(after, path.readBytes())
+        val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+        assertEquals("Organizer task update", reopened.bestand.value.aufgaben.single { it.id == "phone-task" }.titel)
+        assertEquals(documents.notiz("phone-note")?.anhaenge, reopened.notiz("phone-note")?.anhaenge)
+    }
+
+    private fun checkConnectionReplyOriginal(peerId: String, queue: TelefonQueue, manifest: JsonObject, batch: JsonObject,
+                                              note: PersonalSyncRecord, sendDue: () -> List<JsonObject>,
+                                              receive: (JsonObject) -> JsonObject, ack: (String, String, String) -> Unit,
+                                              failBookWrites: AtomicBoolean, failNextFlush: AtomicBoolean) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val file = java.io.File(context.filesDir, "notizen.json")
+        val before = file.readBytes()
+        val run = batch.string("run_id")
+        val bytes = initialConnectionOriginal().apply { this[lastIndex] = 66 }
+        val dataUrl = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(bytes)
+        val descriptor = requireNotNull(PersonalSync.attachmentDescriptor(Anhang("desktop-original", "Desktop.png", "image", dataUrl))).descriptor
+        val digest = descriptor.string("sha256")
+        val value = JsonObject(note.value + mapOf("text" to JsonPrimitive("Organizer original"),
+            "attachments" to JsonArray(listOf(descriptor)), "modified_ms" to JsonPrimitive(note.modifiedMs + 1)))
+        val clock = PersonalSync.merge(note.clock, listOf(PersonalSyncClock(peerId, 1)))
+        val updated = note.copy(value = value, clock = clock, modifiedMs = note.modifiedMs + 1, hash = PersonalSync.hash(value))
+        val aggregate = PersonalSync.recordsHash(listOf(updated))
+        fun wire(kind: String, body: JsonObject) =
+            TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap(kind, body, manifest), 60_000)
+        val reply = wire("personal_sync.batch", PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, true,
+            batch.long("format").toInt(), aggregate))
+        fun chunk(index: Int, reply: Boolean = true) = wire("personal_sync.attachment_chunk", buildJsonObject {
+            put("format", 2); put("run_id", run); put("reply", reply); put("records_hash", aggregate)
+            put("sha256", digest); put("index", index)
+            val start = index * PersonalSyncProtokoll.CHUNK_RAW
+            put("data", java.util.Base64.getEncoder().encodeToString(bytes.copyOfRange(start, minOf(start + PersonalSyncProtokoll.CHUNK_RAW, bytes.size))))
+        })
+        fun wanted(start: Int, end: Int) {
+            val (kind, body) = PhoneContentScope.unwrap(sendDue().single().getValue("body").jsonObject, manifest)
+            assertEquals("personal_sync.attachment_request", kind)
+            assertEquals(JsonPrimitive(true), body["reply"])
+            val want = body.getValue("wants").jsonArray.single().jsonObject
+            assertEquals(digest, want.string("sha256"))
+            assertEquals(JsonArray(listOf(JsonPrimitive(start), JsonPrimitive(end))), want.getValue("ranges").jsonArray.single())
+        }
+        assertEquals("accepted", receive(reply).string("status"))
+        assertEquals("rejected", receive(chunk(0)).string("status")) // Window not yet sent.
+        wanted(0, 8)
+        assertEquals("rejected", receive(chunk(0, reply = false)).string("status"))
+        assertEquals("rejected", receive(chunk(8)).string("status"))
+        repeat(8) { index -> assertEquals("accepted", receive(chunk(index)).string("status")) }
+        wanted(8, 9)
+        val last = chunk(8)
+        failBookWrites.set(true)
+        try {
+            assertEquals("temporary_failure", receive(last).string("error"))
+        } finally {
+            failBookWrites.set(false)
+        }
+        assertArrayEquals(before, file.readBytes())
+        assertFalse(queue.personalDirectionApplied(peerId, run, true))
+        assertTrue(sendDue().isEmpty())
+        assertEquals("duplicate", receive(last).string("status"))
+        assertTrue(queue.personalDirectionApplied(peerId, run, true))
+        val resultFrame = sendDue().single()
+        val (kind, result) = PhoneContentScope.unwrap(resultFrame.getValue("body").jsonObject, manifest)
+        assertEquals("personal_sync.attachment_result", kind)
+        assertEquals(JsonPrimitive(true), result["reply"])
+        assertEquals(digest, result.string("sha256"))
+        assertEquals("complete", result.string("state"))
+        val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+        assertEquals(dataUrl, reopened.notiz("return-note")?.anhaenge?.single()?.daten)
+        assertEquals("Organizer original", reopened.notiz("return-note")?.text)
+        assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+        val report = connectionTestReport(manifest, batch)
+        assertEquals("rejected", receive(report).string("status"))
+        assertNull(queue.duplicateResult(peerId, report.string("message_id")))
+        ack(resultFrame.string("message_id"), "accepted", "none")
+        assertEquals("rejected", receive(connectionTestReport(manifest, batch, transport = "wifi")).string("status"))
+        failNextFlush.set(true)
+        assertTrue(runCatching { receive(report) }.exceptionOrNull() is java.io.IOException)
+        assertFalse("Failed transport write marked the report complete", queue.personalRunMarked(peerId, run, "reported"))
+        assertTrue(sendDue().isEmpty()) // Drain the ciphertext from the simulated failed write.
+        val savedBook = file.readBytes()
+        assertEquals("duplicate", receive(report).string("status"))
+        assertTrue(queue.personalRunMarked(peerId, run, "reported"))
+        assertEquals("duplicate", receive(report).string("status"))
+        assertEquals("rejected", receive(connectionTestReport(manifest, batch)).string("status"))
+        assertArrayEquals(savedBook, file.readBytes())
+    }
+
+    private fun initialConnectionOriginal(): ByteArray = ByteArray(8 * PersonalSyncProtokoll.CHUNK_RAW + 32) { 65 }.apply {
+        byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a).copyInto(this)
+    }
+
+    private fun checkConnectionInitialOriginal(queue: TelefonQueue, peerId: String, manifest: JsonObject, frame: JsonObject,
+                                               batch: JsonObject, attachment: JsonObject, sendDue: () -> List<JsonObject>,
+                                               ack: (String, String, String) -> Unit, receive: (JsonObject) -> JsonObject) {
+        val run = batch.string("run_id")
+        val aggregate = batch.string("records_hash")
+        val digest = attachment.string("sha256")
+        fun envelope(kind: String, extra: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit) =
+            TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap(kind, buildJsonObject {
+                put("format", 2); put("run_id", run); put("reply", false); put("records_hash", aggregate)
+                extra()
+            }, manifest), 60_000)
+        fun want(start: Int, end: Int) = envelope("personal_sync.attachment_request") {
+            put("wants", JsonArray(listOf(buildJsonObject {
+                put("sha256", digest)
+                put("ranges", JsonArray(listOf(JsonArray(listOf(JsonPrimitive(start), JsonPrimitive(end))))))
+            })))
+        }
+        val result = envelope("personal_sync.attachment_result") {
+            put("sha256", digest); put("state", "complete"); put("error", "none")
+        }
+        val first = want(0, 8)
+        assertEquals("rejected", receive(first).string("status"))
+        assertNull(queue.duplicateResult(peerId, first.string("message_id")))
+        assertTrue(sendDue().isEmpty())
+        ack(frame.string("message_id"), "accepted", "none")
+        assertEquals("accepted", receive(first).string("status"))
+        assertEquals("duplicate", receive(first).string("status"))
+        assertEquals("rejected", receive(want(8, 9)).string("status"))
+        val delivered = mutableMapOf<Int, ByteArray>()
+        fun readChunks(count: Int) {
+            val chunks = sendDue()
+            assertEquals(count, chunks.size)
+            for (wire in chunks) {
+                val (kind, body) = PhoneContentScope.unwrap(wire.getValue("body").jsonObject, manifest)
+                assertEquals("personal_sync.attachment_chunk", kind)
+                assertEquals(JsonPrimitive(false), body["reply"])
+                assertEquals(digest, body.string("sha256"))
+                assertEquals(aggregate, body.string("records_hash"))
+                assertNull(delivered.put(body.long("index").toInt(), java.util.Base64.getDecoder().decode(body.string("data"))))
+                ack(wire.string("message_id"), "accepted", "none")
+            }
+        }
+        readChunks(8)
+        assertEquals("rejected", receive(result).string("status"))
+        assertNull(queue.duplicateResult(peerId, result.string("message_id")))
+        assertEquals("accepted", receive(want(8, 9)).string("status"))
+        readChunks(1)
+        assertArrayEquals(initialConnectionOriginal(), delivered.toSortedMap().values.flatMap { it.asIterable() }.toByteArray())
+        assertEquals("accepted", receive(result).string("status"))
+        assertEquals("duplicate", receive(result).string("status"))
+        assertTrue(sendDue().isEmpty())
+    }
+
+    private fun rejectPrematureConnectionReport(work: TelefonWerk, peer: TelefonPeer, queue: TelefonQueue,
+                                                manifest: JsonObject, request: JsonObject) {
+        val run = request.string("run_id")
+        val wire = connectionTestReport(manifest, request)
+        val channel = field(TelefonWerk::class.java, "activeChannel").get(work) as TelefonSecureChannel
+        work.receiveMessage(peer, wire, channel, 0L)
+        assertFalse("Premature remote report completed a connection run", queue.personalRunMarked(peer.device_id, run, "reported"))
+        assertNull(queue.duplicateResult(peer.device_id, wire.string("message_id")))
+    }
+
+    private fun connectionTestReport(manifest: JsonObject, runBody: JsonObject, transport: String = "bluetooth"): JsonObject {
+        val report = buildJsonObject {
+            put("format", runBody.getValue("format")); put("run_id", runBody.string("run_id")); put("state", "complete")
+            put("trigger", PersonalAutoSync.CONNECTION); put("transport", transport); put("error", "none")
+            val zero = buildJsonObject { for (name in listOf("notes", "tasks", "notebooks")) put(name, 0) }
+            put("sent", zero); put("received", zero)
+            for (name in listOf("conflicts", "attachments_omitted", "oversized_skipped")) put(name, 0)
+            put("started_ms", 1); put("finished_ms", 2)
+            put("attachments", buildJsonObject {
+                for (name in listOf("declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes")) put(name, 0)
+            })
+            put("deletions", buildJsonObject {
+                for (name in listOf("pending", "deleted", "restored", "conflicts", "blocked")) put(name, 0)
+                put("trash", JsonObject(zero + ("attachments" to JsonPrimitive(0))))
+            })
+        }
+        return TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+            PhoneContentScope.wrap("personal_sync.report", report, manifest), 60_000)
+    }
+
+    private fun replacementConnectionAck(work: TelefonWerk, peer: TelefonPeer, requestId: String) {
+        val active = field(TelefonWerk::class.java, "activeChannel")
+        val original = active.get(work) as TelefonSecureChannel
+        @Suppress("UNCHECKED_CAST")
+        val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
+        val first = sessions.getValue(original)
+        val replacement = PersonalNoteSession().apply {
+            capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+            sharedSent = first.sharedSent; sharedReceived = first.sharedReceived
+            localContentScope = first.localContentScope; contentScopeSelection = first.contentScopeSelection
+            contentScopeRestoreEpoch = first.contentScopeRestoreEpoch; contentScopePreference = first.contentScopePreference
+            contentScopeAccepted.addAll(first.contentScopeAccepted)
+        }
+        TelefonSecureChannel(ByteArrayInputStream(ByteArray(0)), ByteArrayOutputStream(), ByteArray(32) { 1 },
+            ByteArray(32) { 2 }, ByteArray(4) { 3 }, ByteArray(32) { 4 }, ByteArray(4) { 5 }).use { reader ->
+            active.set(work, reader)
+            bindSyntheticPhoneSession(work, reader)
+            sessions[reader] = replacement
+            try {
+                work.handleSessionAck(peer, TelefonNachrichten.ack(requestId, "accepted", "none"), replacement,
+                    0L, TelefonTransportArt.BLUETOOTH, reader)
+            } finally {
+                sessions.remove(reader)
+                active.set(work, original)
+            }
+        }
+    }
+
     private fun exercise(mode: String, format: Int = 3) {
         val automaticReconnect = mode.startsWith("auto-late-")
+        val connectionStart = mode.startsWith("start-auto-connection")
+        val connectionAutomation = mode.startsWith("receive-auto-connection") || connectionStart
+        val multiConnectionReply = mode == "receive-auto-connection-multi-report-reply"
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
         val actorTerminal = mode.startsWith("actor-commit-terminal")
@@ -185,9 +497,17 @@ class ScopedDataRuntimeTest {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2,
                 ursprungApp = if (format == 14) "notes" else "",
+                anhaenge = if (connectionStart) listOf(Anhang("original", "Synthetic original.png", "image",
+                    "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(initialConnectionOriginal()))) else emptyList(),
                 baumQuelle = if (mode == "send-route") "linked-origin" else "",
                 persoenlichVerknuepft = mode == "send-route"))
-            if (automaticReconnect || actorDeletion || actorCommit || mode.startsWith("actor-producer-incoming-mixed-") || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (mode == "start-auto-connection-attachment")
+                documents.setzeNotiz(Notiz("return-note", "Return note", notizbuchId = book.id))
+            if (multiConnectionReply) repeat(32) { index ->
+                documents.setzeNotiz(Notiz("reply-member-$index", "Additional member", "Synthetic text",
+                    notizbuchId = book.id, angelegt = 1, geaendert = 2, ursprungApp = "notes"))
+            }
+            if (connectionStart || automaticReconnect || actorDeletion || actorCommit || mode.startsWith("actor-producer-incoming-mixed-") || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             if (mode.startsWith("send-")) {
                 documents.setzeNotiz(Notiz("private-note", "Unselected note", "Never transfer", notizbuchId = book.id))
                 documents.setzeAufgabe(Aufgabe("private-task", "Unselected task",
@@ -220,17 +540,30 @@ class ScopedDataRuntimeTest {
                 documents.personalSyncSnapshot(setOf("notes", "tasks"), 3)
             }
             val deletionGrant = actorDeletion || actorTerminal || actorProducer && mode != "actor-producer-no-grants" || mode in setOf("delete", "skip-delete")
+            val connectionVersions = if (connectionAutomation) listOf(PersonalAutoSync.VERSION) else emptyList()
+            val missingRemoteFormat = mode == "receive-auto-connection-remote-format"
+            val newerFormat = if (format == 14 || missingRemoteFormat) listOf(14) else emptyList()
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
                 personal_deletions_sync_granted = deletionGrant, remote_personal_deletions_sync_granted = deletionGrant,
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
-                remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList(),
-                remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList())
+                remote_personal_notes_sync_versions = (listOf(1, 2, 3, 5, 9, 10) + connectionVersions + newerFormat +
+                    if (nativeActor) listOf(12) else emptyList()).filterNot { missingRemoteFormat && it == 3 }.sorted(),
+                remote_personal_tasks_sync_versions = (listOf(1, 2, 3, 4, 6, 7, 9, 10) + connectionVersions + newerFormat +
+                    if (nativeActor) listOf(12) else emptyList()).sorted())
             storage.savePeer(peer)
             val work = TelefonWerk.get(context)
             runtimeWork = work
             work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
+            if (connectionAutomation) work.sharedLocalCapabilities = {
+                TelefonCapabilities.phase1().mapValues { (name, value) ->
+                    if (name in setOf("personal_notes_sync", "personal_tasks_sync"))
+                        value.copy(versions = (value.versions + PersonalAutoSync.VERSION)
+                            .filterNot { mode == "receive-auto-connection-local-format" && name == "personal_tasks_sync" && it == 3 }
+                            .sorted()) else value
+                }
+            }
             if (nativeActor) work.sharedLocalCapabilities = {
                 TelefonCapabilities.phase1().mapValues { (name, value) ->
                     if (name in setOf("personal_notes_sync", "personal_tasks_sync")) value.copy(versions = value.versions + 12) else value
@@ -270,16 +603,25 @@ class ScopedDataRuntimeTest {
                     super.flush(); wake.get()?.countDown()
                 }
             }
+            val preparedBook = java.io.File(context.filesDir, "notizen.json.neu")
+            val watchBookReplacement = AtomicBoolean(false)
+            val readerLostAtReplacement = AtomicBoolean(false)
             val pipe = object : TelefonRoehre {
                 override val input = ByteArrayInputStream(ByteArray(0))
                 override val output = wireOutput
                 override fun close() { closed.incrementAndGet() }
+                override fun aktuell(): Boolean {
+                    if (watchBookReplacement.get() && preparedBook.isFile) readerLostAtReplacement.set(true)
+                    return !readerLostAtReplacement.get()
+                }
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
             if (automaticReconnect) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("wifi"))
+            if (connectionAutomation) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("connection"))
             if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode.startsWith("actor-deletions-origin") || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
-            field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+            val transport = if (connectionStart) TelefonTransportArt.BLUETOOTH else TelefonTransportArt.WIFI
+            field(TelefonWerk::class.java, "activeTransport").set(work, transport to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
@@ -290,6 +632,7 @@ class ScopedDataRuntimeTest {
                 @Suppress("UNCHECKED_CAST")
                 val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
                 sessions[channel] = session
+                if (connectionStart) field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                 work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, shared, 60000), channel, 0)
                 val pump = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java,
                     Long::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
@@ -313,10 +656,21 @@ class ScopedDataRuntimeTest {
                     return result
                 }
                 fun ack(id: String, status: String = "accepted", error: String = "none") =
-                    work.handleSessionAck(peer, TelefonNachrichten.ack(id, status, error), session, 0L, TelefonTransportArt.WIFI)
+                    work.handleSessionAck(peer, TelefonNachrichten.ack(id, status, error), session, 0L, transport)
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (connectionStart) {
+                    sent()
+                    checkConnectionInitiator(work, peer, queue, manifest, {
+                        pump.invoke(work, peer, channel, 0L, false)
+                        scoped(sent())
+                    }, ::ackScope, ::ack, { wire ->
+                        work.receiveMessage(peer, wire, channel, 0L)
+                        sent().single { it["message_id"] == wire["message_id"] }
+                    }, failBookWrites, failNextFlush, replyOriginal = mode == "start-auto-connection-attachment")
+                    return@use
+                }
                 if (automaticReconnect) {
                     val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync", TelefonPeer::class.java,
                         String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
@@ -1727,14 +2081,593 @@ class ScopedDataRuntimeTest {
                 }
                 val selection = PersonalSync.livePersonalContent(documents.bestand.value)
                 val snapshot = documents.personalSyncScopedSnapshot(selection, peerId, format)
-                val old = snapshot.records.single { it.kind == "note" }
+                 val old = snapshot.records.single { it.kind == "note" && (!multiConnectionReply || it.id == "phone-note") }
                 val value = JsonObject(old.value + mapOf("text" to JsonPrimitive("Organizer addition"), "modified_ms" to JsonPrimitive(old.modifiedMs + 1)))
                 val updated = old.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = old.modifiedMs + 1,
                     clock = (old.clock + PersonalSyncClock(peerId, 1)).sortedWith { a, b -> PersonalSync.compareUtf8(a.actor_id, b.actor_id) })
                  val run = UUID.randomUUID().toString()
                  val wifiOverBluetooth = mode == "receive-auto-wifi-bluetooth"
-                 val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", if (wifiOverBluetooth) "auto_wifi" else "manual")
+                 val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", when {
+                     connectionAutomation -> PersonalAutoSync.CONNECTION
+                     wifiOverBluetooth -> "auto_wifi"
+                     else -> "manual"
+                 })
                      put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
+                 if (connectionAutomation) {
+                     sent()
+                     field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.BLUETOOTH to pipe)
+                     val activeReader = field(TelefonWerk::class.java, "activeChannel")
+                     activeReader.set(work, channel)
+                     val wrapped = buildJsonObject {
+                         put("format", PhoneContentScope.VERSION)
+                         put("scope", PhoneContentScope.reference(manifest))
+                         put("kind", "personal_sync.request")
+                         put("body", request)
+                     }
+                     // The outer frame bypasses the local encoder only; receive and acknowledgement use the product handler.
+                     val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, wrapped, 60000)
+                     fun requestAck() = sent().single { it["message_id"] == requestMessage["message_id"] }
+                     if (mode.endsWith("-atomic")) {
+                         val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                         database.execSQL("CREATE TRIGGER connection_request_receipt_failure BEFORE INSERT ON inbox " +
+                             "WHEN NEW.message_id='${requestMessage.string("message_id")}' AND NEW.state='accepted' " +
+                             "BEGIN SELECT RAISE(ABORT,'synthetic connection request receipt failure'); END")
+                         try {
+                             work.receiveMessage(peer, requestMessage, channel, 0)
+                             val failed = requestAck()
+                             assertEquals("rejected", failed.string("status"))
+                             assertNull("Rejected request left a persisted run", queue.personalRun(peerId, run))
+                             assertFalse(queue.containsScopedRun(peerId, run))
+                             assertNull(queue.duplicateResult(peerId, requestMessage.string("message_id")))
+                             assertEquals("temporary_failure", failed.string("error"))
+                         } finally { database.execSQL("DROP TRIGGER connection_request_receipt_failure") }
+                     }
+                      work.receiveMessage(peer, requestMessage, channel, 0)
+                      val ack = requestAck()
+                      if (mode.endsWith("-format")) {
+                          assertEquals("rejected", ack.string("status"))
+                          assertEquals("not_granted", ack.string("error"))
+                          assertNull(queue.personalRun(peerId, run))
+                          assertFalse(queue.containsScopedRun(peerId, run))
+                          return
+                      }
+                      assertEquals(ack.toString(), "accepted", ack.string("status"))
+                     assertEquals(request, queue.personalRun(peerId, run))
+                     assertEquals("connection_only", queue.personalRunPolicy(peerId, run))
+                     work.receiveMessage(peer, requestMessage, channel, 0)
+                     assertEquals("duplicate", requestAck().string("status"))
+
+                     val attachmentSave = mode.endsWith("-attachment-save")
+                     val attachmentComplete = mode.endsWith("-attachment-complete")
+                     val attachmentSend = mode.endsWith("-attachment-send") || attachmentComplete
+                     val attachmentReply = mode.endsWith("-attachment-reply") || attachmentSend
+                     val attachmentWindow = mode.endsWith("-attachment-window") || attachmentSave || attachmentReply
+                     val attachment = if (mode.endsWith("-attachment-request") || attachmentWindow) {
+                         val fixture = TelefonKanonisch.json.parseToJsonElement(
+                             requireNotNull(javaClass.getResource("/personal-sync-contract.json")).readText()).jsonObject
+                         val singleUrl = fixture.getValue("format2").jsonObject.getValue("data_url").jsonPrimitive.content
+                         val dataUrl = if (attachmentWindow) {
+                             val png = java.io.ByteArrayOutputStream().use { buffer ->
+                                 val image = java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB)
+                                 check(javax.imageio.ImageIO.write(image, "png", buffer))
+                                 buffer.toByteArray()
+                             }
+                             val type = "tEXt".encodeToByteArray()
+                             val text = "Comment\u0000".encodeToByteArray() + ByteArray(8 * PersonalSyncProtokoll.CHUNK_RAW) { 'a'.code.toByte() }
+                             val crc = java.util.zip.CRC32().apply { update(type); update(text) }
+                             val chunk = java.nio.ByteBuffer.allocate(12 + text.size).putInt(text.size).put(type).put(text)
+                                 .putInt(crc.value.toInt()).array()
+                             val beforeEnd = png.size - 12
+                             "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(
+                                 png.copyOfRange(0, beforeEnd) + chunk + png.copyOfRange(beforeEnd, png.size))
+                         } else singleUrl
+                         requireNotNull(PersonalSync.attachmentDescriptor(Anhang("phone-original", "Original.png", "image", dataUrl)))
+                     } else null
+                     val remoteRecord = attachment?.let {
+                         val content = JsonObject(updated.value + ("attachments" to JsonArray(listOf(it.descriptor))))
+                         updated.copy(value = content, hash = PersonalSync.hash(content))
+                     } ?: updated
+                     val aggregate = PersonalSync.recordsHash(listOf(remoteRecord))
+                     val connectionBatch = PersonalSyncProtokoll.batch(run, listOf(remoteRecord), 0, true, false, format, aggregate)
+                     val batchMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                         PhoneContentScope.wrap("personal_sync.batch", connectionBatch, manifest), 60000)
+                     fun batchAck() = sent().single { it["message_id"] == batchMessage["message_id"] }
+                     val book = java.io.File(context.filesDir, "notizen.json")
+                     fun verifyConnectionAttachmentWindow(original: PersonalSync.AttachmentSnapshot) {
+                         val before = book.readBytes()
+                         work.receiveMessage(peer, batchMessage, channel, 0)
+                         val staged = batchAck()
+                         assertEquals(staged.toString(), "accepted", staged.string("status"))
+                         assertArrayEquals(before, book.readBytes())
+                         assertTrue(queue.readyPersonalBatches().any { it.first == peerId })
+                         pump.invoke(work, peer, channel, 0L, false)
+                         assertTrue(scoped(sent()).isEmpty())
+                         session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { id ->
+                             work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"), session,
+                                 0L, TelefonTransportArt.BLUETOOTH, channel)
+                         }
+                         pump.invoke(work, peer, channel, 0L, false)
+                         val wanted = scoped(sent()).single()
+                         val envelope = wanted.getValue("body").jsonObject
+                         val requestBody = envelope.getValue("body").jsonObject
+                         assertEquals("personal_sync.attachment_request", envelope.string("kind"))
+                         assertEquals(run, requestBody.string("run_id"))
+                         assertEquals(aggregate, requestBody.string("records_hash"))
+                         assertEquals(JsonPrimitive(false), requestBody["reply"])
+                         fun wants(end: Int, start: Int = 0) = JsonArray(listOf(buildJsonObject {
+                             put("sha256", original.descriptor.getValue("sha256"))
+                             put("ranges", JsonArray(listOf(JsonArray(listOf(JsonPrimitive(start), JsonPrimitive(end))))))
+                         }))
+                         assertEquals(wants(if (attachmentWindow) 8 else 1), requestBody["wants"])
+                         work.handleSessionAck(peer, TelefonNachrichten.ack(wanted.string("message_id"), "accepted", "none"),
+                             session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                         assertNotNull("A window ACK is not attachment data", queue.outboxPersonalMessage(peerId, wanted.string("message_id")))
+                         assertArrayEquals(before, book.readBytes())
+                         assertFalse(queue.personalDirectionApplied(peerId, run, reply = false))
+                         if (!attachmentWindow) return
+                         val hash = original.descriptor.string("sha256")
+                         val width = PersonalSyncProtokoll.CHUNK_RAW
+                         val bytes = original.bytes
+                         val chunks = (0..8).map { index ->
+                             val chunk = buildJsonObject {
+                                 put("format", 2); put("run_id", run); put("reply", false)
+                                 put("records_hash", aggregate); put("sha256", hash); put("index", index)
+                                 put("data", java.util.Base64.getEncoder().encodeToString(
+                                     bytes.copyOfRange(index * width, minOf(bytes.size, (index + 1) * width))))
+                             }
+                             TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap(
+                                 "personal_sync.attachment_chunk", chunk, manifest), 60000)
+                         }
+                         fun chunkAck(reader: TelefonSecureChannel, index: Int): JsonObject {
+                             work.receiveMessage(peer, chunks[index], reader, 0)
+                             return sent().single { it["message_id"] == chunks[index]["message_id"] }
+                         }
+                         assertEquals("rejected", chunkAck(channel, 8).string("status"))
+                         assertNull(queue.duplicateResult(peerId, chunks[8].string("message_id")))
+                         TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 },
+                             ByteArray(4) { 12 }, ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { replacement ->
+                             bindSyntheticPhoneSession(work, replacement)
+                             sessions[replacement] = PersonalNoteSession().apply {
+                                 capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+                                 sharedSent = shared; sharedReceived = shared
+                             }
+                             activeReader.set(work, replacement)
+                             pump.invoke(work, peer, replacement, 0L, false)
+                             sent()
+                             assertEquals("rejected", chunkAck(replacement, 0).string("status"))
+                             assertNull(queue.duplicateResult(peerId, chunks[0].string("message_id")))
+                             sessions.remove(replacement)
+                             activeReader.set(work, channel)
+                         }
+                         val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                         database.execSQL("CREATE TRIGGER connection_chunk_staging_failure BEFORE INSERT ON personal_attachment_chunk " +
+                             "WHEN NEW.run_id='$run' BEGIN SELECT RAISE(ABORT,'synthetic encrypted chunk failure'); END")
+                         try {
+                             val failed = chunkAck(channel, 0)
+                             assertEquals("rejected", failed.string("status"))
+                             assertEquals("temporary_failure", failed.string("error"))
+                             assertNull(queue.duplicateResult(peerId, chunks[0].string("message_id")))
+                         } finally { database.execSQL("DROP TRIGGER connection_chunk_staging_failure") }
+                         for (index in 0..7) {
+                             val ack = chunkAck(channel, index)
+                             assertEquals(ack.toString(), "accepted", ack.string("status"))
+                         }
+                         assertEquals("duplicate", chunkAck(channel, 7).string("status"))
+                         assertArrayEquals(before, book.readBytes())
+                         pump.invoke(work, peer, channel, 0L, false)
+                         val lastWindow = scoped(sent()).single().getValue("body").jsonObject.getValue("body").jsonObject
+                         assertEquals(wants(9, 8), lastWindow["wants"])
+                         if (attachmentSave) {
+                             failBookWrites.set(true)
+                             try {
+                                 val failed = chunkAck(channel, 8)
+                                 assertEquals(failed.toString(), "rejected", failed.string("status"))
+                                 assertEquals("temporary_failure", failed.string("error"))
+                                 assertArrayEquals(before, book.readBytes())
+                                 assertFalse(queue.personalDirectionApplied(peerId, run, reply = false))
+                                 pump.invoke(work, peer, channel, 0L, false)
+                                 assertTrue("No result may escape before a successful book save", scoped(sent()).isEmpty())
+                             } finally { failBookWrites.set(false) }
+                         }
+                         assertEquals(if (attachmentSave) "duplicate" else "accepted", chunkAck(channel, 8).string("status"))
+                         assertTrue(queue.incomingAttachmentComplete(peerId, run, false, aggregate, hash))
+                         val verified = java.io.ByteArrayOutputStream()
+                         assertTrue(queue.verifyIncomingAttachment(peerId, run, false, aggregate, hash, verified))
+                         assertArrayEquals(bytes, verified.toByteArray())
+                         if (attachmentSave || attachmentReply) {
+                             val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                             val savedNote = requireNotNull(reopened.notiz("phone-note"))
+                             val saved = savedNote.anhaenge.single()
+                             assertEquals("Organizer addition", savedNote.text)
+                             assertEquals("Original.png", saved.name)
+                             assertEquals("image", saved.art)
+                             assertArrayEquals(bytes, requireNotNull(
+                                 io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung.dataUrl(saved.daten)).bytes)
+                             assertFalse(before.contentEquals(book.readBytes()))
+                             assertTrue(queue.personalDirectionApplied(peerId, run, reply = false))
+                             pump.invoke(work, peer, channel, 0L, false)
+                             val completion = scoped(sent())
+                             val result = completion.single {
+                                 it.getValue("body").jsonObject.string("kind") == "personal_sync.attachment_result"
+                             }
+                             val envelope = result.getValue("body").jsonObject
+                             val body = envelope.getValue("body").jsonObject
+                             assertEquals("personal_sync.attachment_result", envelope.string("kind"))
+                             assertEquals(aggregate, body.string("records_hash"))
+                             assertEquals(hash, body.string("sha256"))
+                             assertEquals("complete", body.string("state"))
+                             assertEquals(JsonPrimitive(false), body["reply"])
+                             val savedAttachmentAck = TelefonNachrichten.ack(result.string("message_id"), "accepted", "none")
+                             if (!attachmentComplete) {
+                                 work.handleSessionAck(peer, savedAttachmentAck, session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                 assertNull(queue.outboxPersonalMessage(peerId, result.string("message_id")))
+                             }
+                             if (attachmentReply) {
+                                 val reply = completion.singleOrNull {
+                                     it.getValue("body").jsonObject.string("kind") == "personal_sync.batch"
+                                 }
+                                 assertNotNull("Saved attachment must be advertised in the protected Reply", reply)
+                                 val replyBody = requireNotNull(reply).getValue("body").jsonObject.getValue("body").jsonObject
+                                 val note = PersonalSyncProtokoll.decodeBatch(replyBody).single { it.kind == "note" }
+                                 val descriptor = (note.value.getValue("attachments") as JsonArray).single().jsonObject
+                                 assertEquals(hash, descriptor.string("sha256"))
+                                 assertEquals(bytes.size.toLong(), descriptor.long("size"))
+                                 assertEquals("Original.png", descriptor.string("name"))
+                                 val replyHash = replyBody.string("records_hash")
+                                 assertTrue(queue.requestedAttachmentChunks(peerId, run, true, replyHash,
+                                     listOf(hash to listOf(listOf(0, 8))), TelefonTransportArt.BLUETOOTH).isEmpty())
+                                 database.query("personal_attachment_transfer", arrayOf("transport_policy", "metadata", "complete"),
+                                     "peer_id=? AND run_id=? AND direction='outgoing' AND reply=1 AND records_hash=? AND sha256=?",
+                                     arrayOf(peerId, run, replyHash, hash), null, null, null).use { rows ->
+                                     assertTrue("Original outgoing bytes need an authenticated snapshot", rows.moveToFirst())
+                                     assertTrue(rows.getString(0).startsWith("connection_only:"))
+                                     assertFalse(rows.isNull(1)); assertEquals(0, rows.getInt(2))
+                                 }
+                                 fun outgoingWindow(start: Int, end: Int) = TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                                     PhoneContentScope.wrap("personal_sync.attachment_request", buildJsonObject {
+                                         put("format", 2); put("run_id", run); put("reply", true)
+                                         put("records_hash", replyHash); put("wants", wants(end, start))
+                                     }, manifest), 60000)
+                                 fun outgoingWindowAck(message: JsonObject, reader: TelefonSecureChannel = channel): JsonObject {
+                                     work.receiveMessage(peer, message, reader, 0)
+                                     return sent().single { it["message_id"] == message["message_id"] }
+                                 }
+                                 val firstWindow = outgoingWindow(0, 8)
+                                 if (attachmentSend) {
+                                     assertEquals("rejected", outgoingWindowAck(firstWindow).string("status"))
+                                     assertNull(queue.duplicateResult(peerId, firstWindow.string("message_id")))
+                                 }
+                                 work.handleSessionAck(peer, TelefonNachrichten.ack(reply.string("message_id"), "accepted", "none"),
+                                     session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                 pump.invoke(work, peer, channel, 0L, false)
+                                 assertTrue("Reply ACK alone must not release the report", scoped(sent()).isEmpty())
+                                 assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                                 if (attachmentSend) {
+                                     assertEquals("rejected", outgoingWindowAck(outgoingWindow(0, 9)).string("status"))
+                                     TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 },
+                                         ByteArray(4) { 12 }, ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { replacement ->
+                                         bindSyntheticPhoneSession(work, replacement)
+                                         val replacementSession = PersonalNoteSession().apply {
+                                             capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+                                             sharedSent = shared; sharedReceived = shared
+                                         }
+                                         sessions[replacement] = replacementSession
+                                         activeReader.set(work, replacement)
+                                         pump.invoke(work, peer, replacement, 0L, false); sent()
+                                         replacementSession.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { id ->
+                                             work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"),
+                                                 replacementSession, 0L, TelefonTransportArt.BLUETOOTH, replacement)
+                                         }
+                                         assertEquals("rejected", outgoingWindowAck(firstWindow, replacement).string("status"))
+                                         assertNull(queue.duplicateResult(peerId, firstWindow.string("message_id")))
+                                         sessions.remove(replacement)
+                                         activeReader.set(work, channel)
+                                     }
+                                     val first = outgoingWindowAck(firstWindow)
+                                     assertEquals(first.toString(), "accepted", first.string("status"))
+                                     assertEquals("duplicate", outgoingWindowAck(firstWindow).string("status"))
+                                     fun readSentChunks() = scoped(sent()).associate { frame ->
+                                         val wrapped = frame.getValue("body").jsonObject
+                                         assertEquals("personal_sync.attachment_chunk", wrapped.string("kind"))
+                                         val chunk = wrapped.getValue("body").jsonObject
+                                         assertEquals(hash, chunk.string("sha256"))
+                                         assertEquals(replyHash, chunk.string("records_hash"))
+                                         assertEquals(JsonPrimitive(true), chunk["reply"])
+                                         chunk.long("index").toInt() to (frame.string("message_id") to
+                                             java.util.Base64.getDecoder().decode(chunk.string("data")))
+                                     }
+                                     pump.invoke(work, peer, channel, 0L, false)
+                                     val firstChunks = readSentChunks()
+                                     assertEquals((0..7).toSet(), firstChunks.keys)
+                                     val secondWindow = outgoingWindow(8, 9)
+                                     assertEquals("rejected", outgoingWindowAck(secondWindow).string("status"))
+                                     firstChunks.values.forEach { (id, _) ->
+                                         work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"),
+                                             session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                     }
+                                     assertEquals("accepted", outgoingWindowAck(secondWindow).string("status"))
+                                     pump.invoke(work, peer, channel, 0L, false)
+                                     val secondChunks = readSentChunks()
+                                     assertEquals(setOf(8), secondChunks.keys)
+                                     val received = java.io.ByteArrayOutputStream()
+                                     (firstChunks + secondChunks).toSortedMap().values.forEach { (_, chunk) -> received.write(chunk) }
+                                     assertArrayEquals(bytes, received.toByteArray())
+                                     val savedByPeer = TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                                         PhoneContentScope.wrap("personal_sync.attachment_result", buildJsonObject {
+                                             put("format", 2); put("run_id", run); put("reply", true)
+                                             put("records_hash", replyHash); put("sha256", hash)
+                                             put("state", "complete"); put("error", "none")
+                                         }, manifest), 60000)
+                                     if (attachmentComplete) {
+                                         assertEquals("rejected", outgoingWindowAck(savedByPeer).string("status"))
+                                         assertNull(queue.duplicateResult(peerId, savedByPeer.string("message_id")))
+                                     }
+                                     work.handleSessionAck(peer, TelefonNachrichten.ack(secondChunks.getValue(8).first, "accepted", "none"),
+                                         session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                     pump.invoke(work, peer, channel, 0L, false)
+                                     assertTrue("Chunk ACKs alone do not release the report", scoped(sent()).isEmpty())
+                                     if (attachmentComplete) {
+                                         fun outgoingComplete() = database.query("personal_attachment_transfer", arrayOf("complete"),
+                                             "peer_id=? AND run_id=? AND direction='outgoing' AND reply=1 AND records_hash=? AND sha256=?",
+                                             arrayOf(peerId, run, replyHash, hash), null, null, null).use {
+                                             it.moveToFirst() && it.getInt(0) == 1
+                                         }
+                                         database.execSQL("CREATE TRIGGER connection_result_receipt_failure BEFORE INSERT ON inbox " +
+                                             "WHEN NEW.message_id='${savedByPeer.string("message_id")}' AND NEW.state='accepted' " +
+                                             "BEGIN SELECT RAISE(ABORT,'synthetic attachment result receipt failure'); END")
+                                         try {
+                                             val failed = outgoingWindowAck(savedByPeer)
+                                             assertEquals(failed.toString(), "temporary_failure", failed.string("error"))
+                                             assertFalse(outgoingComplete())
+                                             assertNull(queue.duplicateResult(peerId, savedByPeer.string("message_id")))
+                                         } finally { database.execSQL("DROP TRIGGER connection_result_receipt_failure") }
+                                         val accepted = outgoingWindowAck(savedByPeer)
+                                         assertEquals(accepted.toString(), "accepted", accepted.string("status"))
+                                         assertTrue(outgoingComplete())
+                                         assertEquals("duplicate", outgoingWindowAck(savedByPeer).string("status"))
+                                         pump.invoke(work, peer, channel, 0L, false)
+                                         assertTrue("The incoming original result still needs its own ACK", scoped(sent()).isEmpty())
+                                         assertNotNull(queue.outboxPersonalMessage(peerId, result.string("message_id")))
+                                         work.handleSessionAck(peer, savedAttachmentAck, session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                         pump.invoke(work, peer, channel, 0L, false)
+                                         val report = scoped(sent()).single()
+                                         val reportEnvelope = report.getValue("body").jsonObject
+                                         assertEquals("personal_sync.report", reportEnvelope.string("kind"))
+                                         val attachmentCounts = reportEnvelope.getValue("body").jsonObject.getValue("attachments").jsonObject
+                                         assertEquals(1L, attachmentCounts.long("sent"))
+                                         assertEquals(1L, attachmentCounts.long("received"))
+                                         assertEquals(bytes.size.toLong(), attachmentCounts.long("bytes"))
+                                         assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                                         work.handleSessionAck(peer, TelefonNachrichten.ack(report.string("message_id"), "accepted", "none"),
+                                             session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                         assertTrue(queue.personalRunMarked(peerId, run, "reported"))
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                     if (attachment != null) {
+                         verifyConnectionAttachmentWindow(attachment)
+                         return@use
+                     }
+                     if (mode.endsWith("-write-reader")) {
+                         val original = book.readBytes()
+                         watchBookReplacement.set(true)
+                         work.receiveMessage(peer, batchMessage, channel, 0)
+                         assertArrayEquals("Lost reader must not replace the book", original, book.readBytes())
+                         assertTrue("Original transport must be checked again at the native writer", readerLostAtReplacement.get())
+                         assertFalse("A cancelled save left its prepared encrypted book", preparedBook.exists())
+                         assertEquals("rejected", batchAck().string("status"))
+                         return@use
+                     }
+                     if (mode.endsWith("-write-retry")) {
+                         val original = book.readBytes()
+                         assertTrue(preparedBook.mkdir())
+                         val failed = try {
+                             work.receiveMessage(peer, batchMessage, channel, 0)
+                             sent().filter { it["message_id"] == batchMessage["message_id"] }
+                         } finally { assertTrue(preparedBook.delete()) }
+                         assertArrayEquals(original, book.readBytes())
+                         val staged = queue.readyPersonalBatches().single { it.first == peerId }.second
+                         val replay = TelefonWerk::class.java.getDeclaredMethod("completePersonalBatch",
+                             TelefonPeer::class.java, List::class.java, PersonalNoteSession::class.java).apply { isAccessible = true }
+                         replay.invoke(work, peer, staged, PersonalNoteSession())
+                         assertArrayEquals("An initializing reader must not replay the saved queue", original, book.readBytes())
+                         work.receiveMessage(peer, batchMessage, channel, 0)
+                         assertEquals("Organizer addition", documents.notiz("phone-note")!!.text)
+                         assertFalse(original.contentEquals(book.readBytes()))
+                         assertEquals("duplicate", batchAck().string("status"))
+                         assertEquals(listOf("rejected" to "temporary_failure"),
+                             failed.map { it.string("status") to it.string("error") })
+                         return@use
+                     }
+                     var connectionReplyIds = emptyList<String>()
+                     if (mode.endsWith("-batch") || mode.endsWith("-reply")) {
+                         val original = book.readBytes()
+                         val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                         fun pendingConnectionReplies(): List<String> = database.query("outbox", arrayOf("message_id"),
+                             "peer_id=? AND kind='personal_sync.batch' AND transport_policy GLOB 'connection_only:*'",
+                             arrayOf(peerId), null, null, null).use { rows ->
+                             buildList { while (rows.moveToNext()) add(rows.getString(0)) }
+                         }
+                         val savedBeforeRetry = if (mode.endsWith("-outbox-reply")) {
+                             database.execSQL("CREATE TRIGGER connection_reply_write_failure BEFORE INSERT ON outbox " +
+                                 "WHEN NEW.kind='personal_sync.batch' AND NEW.transport_policy GLOB 'connection_only:*' " +
+                                 "BEGIN SELECT RAISE(ABORT,'synthetic connection reply write failure'); END")
+                             try {
+                                 work.receiveMessage(peer, batchMessage, channel, 0)
+                                 val failed = batchAck()
+                                 assertEquals("rejected", failed.string("status"))
+                                 assertEquals("temporary_failure", failed.string("error"))
+                                 assertEquals("Organizer addition", documents.notiz("phone-note")!!.text)
+                                 assertFalse(queue.personalRunMarked(peerId, run, "responded"))
+                                 assertTrue(pendingConnectionReplies().isEmpty())
+                                 book.readBytes().also { assertFalse(original.contentEquals(it)) }
+                             } finally { database.execSQL("DROP TRIGGER connection_reply_write_failure") }
+                         } else null
+                         work.receiveMessage(peer, batchMessage, channel, 0)
+                         val stagedAck = batchAck()
+                         assertEquals(stagedAck.toString(), if (savedBeforeRetry == null) "accepted" else "duplicate", stagedAck.string("status"))
+                         assertEquals("Organizer addition", documents.notiz("phone-note")!!.text)
+                         val saved = book.readBytes()
+                         if (savedBeforeRetry != null) assertArrayEquals(savedBeforeRetry, saved)
+                         assertFalse(original.contentEquals(saved))
+                         assertTrue(queue.readyPersonalBatches().any { (owner, messages) ->
+                             owner == peerId && messages.any { it["message_id"] == batchMessage["message_id"] }
+                         })
+                         work.receiveMessage(peer, batchMessage, channel, 0)
+                         assertEquals("duplicate", batchAck().string("status"))
+                         assertArrayEquals(saved, book.readBytes())
+                         if (mode.endsWith("-batch")) return@use
+                         fun replyFrames() = scoped(sent()).filter {
+                             it.getValue("body").jsonObject.string("kind") == "personal_sync.batch"
+                         }
+                         pump.invoke(work, peer, channel, 0L, false)
+                         assertTrue("Reply must wait for the current scope ACK", replyFrames().isEmpty())
+                         session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { id ->
+                             work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"), session,
+                                 0L, TelefonTransportArt.BLUETOOTH, channel)
+                         }
+                         val unsentReplies = pendingConnectionReplies()
+                         assertEquals(if (multiConnectionReply) 2 else 1, unsentReplies.size)
+                         val unsentReplyId = unsentReplies.first()
+                         assertEquals(0, queue.attempts(unsentReplyId))
+                         work.handleSessionAck(peer, TelefonNachrichten.ack(unsentReplyId, "accepted", "none"), session,
+                             0L, TelefonTransportArt.BLUETOOTH, channel)
+                         assertEquals(unsentReplies.toSet(), pendingConnectionReplies().toSet())
+                         pump.invoke(work, peer, channel, 0L, false)
+                         val replies = replyFrames()
+                         assertTrue("Saved Batch needs a protected reply on the original reader", replies.isNotEmpty())
+                         val bodies = replies.map { it.getValue("body").jsonObject.getValue("body").jsonObject }
+                         assertTrue(bodies.all { it.string("run_id") == run && it["reply"] == JsonPrimitive(true) })
+                         assertEquals("Organizer addition", bodies.flatMap(PersonalSyncProtokoll::decodeBatch)
+                             .single { it.kind == "note" && it.id == "phone-note" }.value.getValue("text").jsonPrimitive.content)
+                         connectionReplyIds = replies.map { it.string("message_id") }
+                         assertEquals(unsentReplies.toSet(), connectionReplyIds.toSet())
+                         connectionReplyIds.forEach { id ->
+                             assertNotNull(queue.outboxPersonalMessage(peerId, id))
+                             queue.sent(id, 0, System.currentTimeMillis() - 30_000)
+                         }
+                     }
+
+                     TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 },
+                         ByteArray(4) { 12 }, ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { replacement ->
+                         bindSyntheticPhoneSession(work, replacement)
+                         sessions[replacement] = PersonalNoteSession().apply {
+                             capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+                             sharedSent = shared; sharedReceived = shared
+                         }
+                         activeReader.set(work, replacement)
+                         pump.invoke(work, peer, replacement, 0L, false)
+                         assertEquals(manifest, sessions.getValue(replacement).localContentScope)
+                         sent()
+                         if (connectionReplyIds.isNotEmpty()) {
+                             val replacementSession = sessions.getValue(replacement)
+                             replacementSession.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { control ->
+                                 work.handleSessionAck(peer, TelefonNachrichten.ack(control, "accepted", "none"),
+                                     replacementSession, 0L, TelefonTransportArt.BLUETOOTH, replacement)
+                             }
+                             connectionReplyIds.forEach { id ->
+                                 work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"),
+                                     replacementSession, 0L, TelefonTransportArt.BLUETOOTH, replacement)
+                                 assertNotNull(queue.outboxPersonalMessage(peerId, id))
+                             }
+                             pump.invoke(work, peer, replacement, 0L, false)
+                             assertTrue(scoped(sent()).isEmpty())
+                         }
+                         work.receiveMessage(peer, requestMessage, replacement, 0)
+                         assertEquals("rejected", requestAck().string("status"))
+                         assertEquals(request, queue.personalRun(peerId, run))
+                         if (mode.endsWith("-batch-replaced")) {
+                             val before = book.readBytes()
+                             work.receiveMessage(peer, batchMessage, replacement, 0)
+                             val rejected = batchAck()
+                             assertEquals("rejected", rejected.string("status"))
+                             assertEquals("not_granted", rejected.string("error"))
+                             assertArrayEquals(before, book.readBytes())
+                             assertNull(queue.duplicateResult(peerId, batchMessage.string("message_id")))
+                         }
+                         sessions.remove(replacement)
+                         activeReader.set(work, channel)
+                     }
+                     if (connectionReplyIds.isNotEmpty()) {
+                         val id = connectionReplyIds.first()
+                         val beforeReport = storage.personalSyncReport()
+                         pump.invoke(work, peer, channel, 0L, false)
+                         assertEquals(connectionReplyIds.toSet(), scoped(sent()).map { it.string("message_id") }.toSet())
+                         assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                         if (mode.endsWith("-terminal-report-reply")) {
+                             work.handleSessionAck(peer, TelefonNachrichten.ack(id, "rejected", "not_granted"), session,
+                                 0L, TelefonTransportArt.BLUETOOTH, channel)
+                             work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"), session,
+                                 0L, TelefonTransportArt.BLUETOOTH, channel)
+                             pump.invoke(work, peer, channel, 0L, false)
+                             assertTrue(scoped(sent()).isEmpty())
+                             assertNotNull(queue.outboxPersonalMessage(peerId, id))
+                             assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                             assertEquals(beforeReport, storage.personalSyncReport())
+                             return@use
+                         }
+                         connectionReplyIds.drop(1).forEach { other ->
+                             work.handleSessionAck(peer, TelefonNachrichten.ack(other, "accepted", "none"), session,
+                                 0L, TelefonTransportArt.BLUETOOTH, channel)
+                             assertNull(queue.outboxPersonalMessage(peerId, other))
+                             pump.invoke(work, peer, channel, 0L, false)
+                             assertTrue("A different reply is still outstanding", scoped(sent()).isEmpty())
+                         }
+                         work.handleSessionAck(peer, TelefonNachrichten.ack(id, "accepted", "none"), session,
+                             0L, TelefonTransportArt.BLUETOOTH, channel)
+                         assertNull(queue.outboxPersonalMessage(peerId, id))
+                         if (mode.endsWith("-report-reply")) {
+                             val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                             val unsentReport = database.query("outbox", arrayOf("message_id"),
+                                 "peer_id=? AND kind='personal_sync.report' AND transport_policy GLOB 'connection_only:*'",
+                                 arrayOf(peerId), null, null, null).use { rows ->
+                                 assertTrue("Last reply ACK must release the held Notes report", rows.moveToFirst())
+                                 rows.getString(0)
+                             }
+                             val reportAck = TelefonNachrichten.ack(unsentReport, "accepted", "none")
+                             assertEquals(0, queue.attempts(unsentReport))
+                             work.handleSessionAck(peer, reportAck, session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                             assertNotNull(queue.outboxPersonalMessage(peerId, unsentReport))
+                             assertEquals(beforeReport, storage.personalSyncReport())
+                             assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                             pump.invoke(work, peer, channel, 0L, false)
+                             val report = scoped(sent()).singleOrNull()
+                             assertNotNull("Last reply ACK must release the held Notes report", report)
+                             val envelope = requireNotNull(report).getValue("body").jsonObject
+                             val reportBody = envelope.getValue("body").jsonObject
+                             assertEquals("personal_sync.report", envelope.string("kind"))
+                             assertEquals(run, reportBody.string("run_id"))
+                             assertEquals("auto_connection", reportBody.string("trigger"))
+                             assertEquals("bluetooth", reportBody.string("transport"))
+                             assertEquals(unsentReport, report.string("message_id"))
+                             if (multiConnectionReply) {
+                                 assertEquals(33L, reportBody.getValue("sent").jsonObject.long("notes"))
+                                 database.execSQL("CREATE TRIGGER connection_report_ack_failure BEFORE UPDATE ON personal_run " +
+                                     "WHEN NEW.run_id='$run' AND NEW.reported=1 " +
+                                     "BEGIN SELECT RAISE(ABORT,'synthetic report receipt failure'); END")
+                                 try {
+                                     val failure = runCatching {
+                                         work.handleSessionAck(peer, reportAck, session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                                     }.exceptionOrNull()
+                                     assertTrue(failure is android.database.sqlite.SQLiteException)
+                                     assertFalse(queue.personalRunMarked(peerId, run, "reported"))
+                                     assertNotNull(queue.outboxPersonalMessage(peerId, unsentReport))
+                                     assertTrue(queue.readyPersonalBatches().any { it.first == peerId })
+                                 } finally { database.execSQL("DROP TRIGGER connection_report_ack_failure") }
+                             }
+                             assertEquals(beforeReport, storage.personalSyncReport())
+                             work.handleSessionAck(peer, reportAck, session, 0L, TelefonTransportArt.BLUETOOTH, channel)
+                             assertTrue(queue.personalRunMarked(peerId, run, "reported"))
+                             assertNull(queue.outboxPersonalMessage(peerId, report.string("message_id")))
+                             assertEquals(context.getString(io.gitlab.maik3531.magnolienotes.R.string.personal_sync_vollstaendig),
+                                 storage.personalSyncReport())
+                             assertTrue(queue.readyPersonalBatches().none { it.first == peerId })
+                         }
+                     }
+                     return@use
+                 }
                  val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000)
                  if (wifiOverBluetooth) {
                      sent()

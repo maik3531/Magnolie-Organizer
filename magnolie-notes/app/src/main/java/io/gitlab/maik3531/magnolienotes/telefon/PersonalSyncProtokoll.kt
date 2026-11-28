@@ -143,7 +143,8 @@ object PersonalSyncProtokoll {
             "personal_sync.request" -> {
                 TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger", "modules") + if ("send_item" in body) setOf("send_item") else emptySet())
                 TelefonNachrichten.uuid4(body.string("run_id")); if (body.integer("format") !in setOf(1L, 2L, 3L, 14L) ||
-                    body.string("trigger") !in setOf("manual", "auto_wifi")) fail()
+                    body.string("trigger") !in PersonalAutoSync.TRIGGERS) fail()
+                if (body.string("trigger") == PersonalAutoSync.CONNECTION && body.integer("format") !in setOf(3L, 14L)) fail()
                 val modules = (body["modules"] as? JsonArray)?.map { (it as? JsonPrimitive)?.content } ?: fail()
                 if (modules !in listOf(listOf("notes"), listOf("tasks"), listOf("notes", "tasks"))) fail()
                 if ("send_item" in body) {
@@ -322,12 +323,13 @@ object PersonalSyncProtokoll {
             setOf("deletions") + if (format >= 2L) setOf("attachments") else emptySet())
         TelefonNachrichten.uuid4(body.string("run_id"))
         if (format !in setOf(1L, 2L, 3L, 14L) || body.string("state") !in setOf("complete", "partial", "blocked", "failed") ||
-            body.string("trigger") !in setOf("manual", "auto_wifi") || body.string("transport") !in setOf("wifi", "bluetooth") ||
+            body.string("trigger") !in PersonalAutoSync.TRIGGERS || body.string("transport") !in setOf("wifi", "bluetooth") ||
             body.string("error") !in setOf("none", "offline", "not_granted", "too_large", "save_failed", "protocol", "unknown") ||
             body.integer("finished_ms") < body.integer("started_ms") ||
             listOf("conflicts", "attachments_omitted", "oversized_skipped").any {
                 body.integer(it) !in 0..MAX_SAFE_INTEGER } ||
             listOf("started_ms", "finished_ms").any { body.integer(it) !in 0..MAX_TIMESTAMP }) fail()
+        if (body.string("trigger") == PersonalAutoSync.CONNECTION && format !in setOf(3L, 14L)) fail()
         for (name in listOf("sent", "received")) {
             val counts = body[name] as? JsonObject ?: fail()
             TelefonNachrichten.exact(counts, setOf("notes", "tasks", "notebooks"))

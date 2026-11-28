@@ -219,7 +219,15 @@ aufgeführt.
   Unterstützung die WLAN-Automatik nicht durch „Bei Verbindung“ ersetzen.
   Die vorhandene WLAN-Wahl bleibt erhalten. 63 Linux-Hosttests und vier
   native Windows-.NET-Gruppen bestanden.
-  Die Automatik über weitere freigegebene Transporte bleibt offen.
+  Die aus der privaten Prüfung übernommenen Notes-Quellen binden den
+  neuen Abgleich im Telefonumfang an den ursprünglichen authentifizierten
+  Leser und die bestätigte Auswahl. Die kleinere Geräte-UUID darf
+  höchstens einmal starten. Originalanhänge und die Bestätigung des
+  Abschlussberichts bleiben an diesen Lauf gebunden. Die Notes-Quellen
+  sind bytegleich mit den separat gekoppelten Loopback-Prüfungen.
+  Auf der aktuellen Basis bestanden zusätzlich 160 Release-JVM-Fälle.
+  Die neue Fähigkeit wird weiterhin nicht angekündigt. Desktop-Integration,
+  weitere Inhaltsmodi und installierte Abnahme bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

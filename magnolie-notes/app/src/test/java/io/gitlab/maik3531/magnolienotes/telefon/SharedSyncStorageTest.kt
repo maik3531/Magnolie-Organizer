@@ -314,4 +314,46 @@ class SharedSyncStorageTest {
         assertFalse(queue.acknowledgeScopedRequest(expected.peerActor, message.string("message_id"), "accepted", "none"))
         assertFalse(queue.scopedRequestAccepted(expected.peerActor, run))
     }
+
+    @Test fun connectionStartRollsBackReplacementAndIgnoresAnAckBeforeActualSend() {
+        val shared = store()
+        shared.change(expected, "content_mode", JsonPrimitive("phone_scope"))
+        shared.change(expected, "auto_mode", JsonPrimitive("connection"))
+        val queue = TelefonQueue(context, codec)
+        val peer = expected.peerActor
+        val reference = PhoneContentScope.reference(PhoneContentScope.create(emptyList(), emptyList()))
+        val now = System.currentTimeMillis()
+        fun request(run: String) = TelefonNachrichten.message("personal_sync.request", buildJsonObject {
+            put("format", 3); put("run_id", run); put("trigger", PersonalAutoSync.CONNECTION)
+            put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+        }, 60_000, now)
+        fun stage(run: String, message: JsonObject, authority: String) = queue.queueScopedRequest(expected, shared,
+            message, reference, listOf(PersonalSyncProtokoll.batch(run, emptyList(), 0, true, false, 3, PersonalSync.recordsHash(emptyList()))),
+            emptyList(), now, connectionAuthority = authority, requireCurrent = {})
+        fun due() = queue.due(peer, TelefonTransportArt.BLUETOOTH, now + 1, connectionOnly = true)
+
+        val oldRun = "88888888-8888-4888-8888-888888888888"
+        val old = request(oldRun)
+        assertTrue(stage(oldRun, old, "1".repeat(64)))
+        assertEquals(listOf(old), due().map { it.payload })
+        assertTrue(queue.acknowledgeConnectionInitial(peer, old, "accepted", "none"))
+        assertFalse(queue.scopedRequestAccepted(peer, oldRun))
+        assertEquals(listOf(old), due().map { it.payload })
+
+        val newRun = "99999999-9999-4999-8999-999999999999"
+        val replacement = request(newRun)
+        failOutboxAt = outboxSeals + 2
+        assertEquals("synthetic outbox seal failure", runCatching { stage(newRun, replacement, "2".repeat(64)) }.exceptionOrNull()?.message)
+        assertTrue(queue.containsScopedRun(peer, oldRun))
+        assertFalse(queue.containsScopedRun(peer, newRun))
+        assertEquals(listOf(old), due().map { it.payload })
+        failOutboxAt = 0
+        assertTrue(stage(newRun, replacement, "2".repeat(64)))
+        assertFalse(queue.containsScopedRun(peer, oldRun))
+        assertEquals(listOf(replacement), due().map { it.payload })
+        assertFalse(queue.acknowledgeConnectionInitial(peer, old, "accepted", "none"))
+        queue.sent(replacement.string("message_id"), 0, now)
+        assertTrue(queue.acknowledgeConnectionInitial(peer, replacement, "accepted", "none"))
+        assertEquals("personal_sync.batch", due().single().payload.string("kind"))
+    }
 }

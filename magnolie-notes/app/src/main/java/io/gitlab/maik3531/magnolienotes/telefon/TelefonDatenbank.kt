@@ -9,7 +9,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
+import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import java.io.OutputStream
 import java.security.MessageDigest
 
@@ -132,11 +134,11 @@ internal object PersonalRunAuthentication {
         val request = envelope["request"] as? JsonObject
             ?: throw TelefonProtokollFehler("Nicht authentifizierte Personal-Sync-Metadaten.")
         val modules = request["modules"] as? JsonArray
-        val expectedPolicy = if (index.trigger == "auto_wifi") "wifi_only" else "any"
+        val expectedPolicy = PersonalAutoSync.policy(index.trigger)
         if (request["run_id"] != JsonPrimitive(index.runId) || request["trigger"] != JsonPrimitive(index.trigger) ||
             modules == null || modules.any { it !is JsonPrimitive } || modules.map { (it as JsonPrimitive).content } !in
                 listOf(listOf("notes"), listOf("tasks"), listOf("notes", "tasks")) ||
-            index.trigger !in setOf("manual", "auto_wifi") || index.transportPolicy != expectedPolicy ||
+            index.transportPolicy != expectedPolicy ||
             index.actor && index.trigger != "manual" ||
             index.actorStopped && !index.actor ||
             index.createdMs < 0 || index.expiresMs <= index.createdMs || envelope != this.envelope(index, request))
@@ -181,11 +183,13 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     internal fun hasActiveScopedRun(peerId: String, now: Long = System.currentTimeMillis()): Boolean =
         hasActiveScopedRunIn(helper.readableDatabase, peerId, now)
 
-    private fun hasActiveScopedRunIn(db: SQLiteDatabase, peerId: String, now: Long): Boolean =
+    private fun hasActiveScopedRunIn(db: SQLiteDatabase, peerId: String, now: Long, connectionAuthority: String? = null): Boolean =
         db.query("personal_run", arrayOf("run_id"), "peer_id=?", arrayOf(peerId), null, null, null).use { cursor ->
             while (cursor.moveToNext()) {
                 val runId = cursor.getString(0)
-                if (readScopeRun(db, peerId, runId) == null) continue
+                val marker = readScopeRun(db, peerId, runId) ?: continue
+                val owner = marker["connection_authority"]
+                if (owner != null && owner != JsonPrimitive(connectionAuthority)) continue
                 val run = authenticatedRun(peerId, runId, db)?.first ?: continue
                 if (!run.reported && run.expiresMs > now) return@use true
             }
@@ -250,13 +254,18 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         wire
     }
 
-    internal fun due(peerId: String, transport: TelefonTransportArt, now: Long = System.currentTimeMillis()): List<TelefonOutboxEintrag> {
+    internal fun due(peerId: String, transport: TelefonTransportArt, now: Long = System.currentTimeMillis(),
+                     connectionOnly: Boolean = false): List<TelefonOutboxEintrag> {
         val result = mutableListOf<TelefonOutboxEintrag>()
+        val policies = when {
+            connectionOnly -> "transport_policy GLOB 'connection_only:*' AND last_error=''"
+            transport == TelefonTransportArt.BLUETOOTH -> "transport_policy='any'"
+            else -> "transport_policy NOT GLOB 'connection_only:*'"
+        }
         helper.writableDatabase.inTransaction {
             val stale = mutableListOf<String>()
             query("outbox", arrayOf("message_id", "peer_id", "kind", "created_ms", "expires_ms",
-                "transport_policy", "payload"), "peer_id=? AND next_attempt_ms<=?" +
-                    if (transport == TelefonTransportArt.BLUETOOTH) " AND transport_policy='any'" else "",
+                "transport_policy", "payload"), "peer_id=? AND next_attempt_ms<=? AND $policies",
                 arrayOf(peerId, now.toString()), null, null,
                 "CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.time_settings' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 WHEN 'personal_sync.shared_settings' THEN 6 WHEN 'personal_sync.content_scope' THEN 7 WHEN 'personal_sync.request' THEN 8 ELSE 9 END,created_ms,message_id", "32").use { cursor ->
                 while (cursor.moveToNext()) {
@@ -273,6 +282,16 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                             stale += id; continue
                         }
                         val stored = cursor.getString(5)
+                        if (connectionOnly) {
+                            val initial = connectionInitialMarker(this, peerId, message, now)
+                            if (initial != null && stored == connectionPolicy(initial, message.getValue("body").jsonObject.string("run_id"))) {
+                                if (kind == "personal_sync.request" || initial["request_accepted"] == JsonPrimitive(true))
+                                    result += TelefonOutboxEintrag(id, message)
+                            } else if (connectionCompletionPolicy(this, peerId, message, now) == stored)
+                                result += TelefonOutboxEintrag(id, message)
+                            else stale += id
+                            continue
+                        }
                         val effective = if (kind in PERSONAL_SYNC_DATA_KINDS) {
                             val body = semantic["body"] as JsonObject
                             val run = authenticatedRun(peerId, body.string("run_id"), this)?.first
@@ -603,12 +622,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             }
         }
         // Encrypted wire rows cannot be classified in SQL; remove only rows whose decrypted run is revoked.
-        purgeWireRuns(peerId, runIds.toSet())
+        if (runIds.isNotEmpty()) helper.writableDatabase.inTransaction { purgeWireRuns(this, peerId, runIds.toSet()) }
     }
 
-    private fun purgeWireRuns(peerId: String, runIds: Set<String>) {
+    private fun purgeWireRuns(db: SQLiteDatabase, peerId: String, runIds: Set<String>) {
         if (runIds.isEmpty()) return
-        helper.writableDatabase.inTransaction {
+        with(db) {
             for (table in listOf("outbox", "inbox")) {
                 val rows = mutableListOf<String>()
                 val slots = PERSONAL_SYNC_DATA_KINDS.joinToString(",") { "?" }
@@ -688,7 +707,13 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val actual = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
             val expected = attachmentMetadata(peerId, runId, reply, recordsHash, hash, direction, cursor.getInt(0),
                 cursor.getString(1), cursor.getString(2), cursor.getLong(3), cursor.getInt(4) == 1)
-            if (actual != expected) throw TelefonProtokollFehler("Manipulierte Attachment-Metadaten.")
+            val base = if ("acked_chunks" in actual) {
+                val chunks = expected.long("total_chunks").toInt()
+                check(direction == "outgoing" && expected.string("transport_policy").startsWith("connection_only:") &&
+                    chunks in 1..47 && actual.long("acked_chunks") in 1L until (1L shl chunks))
+                JsonObject(actual - "acked_chunks")
+            } else actual
+            if (base != expected) throw TelefonProtokollFehler("Manipulierte Attachment-Metadaten.")
             actual
         } finally { clear.fill(0) }
     }
@@ -746,7 +771,8 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     private fun queueFormat2DirectionIn(db: SQLiteDatabase, peerId: String, runId: String, reply: Boolean,
         recordsHash: String, request: JsonObject?, batches: List<JsonObject>,
-        attachments: List<Triple<String, String, ByteArray>>, transportPolicy: String, expiresMs: Long) = with(db) {
+        attachments: List<Triple<String, String, ByteArray>>, transportPolicy: String, expiresMs: Long,
+        connectionBatches: List<JsonObject>? = null) = with(db) {
             attachments.forEach { (hash, mime, bytes) ->
                 require(bytes.isNotEmpty() && bytes.size <= AnhangPruefung.ROH_MAX &&
                     AnhangPruefung.mime(bytes) == mime && sha256(bytes) == hash)
@@ -760,13 +786,21 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 }
             }
             request?.let { writableInsert(peerId, TelefonNachrichten.message("personal_sync.request", it, 3_600_000), this, transportPolicy) }
-            batches.forEach { writableInsert(peerId, TelefonNachrichten.message("personal_sync.batch", it, 86_400_000), this, transportPolicy) }
-    }
+            (connectionBatches ?: batches.map { TelefonNachrichten.message("personal_sync.batch", it, 86_400_000) }).forEach { message ->
+                writableInsert(peerId, message, this, transportPolicy)
+            }
+        }
 
     fun registerIncomingAttachment(peerId: String, runId: String, reply: Boolean, recordsHash: String,
                                    hash: String, size: Int, mime: String, transportPolicy: String,
                                    expiresMs: Long) {
         require(size in 1..AnhangPruefung.ROH_MAX && transportPolicy in setOf("any", "wifi_only"))
+        registerIncomingAttachmentIn(peerId, runId, reply, recordsHash, hash, size, mime, transportPolicy, expiresMs)
+    }
+
+    private fun registerIncomingAttachmentIn(peerId: String, runId: String, reply: Boolean, recordsHash: String,
+        hash: String, size: Int, mime: String, transportPolicy: String, expiresMs: Long) {
+        require(size in 1..AnhangPruefung.ROH_MAX)
         val values = ContentValues().apply {
             put("peer_id", peerId); put("run_id", runId); put("reply", if (reply) 1 else 0)
             put("records_hash", recordsHash); put("sha256", hash); put("direction", "incoming")
@@ -792,9 +826,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     fun stageIncomingAttachmentChunk(peerId: String, runId: String, reply: Boolean, recordsHash: String,
-                                     hash: String, size: Int, mime: String, index: Int, bytes: ByteArray,
-                                     transportPolicy: String, expiresMs: Long) = stageAttachmentChunk(peerId, runId,
-        reply, recordsHash, hash, size, mime, index, bytes, "incoming", transportPolicy, expiresMs)
+                                      hash: String, size: Int, mime: String, index: Int, bytes: ByteArray,
+                                      transportPolicy: String, expiresMs: Long) {
+        require(transportPolicy in setOf("any", "wifi_only"))
+        stageAttachmentChunk(peerId, runId, reply, recordsHash, hash, size, mime, index, bytes,
+            "incoming", transportPolicy, expiresMs)
+    }
 
     private fun stageAttachmentChunk(peerId: String, runId: String, reply: Boolean, recordsHash: String,
                                      hash: String, size: Int, mime: String, index: Int, bytes: ByteArray,
@@ -807,7 +844,8 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                                        recordsHash: String, hash: String, size: Int, mime: String, index: Int,
                                        bytes: ByteArray, direction: String, policy: String, expiresMs: Long) = with(db) {
         val count = (size + PersonalSyncProtokoll.CHUNK_RAW - 1) / PersonalSyncProtokoll.CHUNK_RAW
-        require(size in 1..AnhangPruefung.ROH_MAX && index in 0 until count && policy in setOf("any", "wifi_only") &&
+        require(size in 1..AnhangPruefung.ROH_MAX && index in 0 until count &&
+            (policy in setOf("any", "wifi_only") || policy.startsWith("connection_only:")) &&
             bytes.size == if (index + 1 < count) PersonalSyncProtokoll.CHUNK_RAW else size - index * PersonalSyncProtokoll.CHUNK_RAW)
         val primary = attachmentPrimary(peerId, runId, reply, recordsHash, hash, index, direction)
         val encrypted = storage.encryptPayload(bytes, "personal_attachment_chunk", primary)
@@ -872,18 +910,23 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         wants.forEach { (hash, ranges) ->
             val policy = authenticatedTransfer(peerId, runId, reply, recordsHash, hash, "outgoing")
                 ?.string("transport_policy")
-            if (policy == null || policy == "wifi_only" && transport != TelefonTransportArt.WIFI) return@forEach
+            if (policy !in setOf("any", "wifi_only") || policy == "wifi_only" && transport != TelefonTransportArt.WIFI) return@forEach
             ranges.forEach { range -> (range[0] until range[1]).forEach { index ->
-                val encrypted = helper.readableDatabase.query("personal_attachment_chunk", arrayOf("payload"),
-                    "peer_id=? AND run_id=? AND reply=? AND records_hash=? AND sha256=? AND direction='outgoing' AND chunk_index=?",
-                    arrayOf(peerId, runId, if (reply) "1" else "0", recordsHash, hash, index.toString()), null, null, null).use {
-                    if (it.moveToFirst()) it.getBlob(0) else null }
-                if (encrypted != null) result += Triple(hash, index, storage.decryptPayload(encrypted,
-                    "personal_attachment_chunk", attachmentPrimary(peerId, runId, reply, recordsHash, hash, index, "outgoing")))
+                val raw = readOutgoingAttachmentChunk(peerId, runId, reply, recordsHash, hash, index)
+                if (raw != null) result += Triple(hash, index, raw)
                 if (result.size == 8) return result
             } }
         }
         return result
+    }
+
+    private fun readOutgoingAttachmentChunk(peerId: String, runId: String, reply: Boolean, recordsHash: String, hash: String,
+        index: Int): ByteArray? = helper.readableDatabase.query("personal_attachment_chunk", arrayOf("payload"),
+        "peer_id=? AND run_id=? AND reply=? AND records_hash=? AND sha256=? AND direction='outgoing' AND chunk_index=?",
+        arrayOf(peerId, runId, if (reply) "1" else "0", recordsHash, hash, index.toString()), null, null, null).use { row ->
+        if (!row.moveToFirst()) return@use null
+        storage.decryptPayload(row.getBlob(0), "personal_attachment_chunk",
+            attachmentPrimary(peerId, runId, reply, recordsHash, hash, index, "outgoing"))
     }
 
     internal fun incomingAttachmentComplete(peerId: String, runId: String, reply: Boolean,
@@ -917,8 +960,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     fun completeOutgoingAttachment(peerId: String, runId: String, reply: Boolean, recordsHash: String,
                                    hash: String) {
-        authenticatedTransfer(peerId, runId, reply, recordsHash, hash, "outgoing")
-            ?: throw TelefonProtokollFehler("Nicht authentifizierte Attachment-Metadaten.")
+        val transfer = authenticatedTransfer(peerId, runId, reply, recordsHash, hash, "outgoing")
+        if (transfer?.string("transport_policy") !in setOf("any", "wifi_only"))
+            throw TelefonProtokollFehler("Nicht authentifizierte Attachment-Metadaten.")
         helper.writableDatabase.inTransaction {
             delete("personal_attachment_chunk", "peer_id=? AND run_id=? AND reply=? AND records_hash=? AND sha256=? AND direction='outgoing'",
                 arrayOf(peerId, runId, if (reply) "1" else "0", recordsHash, hash))
@@ -927,16 +971,17 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
     }
 
-    private fun hasAuthenticatedOutgoingAttachments(peerId: String, runId: String): Boolean {
+    private fun hasAuthenticatedOutgoingAttachments(peerId: String, runId: String,
+        pendingOnly: Boolean = false, db: SQLiteDatabase = helper.readableDatabase): Boolean {
         var found = false
-        helper.readableDatabase.query("personal_attachment_transfer",
+        db.query("personal_attachment_transfer",
             arrayOf("reply", "records_hash", "sha256", "direction"), "peer_id=? AND run_id=?",
             arrayOf(peerId, runId), null, null, null).use { cursor -> while (cursor.moveToNext()) {
             val reply = cursor.getInt(0) == 1; val recordsHash = cursor.getString(1)
             val hash = cursor.getString(2); val direction = cursor.getString(3)
-            authenticatedTransfer(peerId, runId, reply, recordsHash, hash, direction)
+            val transfer = authenticatedTransfer(peerId, runId, reply, recordsHash, hash, direction, db)
                 ?: throw TelefonProtokollFehler("Nicht authentifizierte Attachment-Metadaten.")
-            if (direction == "outgoing") found = true
+            if (direction == "outgoing" && (!pendingOnly || transfer["complete"] == JsonPrimitive(false))) found = true
         } }
         return found
     }
@@ -1037,9 +1082,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             arrayOf(peerId, runId, if (reply) "1" else "0"))
     }
 
-    fun readyPersonalBatches(): List<Pair<String, List<JsonObject>>> {
+    fun readyPersonalBatches(peerId: String? = null, runId: String? = null): List<Pair<String, List<JsonObject>>> {
+        require((peerId == null) == (runId == null))
         val groups = mutableListOf<Triple<String, String, Int>>()
-        helper.readableDatabase.query(true, "personal_batch", arrayOf("peer_id", "run_id", "reply"), null, null,
+        val selection = if (peerId == null) null else "peer_id=? AND run_id=?"
+        val args = if (peerId == null) null else arrayOf(peerId, checkNotNull(runId))
+        helper.readableDatabase.query(true, "personal_batch", arrayOf("peer_id", "run_id", "reply"), selection, args,
             null, null, null, null).use { while (it.moveToNext()) groups += Triple(it.getString(0), it.getString(1), it.getInt(2)) }
         return groups.mapNotNull { (peerId, runId, reply) ->
             val rows = mutableListOf<Triple<Int, ByteArray, Int>>()
@@ -1062,9 +1110,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     private fun rememberPersonalRunInDatabase(db: SQLiteDatabase, peerId: String, body: JsonObject,
-                                              wireExpiresMs: Long, now: Long, actorRun: Boolean = false) {
+                                              wireExpiresMs: Long, now: Long, actorRun: Boolean = false,
+                                              connectionBound: Boolean = false) {
         val runId = body.string("run_id"); val key = "personal_run:$peerId:$runId"
-        val trigger = body.string("trigger"); if (trigger !in setOf("manual", "auto_wifi")) throw TelefonProtokollFehler("Ungültiger Personal-Sync-Trigger.")
+        val trigger = body.string("trigger")
+        require(connectionBound == (trigger == PersonalAutoSync.CONNECTION)) { "Missing or unexpected connection run authority" }
         if (actorRun) require(trigger == "manual") { "Actor runs are explicit manual operations" }
         db.inTransaction {
             val existing = authenticatedRun(peerId, runId, this)
@@ -1077,7 +1127,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 }
                 return@inTransaction
             }
-            val index = PersonalRunIndex(peerId, runId, trigger, if (trigger == "auto_wifi") "wifi_only" else "any",
+            val index = PersonalRunIndex(peerId, runId, trigger, PersonalAutoSync.policy(trigger),
                 now, PersonalRunAuthentication.effectiveExpiry(wireExpiresMs, now), actor = actorRun)
             val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(runEnvelope(index, body)),
                 "personal_run", key)
@@ -1107,7 +1157,28 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 val value = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
                 val local = value.containsKey("request_message_id")
                 TelefonNachrichten.exact(value, setOf("peer_key", "local_actor", "scope", "content_policy", "restore_epoch") +
-                    if (local) setOf("request_message_id", "request_accepted") else emptySet())
+                    (if (local) setOf("request_message_id", "request_accepted") else emptySet()) +
+                    (if ("connection_authority" in value) setOf("connection_authority") else emptySet()) +
+                    value.keys.intersect(setOf("initial_batches", "reply_results", "received_report_id")))
+                value["connection_authority"]?.let { require(Regex("[0-9a-f]{64}").matches(value.string("connection_authority"))) }
+                value["initial_batches"]?.let { batches ->
+                    require(local && "connection_authority" in value && batches is JsonObject && batches.isNotEmpty())
+                    for ((id, receipt) in batches) {
+                        TelefonNachrichten.uuid4(id)
+                        require(receipt in setOf(JsonPrimitive(true), JsonPrimitive(false)))
+                    }
+                }
+                value["reply_results"]?.let { results ->
+                    require("initial_batches" in value && results is JsonObject)
+                    for ((id, receipt) in results) {
+                        TelefonNachrichten.uuid4(id)
+                        require(receipt in setOf(JsonPrimitive(true), JsonPrimitive(false)))
+                    }
+                }
+                value["received_report_id"]?.let {
+                    require("reply_results" in value)
+                    TelefonNachrichten.uuid4(value.string("received_report_id"))
+                }
                 if (local) {
                     TelefonNachrichten.uuid4(value.string("request_message_id"))
                     require(value["request_accepted"] in setOf(JsonPrimitive(true), JsonPrimitive(false)))
@@ -1119,8 +1190,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     internal fun rememberScopedRun(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
-                                   reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis(), actorRun: Boolean = false) {
+                                    reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis(),
+                                    actorRun: Boolean = false, connectionAuthority: String? = null) {
         PersonalSyncProtokoll.validate("personal_sync.request", request); PhoneContentScope.validateReference(reference)
+        val connection = request.string("trigger") == PersonalAutoSync.CONNECTION
+        require(connection == (connectionAuthority != null))
+        require(connectionAuthority == null || !actorRun && Regex("[0-9a-f]{64}").matches(connectionAuthority))
         require(request.long("format") in setOf(3L, 14L) && wireExpiresMs > now)
         val runId = request.string("run_id"); val peerId = binding.peerActor; val key = "personal_scope:$peerId:$runId"
         shared.withWriteTransaction(binding) {
@@ -1129,16 +1204,20 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val marker = buildJsonObject {
                 put("peer_key", JsonPrimitive(binding.peerPublic)); put("local_actor", JsonPrimitive(binding.localActor))
                 put("scope", reference); put("content_policy", JsonPrimitive(policyHash)); put("restore_epoch", JsonPrimitive(restoreEpoch()))
+                if (connectionAuthority != null) put("connection_authority", JsonPrimitive(connectionAuthority))
             }
             val existing = authenticatedRun(peerId, runId, this)
             val oldScope = readScopeRun(this, peerId, runId)
             require((existing == null) == (oldScope == null)) { "Cannot change between legacy and scoped run" }
             if (existing != null) {
                 require(existing.first.actor == actorRun) { "Cannot reinterpret actor and ordinary scoped runs" }
+                if (connection) check(oldScope?.get("connection_authority") == marker["connection_authority"]) {
+                    "Connection request belongs to another reader"
+                }
                 require(existing.second == request && oldScope == marker && existing.first.expiresMs > now && wireExpiresMs <= existing.first.expiresMs)
                 return@withWriteTransaction
             }
-            rememberPersonalRunInDatabase(this, peerId, request, wireExpiresMs, now, actorRun)
+            rememberPersonalRunInDatabase(this, peerId, request, wireExpiresMs, now, actorRun, connection)
             val clear = TelefonKanonisch.bytes(marker)
             val sealed = try { storage.encryptPayload(clear, "personal_scope", key) } finally { clear.fill(0) }
             insertOrThrow("meta", null, ContentValues().apply { put("key", key); put("value", sealed) })
@@ -1159,11 +1238,600 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         return marker.getValue("scope") as JsonObject
     }
 
+    internal fun receiveScopedConnectionRequest(binding: SharedSettingsBinding, shared: SharedSyncStorage,
+        message: JsonObject, reference: JsonObject, authority: String, requireCurrent: () -> Unit): Pair<String, String> =
+        shared.withWriteTransaction(binding) {
+            val request = message.getValue("body") as JsonObject
+            check(message.string("kind") == "personal_sync.request" && request.string("trigger") == PersonalAutoSync.CONNECTION)
+            rememberScopedRun(binding, shared, request, reference, message.long("expires_ms"), connectionAuthority = authority)
+            requireCurrent()
+            receive(binding.peerActor, message).also { result ->
+                check(result.first in setOf("accepted", "duplicate")) { "Connection request receipt was not accepted" }
+                requireCurrent()
+            }
+        }
+
+    internal fun scopedConnectionAuthority(binding: SharedSettingsBinding, shared: SharedSyncStorage, runId: String): String? {
+        if (scopedRunReference(binding, shared, runId) == null) return null
+        return (readScopeRun(helper.readableDatabase, binding.peerActor, runId)?.get("connection_authority") as? JsonPrimitive)?.content
+    }
+
+    private fun connectionPolicy(marker: JsonObject, runId: String): String =
+        "connection_only:${marker.string("connection_authority")}:$runId"
+
+    private fun connectionInitialBatchesAccepted(marker: JsonObject): Boolean =
+        marker["request_accepted"] == JsonPrimitive(true) &&
+            (marker["initial_batches"] as? JsonObject)?.values?.all { it == JsonPrimitive(true) } == true
+
+    internal fun connectionReceivesDirection(peerId: String, runId: String, reply: Boolean): Boolean =
+        readScopeRun(helper.readableDatabase, peerId, runId)?.let { marker ->
+            "connection_authority" in marker && reply == ("request_message_id" in marker)
+        } == true
+
+    internal fun connectionAllowsIncomingBatch(peerId: String, runId: String, reply: Boolean): Boolean =
+        connectionAllowsIncomingBatch(helper.readableDatabase, peerId, runId, reply)
+
+    private fun connectionAllowsIncomingBatch(db: SQLiteDatabase, peerId: String, runId: String, reply: Boolean): Boolean {
+        val marker = readScopeRun(db, peerId, runId) ?: return false
+        if (!reply) return "request_message_id" !in marker
+        return connectionInitialBatchesAccepted(marker) && !hasAuthenticatedOutgoingAttachments(peerId, runId, pendingOnly = true, db = db)
+    }
+
+    internal fun recordConnectionReplySaved(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
+                                            authority: String, staged: List<JsonObject>, hashes: Set<String>, requireSaved: () -> Unit) {
+        val peerId = binding.peerActor
+        val runId = request.string("run_id")
+        shared.withWriteTransaction(binding) {
+            requireSaved()
+            val (run, stored) = checkNotNull(authenticatedRun(peerId, runId, this))
+            check(stored == request && run.transportPolicy == "connection_only" && !run.reported &&
+                run.expiresMs > System.currentTimeMillis() && scopedConnectionAuthority(binding, shared, runId) == authority &&
+                connectionAllowsIncomingBatch(this, peerId, runId, reply = true))
+            check(staged.isNotEmpty() && staged.all { it.getValue("body").jsonObject["reply"] == JsonPrimitive(true) } &&
+                readyPersonalBatches(peerId, runId).single().second == staged)
+            val aggregate = staged.last().getValue("body").jsonObject.string("records_hash")
+            val marker = checkNotNull(readScopeRun(this, peerId, runId))
+            check("reply_results" !in marker)
+            val results = writeConnectionIncomingResults(this, peerId, runId, true, authority, aggregate, hashes, run.expiresMs)
+            writeScopeMarker(this, peerId, runId, JsonObject(marker + ("reply_results" to
+                JsonObject(results.associateWith { JsonPrimitive(false) }))))
+            updatePersonalRun(this, peerId, runId) { it.copy(appliedReply = true) }
+            requireSaved()
+        }
+    }
+
+    private fun requireConnectionReport(db: SQLiteDatabase, peerId: String, message: JsonObject, authority: String): JsonObject {
+        val report = message.getValue("body").jsonObject
+        val runId = report.string("run_id")
+        val (run, request) = checkNotNull(authenticatedRun(peerId, runId, db))
+        val marker = checkNotNull(readScopeRun(db, peerId, runId))
+        val receipt = marker["received_report_id"]
+        val now = System.currentTimeMillis()
+        check(message.string("kind") == "personal_sync.report" && report["format"] == request["format"] &&
+            report["trigger"] == request["trigger"] && report["state"] == JsonPrimitive("complete") &&
+            report["error"] == JsonPrimitive("none") && message.long("expires_ms") > now && run.expiresMs > now &&
+            run.transportPolicy == "connection_only" && run.appliedReply &&
+            marker["connection_authority"] == JsonPrimitive(authority) &&
+            marker["restore_epoch"] == JsonPrimitive(restoreEpoch()) &&
+            (marker["reply_results"] as? JsonObject)?.values?.all { it == JsonPrimitive(true) } == true &&
+            (receipt == message["message_id"] || receipt == null && !run.reported))
+        return marker
+    }
+
+    internal fun receiveConnectionReport(binding: SharedSettingsBinding, shared: SharedSyncStorage, message: JsonObject,
+                                         authority: String, requireCurrent: () -> Unit): Pair<String, String> =
+        shared.withWriteTransaction(binding) {
+            requireCurrent()
+            val peerId = binding.peerActor
+            val marker = requireConnectionReport(this, peerId, message, authority)
+            val duplicate = "received_report_id" in marker
+            if (duplicate) check(receivedMatches(peerId, message))
+            val receipt = receive(peerId, message)
+            check(receipt.first == if (duplicate) "duplicate" else "accepted")
+            if (!duplicate) writeScopeMarker(this, peerId, message.getValue("body").jsonObject.string("run_id"),
+                JsonObject(marker + ("received_report_id" to message.getValue("message_id"))))
+            requireCurrent()
+            receipt
+        }
+
+    internal fun confirmConnectionReportSent(binding: SharedSettingsBinding, shared: SharedSyncStorage, message: JsonObject,
+                                             authority: String, requireCurrent: () -> Unit): Boolean =
+        shared.withWriteTransaction(binding) {
+            requireCurrent()
+            val peerId = binding.peerActor
+            val marker = requireConnectionReport(this, peerId, message, authority)
+            check(marker["received_report_id"] == message["message_id"] && receivedMatches(peerId, message))
+            val runId = message.getValue("body").jsonObject.string("run_id")
+            if (authenticatedRun(peerId, runId, this)?.first?.reported == true) return@withWriteTransaction false
+            updatePersonalRun(this, peerId, runId) { it.copy(reported = true) }
+            delete("personal_batch", "peer_id=? AND run_id=? AND reply=1", arrayOf(peerId, runId))
+            requireCurrent()
+            true
+        }
+
+    private fun connectionInitialMarker(db: SQLiteDatabase, peerId: String, message: JsonObject, now: Long): JsonObject? {
+        val kind = message.string("kind")
+        val body = message.getValue("body").jsonObject
+        if (kind != "personal_sync.request" && (kind != "personal_sync.batch" || body["reply"] != JsonPrimitive(false))) return null
+        val runId = body.string("run_id")
+        val (run, request) = authenticatedRun(peerId, runId, db) ?: return null
+        val expiry = message.long("expires_ms")
+        if (run.transportPolicy != "connection_only" || run.reported || expiry <= now || expiry > run.expiresMs)
+            return null
+        val marker = readScopeRun(db, peerId, runId) ?: return null
+        val requestId = marker["request_message_id"] ?: return null
+        if ("connection_authority" !in marker || marker["restore_epoch"] != JsonPrimitive(restoreEpoch())) return null
+        if (kind == "personal_sync.request" && (requestId != message["message_id"] || body != request ||
+                marker["request_accepted"] != JsonPrimitive(false))) return null
+        if (kind == "personal_sync.batch") {
+            if ((marker["initial_batches"] as? JsonObject)?.get(message.string("message_id")) != JsonPrimitive(false)) return null
+            PersonalSyncProtokoll.validateBatchForRequest(request, body)
+        }
+        return marker
+    }
+
+    internal fun acknowledgeConnectionInitial(peerId: String, message: JsonObject, status: String, error: String): Boolean =
+        helper.writableDatabase.inTransaction {
+            val now = System.currentTimeMillis()
+            val marker = connectionInitialMarker(this, peerId, message, now) ?: return@inTransaction false
+            val id = message.string("message_id")
+            val runId = message.getValue("body").jsonObject.string("run_id")
+            val policy = connectionPolicy(marker, runId)
+            val request = message.string("kind") == "personal_sync.request"
+            if (!request && marker["request_accepted"] != JsonPrimitive(true)) return@inTransaction true
+            val where = "peer_id=? AND message_id=? AND transport_policy=? AND attempts>0"
+            val args = arrayOf(peerId, id, policy)
+            if (outboxPersonalMessage(peerId, id) != message) return@inTransaction false
+            if (status == "rejected" && error == "temporary_failure") return@inTransaction true
+            if (delete("outbox", where, args) != 1) return@inTransaction true
+            if (status in setOf("accepted", "duplicate")) {
+                val receipt = if (request) "request_accepted" to JsonPrimitive(true)
+                    else "initial_batches" to JsonObject(marker.getValue("initial_batches").jsonObject + (id to JsonPrimitive(true)))
+                writeScopeMarker(this, peerId, runId, JsonObject(marker + receipt))
+            } else {
+                retireScopedRequests(this, peerId, setOf(runId))
+            }
+            true
+        }
+
+    private fun connectionCompletionPolicy(db: SQLiteDatabase, peerId: String, message: JsonObject, now: Long): String? {
+        val kind = message.string("kind")
+        val body = message.getValue("body") as JsonObject
+        when (kind) {
+            "personal_sync.batch" ->
+                if (body["reply"] != JsonPrimitive(true)) return null
+            "personal_sync.attachment_chunk" -> Unit
+            "personal_sync.report" -> if (body["trigger"] != JsonPrimitive(PersonalAutoSync.CONNECTION)) return null
+            "personal_sync.attachment_request", "personal_sync.attachment_result" -> Unit
+            else -> return null
+        }
+        val runId = body.string("run_id")
+        val run = authenticatedRun(peerId, runId, db)?.first ?: return null
+        if (run.transportPolicy != "connection_only" || run.reported ||
+            run.expiresMs <= now || message.long("expires_ms") > run.expiresMs) return null
+        val attachmentRequest = kind == "personal_sync.attachment_request"
+        val attachmentResult = kind == "personal_sync.attachment_result"
+        val outgoingChunk = kind == "personal_sync.attachment_chunk"
+        val initialChunk = outgoingChunk && body["reply"] == JsonPrimitive(false)
+        val marker = readScopeRun(db, peerId, runId) ?: return null
+        if ("connection_authority" !in marker) return null
+        val incomingReply = (attachmentRequest || attachmentResult) && body["reply"] == JsonPrimitive(true)
+        if (when {
+                initialChunk -> !connectionInitialBatchesAccepted(marker)
+                incomingReply -> !connectionAllowsIncomingBatch(db, peerId, runId, true) || run.appliedReply != attachmentResult ||
+                    attachmentResult && (marker["reply_results"] as? JsonObject)?.get(message.string("message_id")) != JsonPrimitive(false)
+                attachmentRequest -> run.appliedRequest || run.responded
+                attachmentResult -> !run.appliedRequest
+                else -> !run.appliedRequest || !run.responded
+            }) return null
+        val policy = connectionPolicy(marker, runId)
+        if (attachmentRequest) {
+            val want = (body["wants"] as? JsonArray)?.singleOrNull() as? JsonObject ?: return null
+            val transfer = authenticatedTransfer(peerId, runId, incomingReply, body.string("records_hash"),
+                want.string("sha256"), "incoming", db) ?: return null
+            if (transfer["transport_policy"] != JsonPrimitive(policy) ||
+                transfer.long("expires_ms") < message.long("expires_ms")) return null
+        }
+        if (attachmentResult) {
+            val transfer = authenticatedTransfer(peerId, runId, incomingReply, body.string("records_hash"),
+                body.string("sha256"), "incoming", db) ?: return null
+            if (transfer["transport_policy"] != JsonPrimitive(policy) || transfer["complete"] != JsonPrimitive(true) ||
+                body["state"] != JsonPrimitive("complete") || transfer.long("expires_ms") < message.long("expires_ms")) return null
+        }
+        if (outgoingChunk) {
+            val transfer = authenticatedTransfer(peerId, runId, !initialChunk, body.string("records_hash"),
+                body.string("sha256"), "outgoing", db) ?: return null
+            if (transfer["transport_policy"] != JsonPrimitive(policy) || transfer["complete"] != JsonPrimitive(false) ||
+                body.long("index") !in 0L until transfer.long("total_chunks") ||
+                transfer.long("expires_ms") < message.long("expires_ms")) return null
+        }
+        if (kind == "personal_sync.report" && connectionCompletionPending(db, peerId, runId, policy)) return null
+        return policy
+    }
+
+    internal fun receiveConnectionOutgoingWindow(binding: SharedSettingsBinding, shared: SharedSyncStorage,
+        message: JsonObject, authority: String, requireCurrent: () -> Unit) {
+        val body = message.getValue("body") as JsonObject
+        check(message.string("kind") == "personal_sync.attachment_request")
+        val reply = body.getValue("reply").jsonPrimitive.content.toBooleanStrict()
+        val peerId = binding.peerActor
+        val runId = body.string("run_id")
+        val aggregate = body.string("records_hash")
+        shared.withWriteTransaction(binding) {
+            requireCurrent()
+            val now = System.currentTimeMillis()
+            val run = checkNotNull(authenticatedRun(peerId, runId, this)).first
+            val marker = checkNotNull(readScopeRun(this, peerId, runId))
+            check(run.transportPolicy == "connection_only" &&
+                (if (reply) "request_message_id" !in marker && run.appliedRequest && run.responded
+                 else connectionInitialBatchesAccepted(marker)) &&
+                !run.reported && run.expiresMs > now && message.long("expires_ms") > now &&
+                scopedConnectionAuthority(binding, shared, runId) == authority)
+            val policy = "connection_only:$authority:$runId"
+            check(!query("outbox", arrayOf("message_id"), "peer_id=? AND transport_policy=? " +
+                "AND kind IN ('personal_sync.batch','personal_sync.attachment_chunk')",
+                arrayOf(peerId, policy), null, null, null, "1").use { it.moveToFirst() })
+            var requestedCount = 0
+            for (wanted in body.getValue("wants") as JsonArray) {
+                val want = wanted as JsonObject
+                val hash = want.string("sha256")
+                val transfer = checkNotNull(authenticatedTransfer(peerId, runId, reply, aggregate, hash, "outgoing", this))
+                val expires = minOf(run.expiresMs, transfer.long("expires_ms"), message.long("expires_ms"))
+                check(transfer["transport_policy"] == JsonPrimitive(policy) &&
+                    transfer["complete"] == JsonPrimitive(false) && expires > now)
+                for (raw in want.getValue("ranges") as JsonArray) {
+                    val range = raw as JsonArray
+                    val start = (range[0] as JsonPrimitive).content.toInt()
+                    val end = (range[1] as JsonPrimitive).content.toInt()
+                    requestedCount += end - start
+                    check(start in 0 until end && end <= transfer.long("total_chunks") && requestedCount <= 8)
+                    for (index in start until end) {
+                        val bytes = checkNotNull(readOutgoingAttachmentChunk(peerId, runId, reply, aggregate, hash, index))
+                        try {
+                            val chunk = buildJsonObject {
+                                put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
+                                put("records_hash", JsonPrimitive(aggregate)); put("sha256", JsonPrimitive(hash))
+                                put("index", JsonPrimitive(index)); put("data", JsonPrimitive(java.util.Base64.getEncoder().encodeToString(bytes)))
+                            }
+                            PersonalSyncProtokoll.validate("personal_sync.attachment_chunk", chunk)
+                            writableInsert(peerId, TelefonNachrichten.message("personal_sync.attachment_chunk",
+                                chunk, expires - now, now), this, policy)
+                        } finally { bytes.fill(0) }
+                    }
+                }
+            }
+            check(requestedCount in 1..8)
+            check(receive(peerId, message).first == "accepted")
+            requireCurrent()
+        }
+    }
+
+    internal fun queueConnectionAttachmentWindow(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
+        authority: String, reply: Boolean, recordsHash: String, descriptors: List<JsonObject>, stagedExpires: Long, requireCurrent: () -> Unit) {
+        val runId = request.string("run_id")
+        val peerId = binding.peerActor
+        val grouped = descriptors.groupBy { it.string("sha256") }
+        check(grouped.size in 1..256 && grouped.values.sumOf { it.first().long("size") } <= 50L * 1024 * 1024)
+        check(grouped.values.all { matches -> matches.all {
+            it["size"] == matches.first()["size"] && it["mime"] == matches.first()["mime"]
+        } })
+        shared.withWriteTransaction(binding) {
+            val now = System.currentTimeMillis()
+            val (run, savedRequest) = checkNotNull(authenticatedRun(peerId, runId, this))
+            val expires = minOf(stagedExpires, run.expiresMs)
+            check(savedRequest == request && !run.actor && run.transportPolicy == "connection_only" &&
+                (if (reply) !run.appliedReply else !run.appliedRequest && !run.responded) &&
+                connectionAllowsIncomingBatch(this, peerId, runId, reply) && !run.reported && expires > now &&
+                scopedConnectionAuthority(binding, shared, runId) == authority)
+            requireCurrent()
+            val policy = "connection_only:$authority:$runId"
+            val existing = query("outbox", arrayOf("message_id"),
+                "peer_id=? AND transport_policy=? AND kind='personal_sync.attachment_request'",
+                arrayOf(peerId, policy), null, null, null, "1").use { it.moveToFirst() }
+            if (existing) return@withWriteTransaction
+            for ((hash, matches) in grouped) {
+                val descriptor = matches.first()
+                registerIncomingAttachmentIn(peerId, runId, reply, recordsHash, hash, descriptor.long("size").toInt(),
+                    descriptor.string("mime"), policy, expires)
+            }
+            val window = grouped.keys.sorted().firstNotNullOfOrNull { hash ->
+                val firstRange = missingAttachmentRanges(peerId, runId, reply, recordsHash, hash).firstOrNull()
+                firstRange?.let { hash to it }
+            } ?: return@withWriteTransaction
+            val (hash, range) = window
+            val boundedRange = JsonArray(listOf(JsonPrimitive(range[0]), JsonPrimitive(minOf(range[0] + 8, range[1]))))
+            val body = buildJsonObject {
+                put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
+                put("records_hash", JsonPrimitive(recordsHash)); put("wants", JsonArray(listOf(buildJsonObject {
+                    put("sha256", JsonPrimitive(hash))
+                    put("ranges", JsonArray(listOf(boundedRange)))
+                })))
+            }
+            PersonalSyncProtokoll.validate("personal_sync.attachment_request", body)
+            writableInsert(peerId, TelefonNachrichten.message("personal_sync.attachment_request", body, expires - now, now),
+                this, policy)
+            requireCurrent()
+        }
+    }
+
+    internal fun stageConnectionAttachmentChunk(binding: SharedSettingsBinding, shared: SharedSyncStorage,
+        message: JsonObject, authority: String, requireCurrent: () -> Unit, advanceWindow: () -> Unit) {
+        val body = message.getValue("body") as JsonObject
+        check(message.string("kind") == "personal_sync.attachment_chunk")
+        val reply = body.getValue("reply").jsonPrimitive.content.toBooleanStrict()
+        val peerId = binding.peerActor
+        val runId = body.string("run_id")
+        val aggregate = body.string("records_hash")
+        val hash = body.string("sha256")
+        val index = body.long("index").toInt()
+        shared.withWriteTransaction(binding) {
+            requireCurrent()
+            val now = System.currentTimeMillis()
+            val policy = "connection_only:$authority:$runId"
+            check(scopedConnectionAuthority(binding, shared, runId) == authority && message.long("expires_ms") > now)
+            val windowId = query("outbox", arrayOf("message_id"),
+                "peer_id=? AND transport_policy=? AND kind='personal_sync.attachment_request' AND attempts>0 " +
+                    "AND expires_ms>? AND last_error IN ('','connection_window_ack')",
+                arrayOf(peerId, policy, now.toString()), null, null, null).use { row ->
+                    check(row.moveToFirst()) { "Attachment window has not been sent" }
+                    row.getString(0).also { check(!row.moveToNext()) }
+                }
+            val window = checkNotNull(outboxPersonalMessage(peerId, windowId))
+            check(connectionCompletionPolicy(this, peerId, window, now) == policy)
+            val requested = window.getValue("body") as JsonObject
+            val want = (requested.getValue("wants") as JsonArray).single() as JsonObject
+            check(requested["reply"] == body["reply"] && requested.string("records_hash") == aggregate && want.string("sha256") == hash)
+            val range = (want.getValue("ranges") as JsonArray).single() as JsonArray
+            val start = (range[0] as JsonPrimitive).content.toInt()
+            val end = (range[1] as JsonPrimitive).content.toInt()
+            check(index in start until end &&
+                missingAttachmentRanges(peerId, runId, reply, aggregate, hash).any { index in it[0] until it[1] })
+            val transfer = checkNotNull(authenticatedTransfer(peerId, runId, reply, aggregate, hash, "incoming", this))
+            val bytes = java.util.Base64.getDecoder().decode(body.string("data"))
+            try {
+                stageAttachmentChunkIn(this, peerId, runId, reply, aggregate, hash, transfer.long("size").toInt(),
+                    transfer.string("mime"), index, bytes, "incoming", policy, transfer.long("expires_ms"))
+            } finally { bytes.fill(0) }
+            val missing = missingAttachmentRanges(peerId, runId, reply, aggregate, hash)
+            if (missing.isEmpty()) {
+                val sink = object : OutputStream() {
+                    override fun write(value: Int) {}
+                    override fun write(bytes: ByteArray, offset: Int, length: Int) {}
+                }
+                require(verifyIncomingAttachment(peerId, runId, reply, aggregate, hash, sink)) { "Invalid original attachment bytes" }
+            }
+            if (missing.none { it[0] < end && start < it[1] }) {
+                check(delete("outbox", "peer_id=? AND message_id=?", arrayOf(peerId, windowId)) == 1)
+                advanceWindow()
+            }
+            check(receive(peerId, message).first == "accepted")
+            requireCurrent()
+        }
+    }
+
+    private fun connectionCompletionPending(db: SQLiteDatabase, peerId: String, runId: String, policy: String): Boolean =
+        db.query("outbox", arrayOf("message_id"), "peer_id=? AND transport_policy=? " +
+            "AND kind IN ('personal_sync.batch','personal_sync.attachment_result','personal_sync.attachment_chunk')",
+            arrayOf(peerId, policy), null, null, null, "1").use { it.moveToFirst() } ||
+            hasAuthenticatedOutgoingAttachments(peerId, runId, pendingOnly = true, db = db)
+
+    private fun releaseConnectionReport(db: SQLiteDatabase, peerId: String, runId: String, policy: String, now: Long) {
+        if (connectionCompletionPending(db, peerId, runId, policy)) return
+        db.update("outbox", ContentValues().apply {
+            put("last_error", ""); put("next_attempt_ms", now)
+        }, "peer_id=? AND transport_policy=? AND kind='personal_sync.report' AND last_error='connection_held'",
+            arrayOf(peerId, policy))
+    }
+
+    private fun writeConnectionOutgoingTransfer(db: SQLiteDatabase, transfer: JsonObject) {
+        val peerId = transfer.string("peer_id")
+        val runId = transfer.string("run_id")
+        val aggregate = transfer.string("records_hash")
+        val hash = transfer.string("sha256")
+        val reply = transfer.getValue("reply").jsonPrimitive.content.toBooleanStrict()
+        val clear = TelefonKanonisch.bytes(transfer)
+        val sealed = try {
+            storage.encryptPayload(clear, "personal_attachment_transfer",
+                metadataPrimary(peerId, runId, reply, aggregate, hash, "outgoing"))
+        } finally { clear.fill(0) }
+        check(db.update("personal_attachment_transfer", ContentValues().apply {
+            put("metadata", sealed)
+            put("complete", if (transfer["complete"] == JsonPrimitive(true)) 1 else 0)
+        }, "peer_id=? AND run_id=? AND reply=? AND records_hash=? AND sha256=? AND direction='outgoing'",
+            arrayOf(peerId, runId, if (reply) "1" else "0", aggregate, hash)) == 1)
+    }
+
+    internal fun receiveConnectionAttachmentResult(binding: SharedSettingsBinding, shared: SharedSyncStorage,
+        message: JsonObject, authority: String, requireCurrent: () -> Unit) {
+        val body = message.getValue("body") as JsonObject
+        check(message.string("kind") == "personal_sync.attachment_result" &&
+             body["state"] == JsonPrimitive("complete") && body["error"] == JsonPrimitive("none"))
+        val reply = body.getValue("reply").jsonPrimitive.content.toBooleanStrict()
+        val peerId = binding.peerActor
+        val runId = body.string("run_id")
+        val hash = body.string("sha256")
+        val aggregate = body.string("records_hash")
+        shared.withWriteTransaction(binding) {
+            requireCurrent()
+            val now = System.currentTimeMillis()
+            val run = checkNotNull(authenticatedRun(peerId, runId, this)).first
+            val transfer = checkNotNull(authenticatedTransfer(peerId, runId, reply, aggregate, hash, "outgoing", this))
+            val policy = "connection_only:$authority:$runId"
+            val marker = checkNotNull(readScopeRun(this, peerId, runId))
+            check(run.transportPolicy == "connection_only" &&
+                (if (reply) "request_message_id" !in marker && run.appliedRequest && run.responded
+                 else connectionInitialBatchesAccepted(marker)) &&
+                !run.reported && run.expiresMs > now && message.long("expires_ms") > now &&
+                scopedConnectionAuthority(binding, shared, runId) == authority &&
+                transfer["transport_policy"] == JsonPrimitive(policy) && transfer["complete"] == JsonPrimitive(false) &&
+                transfer.long("expires_ms") > now)
+            val count = transfer.long("total_chunks").toInt()
+            check(count in 1..47 && transfer["acked_chunks"] == JsonPrimitive((1L shl count) - 1))
+            val pending = query("outbox", arrayOf("message_id"), "peer_id=? AND transport_policy=? AND kind='personal_sync.attachment_chunk'",
+                arrayOf(peerId, policy), null, null, null).use { rows ->
+                while (rows.moveToNext()) {
+                    val chunk = checkNotNull(outboxPersonalMessage(peerId, rows.getString(0))).getValue("body") as JsonObject
+                    if (chunk["records_hash"] == body["records_hash"] && chunk["sha256"] == body["sha256"]) return@use true
+                }
+                false
+            }
+            check(!pending)
+            writeConnectionOutgoingTransfer(this, JsonObject(transfer + ("complete" to JsonPrimitive(true))))
+            check(receive(peerId, message).first == "accepted")
+            if (reply) releaseConnectionReport(this, peerId, runId, policy, now)
+            requireCurrent()
+        }
+    }
+
+    internal fun queueConnectionAttachmentResults(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
+        authority: String, aggregate: String, hashes: Set<String>, requireSaved: () -> Unit) {
+        val peerId = binding.peerActor
+        val runId = request.string("run_id")
+        shared.withWriteTransaction(binding) {
+            val now = System.currentTimeMillis()
+            val (run, savedRequest) = checkNotNull(authenticatedRun(peerId, runId, this))
+            check(savedRequest == request && !run.actor && run.transportPolicy == "connection_only" &&
+                !run.reported && run.expiresMs > now && scopedConnectionAuthority(binding, shared, runId) == authority)
+            if (run.appliedRequest) return@withWriteTransaction
+            requireSaved()
+            writeConnectionIncomingResults(this, peerId, runId, false, authority, aggregate, hashes, run.expiresMs)
+            updatePersonalRun(this, peerId, runId) { it.copy(appliedRequest = true) }
+            requireSaved()
+        }
+    }
+
+    private fun writeConnectionIncomingResults(db: SQLiteDatabase, peerId: String, runId: String, reply: Boolean,
+                                               authority: String, aggregate: String, hashes: Set<String>, runExpiry: Long): List<String> {
+        val now = System.currentTimeMillis()
+        val policy = "connection_only:$authority:$runId"
+        return hashes.sorted().map { hash ->
+            val transfer = checkNotNull(authenticatedTransfer(peerId, runId, reply, aggregate, hash, "incoming", db))
+            val expires = minOf(runExpiry, transfer.long("expires_ms"))
+            check(transfer["complete"] == JsonPrimitive(true) && transfer["transport_policy"] == JsonPrimitive(policy) && expires > now)
+            val body = buildJsonObject {
+                put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
+                put("records_hash", JsonPrimitive(aggregate)); put("sha256", JsonPrimitive(hash))
+                put("state", JsonPrimitive("complete")); put("error", JsonPrimitive("none"))
+            }
+            val message = TelefonNachrichten.message("personal_sync.attachment_result", body, expires - now, now)
+            writableInsert(peerId, message, db, policy)
+            message.string("message_id")
+        }
+    }
+
+    internal fun queueConnectionCompletion(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
+        authority: String, batches: List<JsonObject>, report: JsonObject,
+        originals: Map<String, PersonalSync.AttachmentSnapshot>, requireCurrent: () -> Unit) {
+        val runId = request.string("run_id")
+        val peerId = binding.peerActor
+        check(batches.isNotEmpty())
+        shared.withWriteTransaction(binding) {
+            val now = System.currentTimeMillis()
+            val (run, savedRequest) = checkNotNull(authenticatedRun(peerId, runId, this))
+            check(savedRequest == request && !run.actor && run.transportPolicy == "connection_only" &&
+                !run.reported && run.expiresMs > now && scopedConnectionAuthority(binding, shared, runId) == authority)
+            if (run.responded) return@withWriteTransaction
+            requireCurrent()
+            val policy = "connection_only:$authority:$runId"
+            PersonalSyncProtokoll.validate("personal_sync.report", report)
+            check(report["trigger"] == request["trigger"] && report["run_id"] == request["run_id"] &&
+                report["format"] == request["format"] && report["state"] == JsonPrimitive("complete"))
+            val recordsHash = batches.first().string("records_hash")
+            val records = batches.flatMapIndexed { index, body ->
+                check(body["reply"] == JsonPrimitive(true) && body.long("sequence") == index.toLong() &&
+                    body["last"] == JsonPrimitive(index == batches.lastIndex) && body.string("records_hash") == recordsHash)
+                PersonalSyncProtokoll.validateBatchForRequest(request, body)
+            }
+            check(PersonalSync.recordsHash(records) == recordsHash)
+            val advertised = records.filter { it.kind == "note" }.flatMap {
+                (it.value["attachments"] as? JsonArray).orEmpty().map { raw -> raw as JsonObject }
+            }.groupBy { it.string("sha256") }
+            check(advertised.keys == originals.keys)
+            for ((hash, source) in originals) {
+                val bytes = source.bytes
+                val mime = source.descriptor.string("mime")
+                check(bytes.size in 1..AnhangPruefung.ROH_MAX && sha256(bytes) == hash && AnhangPruefung.mime(bytes) == mime &&
+                    advertised.getValue(hash).all { it.long("size") == bytes.size.toLong() && it.string("mime") == mime })
+                val width = PersonalSyncProtokoll.CHUNK_RAW
+                for (offset in bytes.indices step width) {
+                    val chunk = bytes.copyOfRange(offset, minOf(bytes.size, offset + width))
+                    try {
+                        stageAttachmentChunkIn(this, peerId, runId, true, recordsHash, hash, bytes.size, mime,
+                            offset / width, chunk, "outgoing", policy, run.expiresMs)
+                    } finally { chunk.fill(0) }
+                }
+            }
+            for (body in batches) {
+                writableInsert(peerId, TelefonNachrichten.message("personal_sync.batch", body, run.expiresMs - now, now),
+                    this, policy)
+            }
+            val held = writableInsert(peerId, TelefonNachrichten.message("personal_sync.report", report, run.expiresMs - now, now),
+                this, policy)
+            check(update("outbox", ContentValues().apply {
+                put("last_error", "connection_held"); put("next_attempt_ms", run.expiresMs)
+            }, "peer_id=? AND message_id=?", arrayOf(peerId, held.string("message_id"))) == 1)
+            updatePersonalRun(this, peerId, runId) { it.copy(appliedRequest = true, responded = true) }
+            requireCurrent()
+        }
+    }
+
+    internal fun acknowledgeConnectionCompletion(peerId: String, message: JsonObject, status: String, error: String): Boolean =
+        helper.writableDatabase.inTransaction {
+            val now = System.currentTimeMillis()
+            val policy = connectionCompletionPolicy(this, peerId, message, now) ?: return@inTransaction false
+            val id = message.string("message_id")
+            val where = "peer_id=? AND message_id=? AND transport_policy=? AND attempts>0 AND expires_ms>? AND last_error=''"
+            val args = arrayOf(peerId, id, policy, now.toString())
+            if (outboxPersonalMessage(peerId, id) != message) return@inTransaction false
+            if (status !in setOf("accepted", "duplicate")) {
+                if (error != "temporary_failure") update("outbox", ContentValues().apply {
+                    put("last_error", "connection_rejected"); put("next_attempt_ms", message.long("expires_ms"))
+                }, where, args)
+                return@inTransaction false
+            }
+            val kind = message.string("kind")
+            if (kind == "personal_sync.attachment_request") {
+                update("outbox", ContentValues().apply {
+                    put("last_error", "connection_window_ack"); put("next_attempt_ms", message.long("expires_ms"))
+                }, where, args)
+                return@inTransaction false
+            }
+            if (delete("outbox", where, args) != 1) return@inTransaction false
+            val body = message.getValue("body") as JsonObject
+            val runId = body.string("run_id")
+            if (kind == "personal_sync.attachment_chunk") {
+                val aggregate = body.string("records_hash")
+                val hash = body.string("sha256")
+                val reply = body.getValue("reply").jsonPrimitive.content.toBooleanStrict()
+                val transfer = checkNotNull(authenticatedTransfer(peerId, runId, reply, aggregate, hash, "outgoing", this))
+                check(transfer["transport_policy"] == JsonPrimitive(policy))
+                val previous = if ("acked_chunks" in transfer) transfer.long("acked_chunks") else 0L
+                val mask = previous or (1L shl body.long("index").toInt())
+                writeConnectionOutgoingTransfer(this, JsonObject(transfer + ("acked_chunks" to JsonPrimitive(mask))))
+                return@inTransaction false
+            }
+            if (kind == "personal_sync.batch" || kind == "personal_sync.attachment_result") {
+                if (kind == "personal_sync.attachment_result" && body["reply"] == JsonPrimitive(true)) {
+                    val marker = checkNotNull(readScopeRun(this, peerId, runId))
+                    val results = marker.getValue("reply_results").jsonObject
+                    writeScopeMarker(this, peerId, runId, JsonObject(marker +
+                        ("reply_results" to JsonObject(results + (id to JsonPrimitive(true))))))
+                    return@inTransaction false
+                }
+                releaseConnectionReport(this, peerId, runId, policy, now)
+                return@inTransaction false
+            }
+            updatePersonalRun(this, peerId, runId) { it.copy(reported = true) }
+            finishPersonalBatch(peerId, runId, reply = false)
+            true
+        }
+
     /** One transaction owns the binding, all batches/attachments and the exact request receipt. */
     internal fun queueScopedRequest(binding: SharedSettingsBinding, shared: SharedSyncStorage,
         message: JsonObject, reference: JsonObject, batches: List<JsonObject>,
         attachments: List<Triple<String, String, ByteArray>>, now: Long = System.currentTimeMillis(), actorRun: Boolean = false,
-        nativeActorProposals: List<JsonObject> = emptyList()): Boolean {
+        nativeActorProposals: List<JsonObject> = emptyList(), connectionAuthority: String? = null,
+        requireCurrent: (() -> Unit)? = null): Boolean {
         TelefonNachrichten.validate(message)
         require(message.string("kind") == "personal_sync.request")
         val request = message.getValue("body") as JsonObject
@@ -1197,15 +1865,25 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         val advertised = records.filter { it.kind == "note" }.flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }
             .map { (it as JsonObject).string("sha256") }.toSet()
         require(attachments.map { it.first }.distinct().size == attachments.size && attachments.all { it.first in advertised })
-        val policy = if (request.string("trigger") == "auto_wifi") "wifi_only" else "any"
+        val connection = request.string("trigger") == PersonalAutoSync.CONNECTION
+        require(connection == (connectionAuthority != null) && connection == (requireCurrent != null))
         return shared.withWriteTransaction(binding) {
-            if (hasActiveScopedRunIn(this, binding.peerActor, now)) return@withWriteTransaction false
-            rememberScopedRun(binding, shared, request, reference, message.long("expires_ms"), now, actorRun)
+            if (hasActiveScopedRunIn(this, binding.peerActor, now, connectionAuthority)) return@withWriteTransaction false
+            requireCurrent?.invoke()
+            if (connectionAuthority != null) retireDisplacedConnectionStarts(this, binding.peerActor, connectionAuthority)
+            rememberScopedRun(binding, shared, request, reference, message.long("expires_ms"), now, actorRun, connectionAuthority)
             val marker = requireNotNull(readScopeRun(this, binding.peerActor, runId))
-            writeScopeMarker(this, binding.peerActor, runId, JsonObject(marker + mapOf(
-                "request_message_id" to message.getValue("message_id"), "request_accepted" to JsonPrimitive(false))))
+            val connectionBatches = if (connection) batches.map { batch ->
+                val created = message.long("created_ms")
+                TelefonNachrichten.message("personal_sync.batch", batch, message.long("expires_ms") - created, created)
+            } else null
+            val receipt = mapOf("request_message_id" to message.getValue("message_id"), "request_accepted" to JsonPrimitive(false))
+            val planned = if (connectionBatches == null) emptyMap() else mapOf("initial_batches" to JsonObject(
+                connectionBatches.associate { it.string("message_id") to JsonPrimitive(false) }))
+            writeScopeMarker(this, binding.peerActor, runId, JsonObject(marker + receipt + planned))
+            val policy = if (connection) connectionPolicy(marker, runId) else PersonalAutoSync.policy(request.string("trigger"))
             queueFormat2DirectionIn(this, binding.peerActor, runId, false, recordsHash, null, batches,
-                attachments, policy, message.long("expires_ms"))
+                attachments, policy, message.long("expires_ms"), connectionBatches)
             writableInsert(binding.peerActor, message, this, policy)
             for (proposal in nativeActorProposals) {
                 // Outbox and exact native target evidence share this SQLite
@@ -1213,6 +1891,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 writableInsert(binding.peerActor, proposal, this, policy, actorRunId = runId)
                 stageActorDeletionIntent(runId, proposal, outgoing = true)
             }
+            requireCurrent?.invoke()
             true
         }
     }
@@ -1236,18 +1915,40 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val runId = (message.getValue("body") as JsonObject).string("run_id")
             val marker = readScopeRun(this, peerId, runId) ?: return@inTransaction false
             if (marker["request_message_id"] != JsonPrimitive(messageId)) return@inTransaction false
+            if ("connection_authority" in marker) return@inTransaction false
             if (status == "rejected" && error == "temporary_failure") return@inTransaction true
             if (status in setOf("accepted", "duplicate")) {
                 writeScopeMarker(this, peerId, runId, JsonObject(marker + ("request_accepted" to JsonPrimitive(true))))
                 delete("outbox", "peer_id=? AND message_id=?", arrayOf(peerId, messageId))
             } else {
-                purgeWireRuns(peerId, setOf(runId))
-                for (table in listOf("personal_run", "personal_batch", "personal_attachment_chunk", "personal_attachment_transfer"))
-                    delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))
-                delete("meta", "key IN (?,?)", arrayOf("personal_scope:$peerId:$runId", "personal_report:$peerId:$runId"))
+                retireScopedRequests(this, peerId, setOf(runId))
             }
             true
         }
+
+    private fun retireScopedRequests(db: SQLiteDatabase, peerId: String, runIds: Set<String>) = with(db) {
+        purgeWireRuns(this, peerId, runIds)
+        for (runId in runIds) {
+            for (table in listOf("personal_run", "personal_batch", "personal_attachment_chunk", "personal_attachment_transfer"))
+                delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))
+            delete("meta", "key IN (?,?)", arrayOf("personal_scope:$peerId:$runId", "personal_report:$peerId:$runId"))
+        }
+    }
+
+    private fun retireDisplacedConnectionStarts(db: SQLiteDatabase, peerId: String, authority: String) {
+        val retire = mutableListOf<String>()
+        db.query("personal_run", arrayOf("run_id"), "peer_id=?", arrayOf(peerId), null, null, null).use { rows ->
+            while (rows.moveToNext()) {
+                val runId = rows.getString(0)
+                val marker = readScopeRun(db, peerId, runId) ?: continue
+                if ("request_message_id" !in marker || "connection_authority" !in marker ||
+                    marker["connection_authority"] == JsonPrimitive(authority)) continue
+                val run = authenticatedRun(peerId, runId, db)?.first ?: continue
+                if (!run.reported) retire += runId
+            }
+        }
+        retireScopedRequests(db, peerId, retire.toSet())
+    }
 
     /** Called under the owner's peer lock when membership or content preference changes. */
     internal fun purgeStaleScopedRuns(binding: SharedSettingsBinding, shared: SharedSyncStorage, reference: JsonObject?,
@@ -1272,12 +1973,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
         if (stale.isEmpty()) return stale
         helper.writableDatabase.inTransaction {
-            purgeWireRuns(binding.peerActor, stale)
-            for (runId in stale) {
-                for (table in listOf("personal_run", "personal_batch", "personal_attachment_chunk", "personal_attachment_transfer"))
-                    delete(table, "peer_id=? AND run_id=?", arrayOf(binding.peerActor, runId))
-                delete("meta", "key IN (?,?)", arrayOf("personal_scope:${binding.peerActor}:$runId", "personal_report:${binding.peerActor}:$runId"))
-            }
+            retireScopedRequests(this, binding.peerActor, stale)
         }
         return stale
     }
@@ -1330,8 +2026,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     fun personalRun(peerId: String, runId: String): JsonObject? = currentRun(peerId, runId)?.second
 
-    fun personalRunPolicy(peerId: String, runId: String): String? = currentRun(peerId, runId)?.first
-        ?.transportPolicy?.takeIf { it in setOf("any", "wifi_only") }
+    fun personalRunPolicy(peerId: String, runId: String): String? = currentRun(peerId, runId)?.first?.transportPolicy
 
     private fun sealedActorRun(peerId: String, runId: String, db: SQLiteDatabase = helper.readableDatabase): Boolean =
         db.query("personal_run", arrayOf("payload"), "peer_id=? AND run_id=?", arrayOf(peerId, runId), null, null, null).use { row ->
@@ -1517,6 +2212,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             partial.forEach { (peerId, runId) ->
                 val authenticated = authenticatedRun(peerId, runId, this)?.first ?: return@forEach
                 val trigger = authenticated.trigger
+                if (trigger == PersonalAutoSync.CONNECTION) return@forEach
                 val zero = buildJsonObject { put("notes", JsonPrimitive(0)); put("tasks", JsonPrimitive(0)); put("notebooks", JsonPrimitive(0)) }
                 val report = buildJsonObject {
                 put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId)); put("state", JsonPrimitive("partial"))
@@ -1541,7 +2237,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 if (key !in protectedRuns) expired += key
             } }
             expired.groupBy({ it.first }, { it.second }).forEach { (peerId, runs) ->
-                purgeWireRuns(peerId, runs.toSet())
+                purgeWireRuns(this, peerId, runs.toSet())
                 runs.forEach { runId ->
                     for (table in listOf("personal_run", "personal_batch", "personal_attachment_transfer", "personal_attachment_chunk"))
                         delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))

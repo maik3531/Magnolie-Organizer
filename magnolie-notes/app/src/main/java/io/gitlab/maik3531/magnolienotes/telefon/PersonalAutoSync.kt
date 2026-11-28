@@ -22,4 +22,11 @@ internal object PersonalAutoSync {
         trigger in TRIGGERS && (trigger != CONNECTION || negotiated)
 
     fun automatic(trigger: String): Boolean = trigger == "auto_wifi" || trigger == CONNECTION
+
+    fun policy(trigger: String): String = when (trigger) {
+        CONNECTION -> "connection_only"
+        "auto_wifi" -> "wifi_only"
+        "manual" -> "any"
+        else -> throw TelefonProtokollFehler("Ungültiger Personal-Sync-Trigger.")
+    }
 }

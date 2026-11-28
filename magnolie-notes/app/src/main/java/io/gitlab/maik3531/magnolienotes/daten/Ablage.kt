@@ -731,13 +731,14 @@ class Ablage private constructor(
 
     fun personalSyncCounter(): Long = synchronized(sperre) { _bestand.value.personalSync.counter }
 
-    internal fun personalSyncScopedSnapshot(selection: PersonalContentSelection, peerId: String, format: Int = 3): PersonalSyncSnapshot = synchronized(sperre) {
+    internal fun personalSyncScopedSnapshot(selection: PersonalContentSelection, peerId: String, format: Int = 3,
+                                           beforeReplace: (() -> Unit)? = null): PersonalSyncSnapshot = synchronized(sperre) {
         schreibbar()
         require(PersonalSync.livePersonalContent(_bestand.value) == selection)
         require(format in setOf(3, EintragsUrsprung.FORMAT))
         val (next, records) = PersonalSync.reconcile(_bestand.value, setOf("notes", "tasks"), format, peerId,
             selection = selection, independentRemovals = true)
-        if (next != _bestand.value) schreibeBestand(next)
+        if (next != _bestand.value) schreibeBestand(next, beforeReplace)
         val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()
         next.notizen.filter { PersonalSync.ownNote(it) && PersonalSync.noteWireId(next.personalSync, it.id) in selection.notes }
             .flatMap { it.anhaenge }.forEach { attachment -> PersonalSync.attachmentDescriptor(attachment)?.let { snapshot ->
@@ -815,14 +816,15 @@ class Ablage private constructor(
 
     internal fun personalSyncApplyScopedOnce(records: List<PersonalSyncRecord>, attachments: Map<String, Anhang>,
                                             batchKey: String, expectedLive: PersonalContentSelection,
-                                            peerId: String, format: Int = 3): PersonalSyncResult? = synchronized(sperre) {
+                                            peerId: String, format: Int = 3,
+                                            beforeReplace: (() -> Unit)? = null): PersonalSyncResult? = synchronized(sperre) {
         schreibbar()
         if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
         val result = PersonalSync.applyScoped(_bestand.value, records, expectedLive, peerId, attachments, format)
         val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
         val durable = result.copy(bestand = result.bestand.copy(
             personalSync = result.bestand.personalSync.copy(applied_batches = applied)))
-        schreibeBestand(durable.bestand)
+        schreibeBestand(durable.bestand, beforeReplace)
         durable
     }
 
@@ -839,16 +841,17 @@ class Ablage private constructor(
         if (_bestand.value.notizen.any { it.id !in ids }) vorNotizZusammenfuehrung()
     }
 
-    private fun schreibeBestand(neu: Bestand) {
+    private fun schreibeBestand(neu: Bestand, beforeReplace: (() -> Unit)? = null) {
         schreibbar()
         if (baumNachrichtenTransaktion) {
+            check(beforeReplace == null) { "Protected book save requires the native writer" }
             merkeBestandInTransaktion(neu)
             return
         }
         check(actorSavedSequence < Long.MAX_VALUE) { "Native writer sequence exhausted" }
         val encoded = json.encodeToString(Bestand.serializer(), neu)
         val hash = actorBookHash(encoded)
-        schreiben(notizDatei, encoded)
+        schreiben(notizDatei, encoded, beforeReplace)
         _bestand.value = neu
         actorSavedBook = _bestand.value
         actorSavedHash = hash
@@ -1047,7 +1050,7 @@ class Ablage private constructor(
         return false
     }
 
-    private fun schreiben(datei: File, inhalt: String) = synchronized(sperre) {
+    private fun schreiben(datei: File, inhalt: String, beforeReplace: (() -> Unit)? = null) = synchronized(sperre) {
         schreibbar()
         val neben = File(datei.parentFile, datei.name + ".neu")
         val klar = inhalt.toByteArray(Charsets.UTF_8)
@@ -1058,6 +1061,13 @@ class Ablage private constructor(
             }
         } finally { geheim.fill(0) }
         runCatching { neben.setReadable(false, false); neben.setReadable(true, true) }
+        if (beforeReplace != null) {
+            try { beforeReplace() }
+            catch (fehler: Exception) {
+                runCatching { Files.deleteIfExists(neben.toPath()) }
+                throw fehler
+            }
+        }
         Files.move(neben.toPath(), datei.toPath(), StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING)
         try { synchronisiereOrdner(requireNotNull(datei.parentFile)) }

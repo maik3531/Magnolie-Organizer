@@ -141,6 +141,9 @@ internal class PersonalNoteSession {
     // One authenticated WLAN transition, consumed only after its current scope
     // has retired stale runs and received all membership acknowledgments.
     var autoWifiCheckPending = false
+    var connectionCapabilityRevision: Long? = null
+    var connectionAutoEnqueued = false
+    val connectionSaveConflicts = linkedMapOf<String, Int>()
     var localContentScope: JsonObject? = null
     var contentScopeSelection: io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection? = null
     var contentScopeRestoreEpoch: String? = null
