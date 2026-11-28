@@ -708,6 +708,32 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
     }
 
+    /** A legacy WLAN run becomes visible only with its complete initial outbox. */
+    internal fun queueInitialAutoRun(peerId: String, message: JsonObject, batches: List<JsonObject>,
+        attachments: List<Triple<String, String, ByteArray>> = emptyList(), attachmentExpiresMs: Long = message.long("expires_ms")) {
+        TelefonNachrichten.validate(message)
+        val request = message.getValue("body") as JsonObject
+        require(message.string("kind") == "personal_sync.request" && request.string("trigger") == "auto_wifi")
+        val runId = request.string("run_id")
+        val format = request.long("format")
+        require(batches.isNotEmpty() && (format >= 2 || attachments.isEmpty()))
+        val now = System.currentTimeMillis()
+        require(message.long("expires_ms") > now)
+        helper.writableDatabase.inTransaction {
+            rememberPersonalRunInDatabase(this, peerId, request, message.long("expires_ms"), now)
+            val policy = requireNotNull(authenticatedRun(peerId, runId, this)).first.transportPolicy
+            if (format >= 2) {
+                queueFormat2DirectionIn(this, peerId, runId, false, batches.first().string("records_hash"), null,
+                    batches, attachments, policy, attachmentExpiresMs)
+                writableInsert(peerId, message, this, policy)
+            } else {
+                writableInsert(peerId, message, this, policy)
+                batches.forEach { batch -> writableInsert(peerId,
+                    TelefonNachrichten.message("personal_sync.batch", batch, 86_400_000), this, policy) }
+            }
+        }
+    }
+
     fun queueFormat2Direction(peerId: String, runId: String, reply: Boolean, recordsHash: String,
                               request: JsonObject?, batches: List<JsonObject>,
                               attachments: List<Triple<String, String, ByteArray>>, transportPolicy: String,

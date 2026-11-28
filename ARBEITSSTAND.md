@@ -47,6 +47,14 @@ aufgeführt.
   Android-PDF-Kette ebenfalls bestätigt. Im PDF waren Datum und Anlass
   des Jahrestags sowie Uhrzeit und Titel des Planertermins lesbar.
   Weitere Druckbereiche bleiben Teil von #121.
+- [#128](https://github.com/maik3531/Magnolie-Organizer/issues/128):
+  Beim bisherigen automatischen WLAN-Abgleich speichert Notes den
+  Lauf erst zusammen mit der Anfrage und den vorbereiteten Daten.
+  Scheitert das Einreihen der Anfrage oder eines Datenpakets, kann ein
+  erneuter Versuch sofort starten. 134 Release-JVM-Tests bestanden,
+  darunter SQLite-Fehlschläge in beiden Protokollformaten und erneuter
+  Versand ausschließlich über WLAN. Die Automatik über weitere
+  freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

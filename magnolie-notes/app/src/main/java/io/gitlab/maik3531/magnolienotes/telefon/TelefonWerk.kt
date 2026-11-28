@@ -5474,11 +5474,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
             put("modules", JsonArray(modules.map(::JsonPrimitive)))
         }
         val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
-        queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"), actorRun = actorRun)
+        val automatic = trigger == "auto_wifi"
+        if (!automatic) queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"), actorRun = actorRun)
         if (format >= 2) {
             val snapshot = Ablage.hole(context).personalSyncSnapshotMitAnhaengen(modules.toSet(), format)
-            val policy = queue.personalRunPolicy(peer.device_id, runId)
-                ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
             val batches = buildSnapshotBatches(runId, snapshot.records, false, format).first
             val aggregate = batches.first().string("records_hash")
             val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
@@ -5486,9 +5485,19 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 .map { (it as JsonObject).string("sha256") }.toSet()
             val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, attachment) -> Triple(hash,
                 (attachment.descriptor["mime"] as JsonPrimitive).content, attachment.bytes) }
-            queue.queueFormat2Direction(peer.device_id, runId, false, aggregate, null, batches,
-                attachments, policy, System.currentTimeMillis() + 86_400_000)
-            queue.queuePrepared(peer.device_id, requestMessage, policy)
+            val attachmentExpiresMs = System.currentTimeMillis() + 86_400_000
+            if (automatic) {
+                queue.queueInitialAutoRun(peer.device_id, requestMessage, batches, attachments, attachmentExpiresMs)
+            } else {
+                val policy = queue.personalRunPolicy(peer.device_id, runId)
+                    ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
+                queue.queueFormat2Direction(peer.device_id, runId, false, aggregate, null, batches,
+                    attachments, policy, attachmentExpiresMs)
+                queue.queuePrepared(peer.device_id, requestMessage, policy)
+            }
+        } else if (automatic) {
+            val records = Ablage.hole(context).personalSyncSnapshot(modules.toSet())
+            queue.queueInitialAutoRun(peer.device_id, requestMessage, buildSnapshotBatches(runId, records, false, 1).first)
         } else {
             queue.queuePrepared(peer.device_id, requestMessage, queue.personalRunPolicy(peer.device_id, runId)
                 ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))

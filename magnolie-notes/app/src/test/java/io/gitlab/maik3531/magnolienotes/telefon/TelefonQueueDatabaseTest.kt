@@ -128,6 +128,49 @@ class TelefonQueueDatabaseTest {
             queue.due("peer", TelefonTransportArt.WIFI).map { it.payload.string("kind") })
     }
 
+    @Test fun `failed initial automatic request or batch does not reserve the run`() {
+        for ((format, failingKind) in listOf(1 to "personal_sync.batch", 2 to "personal_sync.request")) {
+            val peer = "atomic-peer-$format"
+            val runId = uuid(700 + format)
+            val request = buildJsonObject {
+                put("format", JsonPrimitive(format)); put("run_id", JsonPrimitive(runId))
+                put("trigger", JsonPrimitive("auto_wifi"))
+                put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
+            }
+            val message = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
+            val hash = io.gitlab.maik3531.magnolienotes.daten.PersonalSync.recordsHash(emptyList())
+            val batch = PersonalSyncProtokoll.batch(runId, emptyList(), 0, true, false, format, hash)
+            assertFalse(queue.hasActiveAutoRun(peer))
+            val unrelated = queue.queue(peer, "device_status.request", buildJsonObject {
+                put("request_id", JsonPrimitive(uuid(800 + format))); put("version", JsonPrimitive(1))
+            }, 60_000)
+            context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
+                db.execSQL("CREATE TRIGGER fail_initial_auto BEFORE INSERT ON outbox WHEN NEW.kind='$failingKind' " +
+                    "BEGIN SELECT RAISE(ABORT, 'injected'); END")
+            }
+            try {
+                org.junit.Assert.assertThrows(android.database.sqlite.SQLiteException::class.java) {
+                    queue.queueInitialAutoRun(peer, message, listOf(batch))
+                }
+            } finally {
+                context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
+                    db.execSQL("DROP TRIGGER fail_initial_auto")
+                }
+            }
+            assertFalse(queue.hasActiveAutoRun(peer))
+            assertEquals(null, queue.personalRun(peer, runId))
+            assertEquals(listOf(unrelated.string("message_id")),
+                queue.due(peer, TelefonTransportArt.WIFI).map { it.messageId })
+            queue.queueInitialAutoRun(peer, message, listOf(batch))
+            assertTrue(queue.hasActiveAutoRun(peer))
+            assertEquals("wifi_only", queue.personalRunPolicy(peer, runId))
+            assertEquals(setOf("device_status.request", "personal_sync.request", "personal_sync.batch"),
+                queue.due(peer, TelefonTransportArt.WIFI).map { it.payload.string("kind") }.toSet())
+            assertEquals(listOf(unrelated.string("message_id")),
+                queue.due(peer, TelefonTransportArt.BLUETOOTH).map { it.messageId })
+        }
+    }
+
     private fun request(runId: String) = buildJsonObject {
         put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive("manual"))
         put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
