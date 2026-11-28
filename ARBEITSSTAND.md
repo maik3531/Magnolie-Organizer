@@ -37,7 +37,11 @@ aufgeführt.
   Ziele spätere dauerhaft verdrängen. Die bestehende Zeitgrenze und das
   Limit von 32 Versuchen pro Runde bleiben erhalten. Zwölf Host-Ablauffälle
   und 19 Tests im regulären Notes-Release-JVM-Lauf bestanden.
-  Die native Fernabnahme bleibt offen.
+  Im Rechnermenü der Notes-Kopfzeile beendet **Trennen** die Verbindung
+  zum ausgewählten Rechner. Kopplungen, Freigaben und Warteschlangen
+  bleiben erhalten; die alte Sitzung kann keine Änderungen mehr anwenden.
+  Alle 22 Release-JVM-Tests zum Verbindungslebenszyklus bestanden.
+  Native Bedienung, nutzbare Sync-Verfügbarkeit und Fernabnahme bleiben offen.
 - [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790):
   Die Workflow-Tests für Mac und Tablet prüfen den aktuellen Checkout,
   während die historische Codec-Referenz separat bleibt. Die Tablet-

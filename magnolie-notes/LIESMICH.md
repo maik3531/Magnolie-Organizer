@@ -11,6 +11,11 @@ und ohne KDE Connect verwendet werden. KDE Connect benutzt seine eigene App und
 ist eine getrennte Verbindung. Notes-abhängige Zusatzfunktionen gehören im
 Organizer unter **Magnolie Notes-Telefonverbindung → Erweiterte Funktionen**.
 
+Das Rechnersymbol in der Notes-Kopfzeile zeigt die gespeicherten Rechner.
+Mit **Trennen** wird die Verbindung zum gewählten Rechner beendet. Kopplung
+und Freigaben bleiben gespeichert. Zum erneuten Verbinden den Rechner im
+selben Menü auswählen.
+
 Die Paketbeschreibungen für F-Droid nennen diese Rolle und die optionalen Zugriffe.
 Der vollständige Fotoabgleich sowie Webcam/Mikrofon und Bildschirmspiegelung sind
 noch keine freigegebenen APK-Funktionen. Vorbereitung im Quellcode oder im Manifest

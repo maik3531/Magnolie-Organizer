@@ -1159,7 +1159,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     telefonWerk.personalSyncNow()
                 }.onFailure { sage(zusammenhang.fehlertext(it)) } },
                 computer = { id -> runCatching { telefonWerk.selectComputer(id) }.onFailure { sage(zusammenhang.fehlertext(it)) }
-                    if (id == null) blatt = 3 })
+                    if (id == null) blatt = 3 },
+                disconnect = { peer -> runCatching { telefonWerk.disconnectComputer(peer) }
+                    .onFailure { sage(zusammenhang.fehlertext(it)) } })
         }) },
         bottomBar = {
             val ids = if (bestand.zeiterfassung.enabled) listOf(0, 1, 6, 5) else listOf(0, 1, 5)

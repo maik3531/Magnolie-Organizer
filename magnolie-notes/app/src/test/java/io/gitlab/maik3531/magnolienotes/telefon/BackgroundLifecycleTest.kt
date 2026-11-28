@@ -161,6 +161,46 @@ class BackgroundLifecycleTest {
         assertEquals(home.static_public, storage.peers().peer!!.static_public)
     }
 
+    @Test fun disconnectClosesOnlyTheSelectedComputerAndKeepsItsPairing() = fixture { storage, work, queue ->
+        val home = TelefonPeer(UUID.randomUUID().toString(), "Home", TelefonKrypto.b64(ByteArray(32) { 1 }),
+            own_device = true, personal_notes_sync_granted = true)
+        val office = TelefonPeer(UUID.randomUUID().toString(), "Office", TelefonKrypto.b64(ByteArray(32) { 2 }))
+        storage.savePeer(home)
+        work.selectComputer(null)
+        storage.savePeer(office)
+        work.selectComputer(home.device_id)
+        storage.setPersonalSync(true, true, false, true)
+        queue.queue(home.device_id, "capabilities.update", TelefonNachrichten.capabilities(), 60_000)
+        val generation = field(work, "pairingGeneration").getLong(work)
+        var closed = false
+        val pipe = object : TelefonRoehre {
+            override val input = ByteArrayInputStream(byteArrayOf())
+            override val output = ByteArrayOutputStream()
+            override fun close() { closed = true }
+        }
+        field(work, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+
+        work.disconnectComputer(office)
+        work.disconnectComputer(home.copy(static_public = office.static_public))
+        assertFalse(closed)
+        assertEquals(home.device_id, storage.peers().peer?.device_id)
+
+        work.disconnectComputer(home)
+        assertTrue(closed)
+        assertNull(field(work, "activeTransport").get(work))
+        assertNull(storage.peers().peer)
+        assertNull(work.state.value.peer)
+        assertEquals(TelefonVerbindungsstatus.OFFLINE, work.state.value.connection)
+        assertEquals(setOf(home.device_id, office.device_id), work.state.value.pairedComputers.map { it.device_id }.toSet())
+        assertThrows(TelefonProtokollFehler::class.java) { work.sessionEstablished(home, generation, TelefonTransportArt.WIFI) }
+        assertTrue(queue.hasKind(home.device_id, "capabilities.update"))
+
+        work.selectComputer(home.device_id)
+        assertEquals(home.static_public, storage.peers().peer?.static_public)
+        assertTrue(storage.personalAutoWifi())
+        assertTrue(storage.personalNotesEnabled())
+    }
+
     @Test fun interruptedComputerSelectionRestoresOnlyThePersistedComputerPreferences() = fixture { storage, _, _ ->
         val first = TelefonPeer(UUID.randomUUID().toString(), "First", TelefonKrypto.b64(ByteArray(32) { 1 }),
             own_device = true, personal_notes_sync_granted = true, saved_auto_wifi = true)

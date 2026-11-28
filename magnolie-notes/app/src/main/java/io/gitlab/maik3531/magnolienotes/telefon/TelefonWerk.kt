@@ -2834,6 +2834,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     @Volatile private var explicitlySelectedComputer: String? = null
 
+    @Synchronized internal fun disconnectComputer(expected: TelefonPeer) {
+        val current = safePeer() ?: return
+        if (current.device_id == expected.device_id && current.static_public == expected.static_public)
+            selectComputer(null)
+    }
+
     @Synchronized fun selectComputer(id: String?, explicit: Boolean = true) {
         val target = id?.let { wanted -> storage.peers().all().firstOrNull { it.device_id == wanted } }
         if (id != null && target == null) return

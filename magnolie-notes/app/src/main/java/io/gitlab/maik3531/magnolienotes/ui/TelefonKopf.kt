@@ -19,12 +19,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.telefon.TelefonPeer
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
 import kotlinx.serialization.json.JsonPrimitive
 
 /** Direct shortcuts to the same actions exposed in device settings. */
 @Composable
-fun TelefonKopf(telefon: TelefonUiZustand, sync: () -> Unit, computer: (String?) -> Unit) {
+fun TelefonKopf(telefon: TelefonUiZustand, sync: () -> Unit, computer: (String?) -> Unit,
+                disconnect: (TelefonPeer) -> Unit) {
     var opened by remember { mutableStateOf(false) }
     val syncName = stringResource(R.string.personal_sync_jetzt)
     val computerName = stringResource(R.string.telefon_rechner_hinzufuegen)
@@ -53,6 +55,10 @@ fun TelefonKopf(telefon: TelefonUiZustand, sync: () -> Unit, computer: (String?)
                 telefon.pairedComputers.forEach { peer ->
                     DropdownMenuItem(text = { Text((if (peer.device_id == telefon.peer?.device_id) "✓ " else "") + peer.display_name) },
                         onClick = { opened = false; computer(peer.device_id) })
+                }
+                telefon.peer?.let { peer ->
+                    DropdownMenuItem(text = { Text(stringResource(R.string.telefon_trennen)) },
+                        onClick = { opened = false; disconnect(peer) })
                 }
                 DropdownMenuItem(text = { Text(computerName) }, onClick = { opened = false; computer(null) })
             }
