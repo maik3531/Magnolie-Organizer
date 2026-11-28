@@ -25,7 +25,10 @@ kopiert oder als Programmbestandteil übernommen.
   landesweit seit 1994); Frankreich (14. Juli seit 1880, Kokarde); Niederlande
   (Koningsdag, Krone, seit 2014 am 27. April bzw. am Samstag 26. April bei
   Sonntag); Deutschland (3. Oktober ab 1990, Brandenburger Tor) und Österreich
-  (26. Oktober ab 1965, Parlamentsmotiv). Die Regeln sind unabhängig von
+  (26. Oktober ab 1965, Parlamentsmotiv), Belgien (21. Juli ab 1890,
+  dreigeteiltes Festbanner) und Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
+  konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin).
+  Die Regeln sind unabhängig von
   Programmsprache und funktionieren offline. Sie erzeugen keine Kalenderdaten, ändern keine Schalter und
   leiten keine Zugehörigkeit aus Namen, Sprache oder Religion ab.
 - Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
@@ -33,7 +36,11 @@ kopiert oder als Programmbestandteil übernommen.
   https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day ,
   https://www.royal-house.nl/latest/news/2013/1/28/kings-day-on-27-april-from-2014 ,
   https://www.bundesregierung.de/breg-de/schwerpunkte/deutsche-einheit/fotoreihe-wiedervereinigung-442686 und
-  https://www.parlament.gv.at/en/experience/events/1285635 .
+  https://www.parlament.gv.at/en/experience/events/1285635 ,
+  https://www.monarchie.be/en/monarchy/events-linked-monarchy ,
+  https://www.belgium.be/fr/la_belgique/connaitre_le_pays/la_belgique_en_bref/symboles/drapeaux ,
+  https://luxembourg.public.lu/en/society-and-culture/political-system/symbols-dynasty.html und
+  https://luxembourg.public.lu/en/vivre/quality-of-life/jours-feries-legaux.html .
   Automatische Vorschau mit gewähltem Land und Testdatum; bisherige explizite
   Übersteuerungen bleiben erhalten. Weitere Festidentitäten und Provider
   sind Folgearbeit (#853/#854).
@@ -51,7 +58,7 @@ visuelle Vorschau bietet:
 - Blüte/Kamera/Smartphone und unabhängig Synchronisierungspfeile;
 - automatische/keine/Eiskristall-/Sterndekoration;
 - automatische/keine/einzelne Feiertagsmotive, einschließlich der
-  fünf Nationalmotive DE, AT, CH, FR und NL, sowie ein Testdatum;
+  sieben Nationalmotive DE, AT, CH, FR, NL, BE und LU, sowie ein Testdatum;
 - Zurücksetzen. Sperren, neuer Buchkontext und Abschalten des Entwicklermodus
   verwerfen die Übersteuerung ebenfalls; verspätete alte Bedienelemente greifen
   nicht mehr ein.

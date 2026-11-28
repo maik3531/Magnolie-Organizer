@@ -77,6 +77,18 @@
       { d: "M42 11Q52 7 60 11", fill: "none", "data-motif-part": "flag-stripe" },
       { d: "M7 47L11 51M69 51L73 47M9 21L13 25M67 25L71 21", fill: "none", "data-motif-part": "festive-rays" }
     ],
+    "belgian-banner": [
+      { d: "M19 10V70M14 70H24M19 15Q42 7 64 15V43Q42 35 19 43", fill: "none", "data-motif-part": "banner" },
+      { d: "M34 12V40M49 12V40", fill: "none", "data-motif-part": "vertical-bands" },
+      { d: "M32 49Q43 55 54 49L49 60L43 57L37 60Z", fill: "none", "data-motif-part": "festive-ribbon" },
+      { d: "M8 23L11 27M70 21L74 17M66 56L72 61M29 66L32 71", fill: "none", "data-motif-part": "confetti" }
+    ],
+    "luxembourg-concert": [
+      { d: "M21 57V24L51 17V49M21 31L51 24", fill: "none", "data-motif-part": "music-stems" },
+      { d: "M21 57C21 49 8 50 8 58C8 66 21 65 21 57ZM51 49C51 41 38 42 38 50C38 58 51 57 51 49Z", "data-motif-part": "music-notes" },
+      { d: "M63 9V17M63 31V39M48 24H55M71 24H78M52 13L57 18M69 30L74 35M74 13L69 18M57 30L52 35", fill: "none", "data-motif-part": "firework" },
+      { d: "M31 66L35 71M63 57L68 61M7 17L10 22", fill: "none", "data-motif-part": "confetti" }
+    ],
     "kings-crown": [
       { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
       { d: "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57", fill: "none" },
@@ -119,6 +131,8 @@
     "at-national-day": "neutrality-parliament",
     "ch-national-day": "swiss-lantern",
     "fr-national-day": "french-rosette",
+    "be-national-day": "belgian-banner",
+    "lu-national-day": "luxembourg-concert",
     "nl-kings-day": "kings-crown"
   });
   function nationalFestival(value, country) {
@@ -127,6 +141,9 @@
     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
     if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
+    if (country === "BE" && year >= 1890 && month === 7 && day === 21) return "be-national-day";
+    // Official sources differ on the first summer celebration; 1964 onward is unambiguous.
+    if (country === "LU" && year >= 1964 && month === 6 && day === 23) return "lu-national-day";
     if (country === "NL" && year >= 2014 && month === 4) {
       const observed = new Date(Date.UTC(year, 3, 27)).getUTCDay() === 0 ? 26 : 27;
       if (day === observed) return "nl-kings-day";
@@ -280,7 +297,7 @@
     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
-      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"]]);
+      ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);
     date.addEventListener("change", () => {

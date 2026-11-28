@@ -20,13 +20,14 @@ aufgeführt.
   interaktiven Windows-Desktop.
 
 - [#853](https://github.com/maik3531/Magnolie-Organizer/issues/853):
-  Fünf nationale Kalenderwasserzeichen für DE, AT, CH, FR und NL sind in
+  Sieben nationale Kalenderwasserzeichen für DE, AT, CH, FR, NL, BE und LU sind in
   den Desktopquellen integriert. Die Wochenansicht folgt dem gewählten
-  Feiertagsland und dem Datum. 40 Desktop-DOM-Läufe in 20 Sprachen sowie
-  die SVG-Anzeige und rastergleiche Druckausgabe mit und ohne Motive im
-  WebKit-Host bestanden. Das standardmäßig deaktivierte Entwicklerpanel
-  kann alle fünf Motive ausdrücklich auswählen; beide Oberflächen und
-  20 Sprachen geprüft. Weitere Festidentitäten, Handbuch und
+  Feiertagsland und dem Datum. Belgien nutzt den 21. Juli ab 1890,
+  Luxemburg den 23. Juni ab 1964. 40 Desktop-DOM-Läufe in 20 Sprachen sowie
+  die SVG-Anzeige und unveränderte Druckausgabe mit und ohne Motive im
+  GTK-WebKit-Host bestanden. Das standardmäßig deaktivierte Entwicklerpanel
+  bietet alle sieben Motive in beiden Oberflächen und 20 Sprachen zur
+  Auswahl. Weitere Festidentitäten, Handbuch und
   Mac-/Tablet-Projektion bleiben in #853; installierte Pakete in #113.
 
 - [#857](https://github.com/maik3531/Magnolie-Organizer/issues/857):

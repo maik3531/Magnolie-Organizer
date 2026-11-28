@@ -32,7 +32,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         for (const [date, land, motif] of [
           ["2026-10-03", "DE", "unity-gate"], ["2026-10-26", "AT", "neutrality-parliament"],
           ["2026-08-01", "CH", "swiss-lantern"], ["2026-07-14", "FR", "french-rosette"],
-          ["2025-04-26", "NL", "kings-crown"]
+          ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
+          ["2026-06-23", "LU", "luxembourg-concert"]
         ]) {
           b.t.zustand().kalender.tag = date;
           await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -88,7 +89,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       const sample = panel.querySelector('[data-appearance-sample="watermark"]');
       for (const [motif, country] of [
         ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
-        ["french-rosette", "France"], ["kings-crown", "Netherlands"]
+        ["french-rosette", "France"], ["kings-crown", "Netherlands"],
+        ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]
       ]) {
         assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
         choose("holiday", motif);
@@ -96,7 +98,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
       }
       choose("holiday", "unknown");
-      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "kings-crown");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "luxembourg-concert");
       choose("date", "2026-12-06");
       choose("holiday", "auto");
       assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "boots");
