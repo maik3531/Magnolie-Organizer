@@ -18,7 +18,11 @@ try {
     ["2025-04-26", "NL", "kings-crown"], ["2025-04-27", "NL", "none"],
     ["2026-04-27", "NL", "kings-crown"], ["2026-04-26", "NL", "none"],
     ["2013-04-27", "NL", "none"], ["2026-12-06", "", "none"],
-    ["2026-04-05", "CN", "none"], ["2026-01-01", "ZZ", "none"]
+    ["2026-04-05", "CN", "none"], ["2026-01-01", "ZZ", "none"],
+    ["1983-01-06", "ES", "none"], ["1984-01-06", "ES", "three-kings"],
+    ["1985-01-06", "IT", "none"], ["1986-01-06", "IT", "befana-stocking"],
+    ["2026-01-05", "ES", "none"], ["2026-01-07", "IT", "none"],
+    ["2026-01-06", "DE", "none"], ["2026-01-06", "", "none"]
   ]) assert.equal(appearance.holiday(date, country), expected, date + " " + country);
   for (const kind of ["swiss-lantern", "french-rosette", "kings-crown"]) {
     const svg = appearance.stamp(kind);
@@ -50,7 +54,12 @@ try {
   assert.equal(eggs.querySelectorAll('[data-motif-part="painted-egg"]').length, 2);
   assert.equal(eggs.querySelectorAll('[data-motif-part="egg-pattern"]').length, 2);
   assert(eggs.querySelector('[data-motif-part="spring-grass"]')); assert(eggs.querySelector('[data-motif-part="ribbon"]'));
-  for (const svg of [boots, santa, rocket, glasses, eggs]) {
+  const threeKings = appearance.stamp("three-kings"), befana = appearance.stamp("befana-stocking");
+  for (const part of ["first-crown", "middle-crown", "third-crown", "star", "gifts"])
+    assert(threeKings.querySelector(`[data-motif-part="${part}"]`));
+  for (const part of ["stocking", "broom-handle", "broom-bristles"])
+    assert(befana.querySelector(`[data-motif-part="${part}"]`));
+  for (const svg of [boots, santa, rocket, glasses, eggs, threeKings, befana]) {
     assert.equal(svg.getAttribute("aria-hidden"), "true"); assert.equal(svg.getAttribute("focusable"), "false");
     assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
     assert(svg.querySelector('path[fill="none"]'), "Outlined detail must not be swallowed by a solid silhouette");

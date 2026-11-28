@@ -119,6 +119,19 @@
       { d: "M63 9V17M63 31V39M48 24H55M71 24H78M52 13L57 18M69 30L74 35M74 13L69 18M57 30L52 35", fill: "none", "data-motif-part": "firework" },
       { d: "M31 66L35 71M63 57L68 61M7 17L10 22", fill: "none", "data-motif-part": "confetti" }
     ],
+    "three-kings": [
+      { d: "M5 37L9 50H25L29 37L20 42L17 33L13 42Z M9 55H25", fill: "none", "data-motif-part": "first-crown" },
+      { d: "M28 31L32 46H48L52 31L44 37L40 25L36 37Z M32 51H48", fill: "none", "data-motif-part": "middle-crown" },
+      { d: "M51 37L55 50H71L75 37L67 42L63 33L60 42Z M55 55H71", fill: "none", "data-motif-part": "third-crown" },
+      { d: "M40 5L42 12L49 14L42 16L40 23L38 16L31 14L38 12Z", "data-motif-part": "star" },
+      { d: "M13 63H29V74H13ZM13 67H29M21 63V74M51 63H67V74H51ZM51 67H67M59 63V74", fill: "none", "data-motif-part": "gifts" }
+    ],
+    "befana-stocking": [
+      { d: "M12 17H37V25H12ZM15 25V49L10 54Q4 61 13 66Q18 69 29 65L37 59Q41 55 37 49L34 25M15 34H35", fill: "none", "data-motif-part": "stocking" },
+      { d: "M60 8L45 50M43 50L49 52L48 56L41 54Z", fill: "none", "data-motif-part": "broom-handle" },
+      { d: "M41 54L48 56L48 62L46 74L27 68L34 59Z M39 57L33 69M43 58L40 71", fill: "none", "data-motif-part": "broom-bristles" },
+      { d: "M19 12V7H24V12M29 13L33 7L36 13M64 28L67 34L73 35L68 39L69 45L64 42L59 45L60 39L55 35L61 34Z", fill: "none", "data-motif-part": "sweets-and-star" }
+    ],
     "kings-crown": [
       { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
       { d: "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57", fill: "none" },
@@ -198,10 +211,24 @@
     }
     return "";
   }
+  // Cultural motifs for the modern documented January 6 observance, not
+  // statutory days off or inferred personal religion. Earlier eras are not modeled.
+  const culturalMotifs = Object.freeze({
+    "es-three-kings": "three-kings",
+    "it-befana": "befana-stocking"
+  });
+  function culturalFestival(value, country) {
+    if (value.month !== 1 || value.day !== 6) return "";
+    if (country === "ES" && value.year >= 1984) return "es-three-kings";
+    if (country === "IT" && value.year >= 1986) return "it-befana";
+    return "";
+  }
   function holiday(iso, country = "") {
     const value = dateParts(iso); if (!value || !holidayCountries.has(country)) return "none";
     const national = nationalMotifs[nationalFestival(value, country)];
     if (national) return national;
+    const cultural = culturalMotifs[culturalFestival(value, country)];
+    if (cultural) return cultural;
     const key = value.month + "-" + value.day;
     const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
     if (fixed) return fixed;
@@ -332,7 +359,7 @@
     function select(key, title, choices) {
       const label = document.createElement("label"), input = document.createElement("select");
       label.className = "formzeile"; label.append(document.createTextNode(t(title))); input.className = "feld"; input.dataset.appearanceTest = key;
-      for (const [value, text] of choices) { const option = document.createElement("option"); option.value = value; option.textContent = t(text); input.append(option); }
+      for (const [value, text, isoMonthDay] of choices) { const option = document.createElement("option"); option.value = value; option.textContent = t(text) + (isoMonthDay ? " · " + isoMonthDay : ""); input.append(option); }
       input.value = preview[key]; input.addEventListener("change", () => {
         if (!section.isConnected || !context.developer || context.locked || !choices.some(([value]) => value === input.value)) return;
         preview[key] = input.value; changed();
@@ -347,6 +374,7 @@
     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
       ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"],
       ["czech-proclamation", "Czech Republic"], ["spanish-ribbon", "Spain"],
+      ["three-kings", "Spain", "01-06"], ["befana-stocking", "Italy", "01-06"],
       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);

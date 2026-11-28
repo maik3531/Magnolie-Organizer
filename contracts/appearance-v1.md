@@ -41,6 +41,15 @@ kopiert oder als Programmbestandteil übernommen.
   Die Regeln sind unabhängig von
   Programmsprache und funktionieren offline. Sie erzeugen keine Kalenderdaten, ändern keine Schalter und
   leiten keine Zugehörigkeit aus Namen, Sprache oder Religion ab.
+- Am 6. Januar erscheinen bei ausdrücklich gewähltem Feiertagsland zwei
+  kulturelle Motive: Spanien zeigt zum Día de Reyes drei Kronen, Stern und
+  Geschenke (ab 1984); Italien zeigt zur Befana Strumpf und Besen (ab 1986).
+  Die Jahresgrenzen sind konservative Anzeigegrenzen für den belegten
+  modernen Zeitraum. Die Motive treffen keine Aussage über Arbeitsfreiheit.
+  Quellen: [spanisches Tourismusportal](https://socialnewsroom.spain.info/three-kings-day-in-spain-2024/),
+  [BOE, Real Decreto 2001/1983, Art. 45](https://www.boe.es/eli/es/rd/1983/07/28/2001),
+  [italienisches Tourismusportal](https://www.italia.it/it/italia/cosa-fare/storia-ed-eventi-per-la-befana)
+  und [italienischer Präsidialerlass 792/1985](https://presidenza.governo.it/USRI/confessioni/norme/85DPR792prn.html).
 - Quellen Italien: [Dekret 387/1947](https://www.gazzettaufficiale.it/eli/id/1947/05/31/047U0387/sg),
   [Festgeschichte des Verteidigungsministeriums](https://www.difesa.it/primopiano/verso-il-2-giugno-la-storia-dello-sfilamento-su-via-dei-fori-imperiali/34716.html),
   [Gesetz 260/1949 mit Verweis auf 54/1977 und 336/2000](https://presidenza.governo.it/ufficio_cerimoniale/normativa/legge_19490527_260.pdf),
@@ -79,8 +88,8 @@ visuelle Vorschau bietet:
 - keine/Notes/KDE Connect/beide Verbindungstypen im Vorschau-Symbol;
 - Blüte/Kamera/Smartphone und unabhängig Synchronisierungspfeile;
 - automatische/keine/Eiskristall-/Sterndekoration;
-- automatische/keine/einzelne Feiertagsmotive, einschließlich der
-  sieben Nationalmotive DE, AT, CH, FR, NL, BE und LU, sowie ein Testdatum;
+- automatische/keine/einzelne Feiertagsmotive, einschließlich aller zwölf
+  Nationalmotive und der beiden Motive für den 6. Januar, sowie ein Testdatum;
 - Zurücksetzen. Sperren, neuer Buchkontext und Abschalten des Entwicklermodus
   verwerfen die Übersteuerung ebenfalls; verspätete alte Bedienelemente greifen
   nicht mehr ein.

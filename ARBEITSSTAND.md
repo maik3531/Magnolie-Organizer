@@ -145,6 +145,12 @@ aufgeführt.
   interaktiven Windows-Desktop.
 
 - [#853](https://github.com/maik3531/Magnolie-Organizer/issues/853):
+  Am 6. Januar zeigen beide Desktopquellen den Día de Reyes für Spanien
+  (ab 1984) und die Befana für Italien (ab 1986). Maßgeblich ist das gewählte
+  Feiertagsland. Die externe Probe bestand auf beiden Quellen mit je 200 Fällen,
+  zusätzlich die Vorschau in 20 Sprachen. GTK-WebKit zeigte beide Motive;
+  Text und Raster der gedruckten Seiten blieben unverändert. Handbuchnachtrag
+  und Mac-/Tablet-Abnahme bleiben offen.
   Zwölf nationale Kalenderwasserzeichen sind in den Desktopquellen integriert:
   DE, AT, CH, FR, NL, BE, LU, IT, PL, LI, CZ und ES. Die Wochenansicht folgt
   dem gewählten Feiertagsland und Datum. Italien berücksichtigt die belegten frühen

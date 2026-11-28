@@ -78,7 +78,8 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
           ["2026-06-23", "LU", "luxembourg-concert"], ["2026-06-02", "IT", "italian-ballot"],
           ["2026-11-11", "PL", "polish-banner"], ["2026-08-15", "LI", "liechtenstein-lights"],
-          ["2026-10-28", "CZ", "czech-proclamation"], ["2026-10-12", "ES", "spanish-ribbon"]
+          ["2026-10-28", "CZ", "czech-proclamation"], ["2026-10-12", "ES", "spanish-ribbon"],
+          ["2026-01-06", "ES", "three-kings"], ["2026-01-06", "IT", "befana-stocking"]
         ]) {
           b.t.zustand().kalender.tag = date;
           await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -88,15 +89,17 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           assert.equal(watermarks()[0].dataset.appearanceWatermark, motif);
           assert.equal(watermarks()[0].getAttribute("aria-hidden"), "true");
           const parts = {
-            LI: ["mountain-ridge", "illuminated-crown", "mountain-fires", "festive-rays"],
-            CZ: ["proclamation", "document-lines", "flag", "flag-wedge", "festive-rays"],
-            ES: ["banner", "horizontal-bands", "ribbon", "festive-rays"]
-          }[land];
+            "liechtenstein-lights": ["mountain-ridge", "illuminated-crown", "mountain-fires", "festive-rays"],
+            "czech-proclamation": ["proclamation", "document-lines", "flag", "flag-wedge", "festive-rays"],
+            "spanish-ribbon": ["banner", "horizontal-bands", "ribbon", "festive-rays"],
+            "three-kings": ["first-crown", "middle-crown", "third-crown", "star", "gifts"],
+            "befana-stocking": ["stocking", "broom-handle", "broom-bristles", "sweets-and-star"]
+          }[motif];
           if (parts) {
             assert.equal(watermarks()[0].getAttribute("focusable"), "false");
             assert.deepEqual([...watermarks()[0].querySelectorAll("[data-motif-part]")].map(node => node.dataset.motifPart), parts);
           }
-          selectCountry(land === "ES" ? "CZ" : "ES");
+          selectCountry(land === "ES" || motif === "befana-stocking" ? "CZ" : "ES");
           assert.equal(watermarks().length, 0);
         }
         selectCountry("DE");
@@ -141,14 +144,15 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       choose("holiday", "santa"); assert(d.querySelector('.wo-tag [data-appearance-watermark="santa"]'));
       const holiday = panel.querySelector('[data-appearance-test="holiday"]');
       const sample = panel.querySelector('[data-appearance-sample="watermark"]');
-      for (const [motif, country] of [
+       for (const [motif, country, dateLabel = ""] of [
         ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
         ["french-rosette", "France"], ["kings-crown", "Netherlands"],
         ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"],
         ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"],
-        ["czech-proclamation", "Czech Republic"], ["spanish-ribbon", "Spain"]
+         ["czech-proclamation", "Czech Republic"], ["three-kings", "Spain", " · 01-06"],
+         ["befana-stocking", "Italy", " · 01-06"], ["spanish-ribbon", "Spain"]
       ]) {
-        assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
+         assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country) + dateLabel);
         choose("holiday", motif);
         assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, motif);
         assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
