@@ -1396,7 +1396,11 @@ internal static class SharedSyncTransportTests
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
-    private static async Task ScopedConnectionRequestAsync(string transport, bool originals = false, bool initiate = false)
+    internal static Task RejectsNonElectedConnectionRequestAsync() =>
+        ScopedConnectionRequestAsync("bluetooth", nonElectedPeer: true);
+
+    private static async Task ScopedConnectionRequestAsync(string transport, bool originals = false, bool initiate = false,
+        bool nonElectedPeer = false)
     {
         static Task<TelefonAck?> PublishControls(TelefonStore store, TelefonPeer peer, JsonObject message)
         {
@@ -1417,7 +1421,9 @@ internal static class SharedSyncTransportTests
             return Task.FromResult<TelefonAck?>(null);
         }
 
-        using var fixture = new PhoneCameraParentTests.Fixture(transport, receive: PublishControls, lifetime: TimeSpan.FromSeconds(35));
+        var localId = initiate || nonElectedPeer ? "00000000-0000-4000-8000-000000000000" : "ffffffff-ffff-4fff-bfff-ffffffffffff";
+        using var fixture = new PhoneCameraParentTests.Fixture(transport, receive: PublishControls,
+            lifetime: TimeSpan.FromSeconds(35), authenticatedLocalId: localId);
         var store = fixture.Store;
         var peer = fixture.Peer;
         var connection = fixture.Connection;
@@ -1430,14 +1436,9 @@ internal static class SharedSyncTransportTests
         store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
         store.SetLocalGrant("personal_notes_sync", true);
         store.SetLocalGrant("personal_tasks_sync", true);
-        var desktop = store.LoadOrCreateIdentity();
-        if (initiate)
-        {
-            var electedId = "00000000-0000-4000-8000-000000000000";
-            typeof(TelefonStore).GetMethod("SaveIdentity", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .Invoke(store, [desktop with { Id = electedId }]);
-            desktop = desktop with { Id = electedId };
-        }
+        var desktop = store.LoadOrCreateIdentity() with { Id = localId };
+        typeof(TelefonStore).GetMethod("SaveIdentity", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(store, [desktop]);
         CryptographicOperations.ZeroMemory(desktop.PrivateKey);
         store.ChangeSharedSetting(peer.Id, peer.PublicKey, "content_mode", JsonValue.Create("phone_scope")!);
         var local = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "auto_mode", JsonValue.Create("connection")!);
@@ -1498,6 +1499,16 @@ internal static class SharedSyncTransportTests
             var announcement = Message("capabilities.update", localCaps);
             await connection.SendPlainAsync(announcement);
             TestAssert.That(JsonNode.DeepEquals(announcement, await fixture.Read(received++)), "Local capability did not reach the original reader.");
+            if (nonElectedPeer)
+            {
+                await Expect(frame, "rejected", "not_granted");
+                TestAssert.That(runs.LoadRun(peer.Id, runId, Now()) is null &&
+                    !store.HasIncomingReceipt(peer.Id, frame["message_id"]!.GetValue<string>()),
+                    "The non-elected peer left a persisted run or receipt.");
+                await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, written++);
+                await run;
+                return;
+            }
             if (initiate)
             {
                 var original = "%PDF-1.4\nWindows initiated fixture\n%%EOF\n"u8.ToArray();

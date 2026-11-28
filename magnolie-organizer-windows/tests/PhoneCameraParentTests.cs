@@ -41,7 +41,7 @@ internal static class PhoneCameraParentTests
         internal bool HasUnexpectedFrame => phone.GetStream().DataAvailable;
         internal Fixture(string transport = "wifi", string? filePairingEpoch = null,
             Func<TelefonStore, TelefonPeer, JsonObject, Task<TelefonAck?>>? receive = null, TimeSpan? lifetime = null,
-            string peerName = "Controlled original parent", Fixture? previous = null)
+            string peerName = "Controlled original parent", Fixture? previous = null, string? authenticatedLocalId = null)
         {
             deadline = new(lifetime ?? TimeSpan.FromSeconds(10));
             if (previous is null)
@@ -70,7 +70,8 @@ internal static class PhoneCameraParentTests
             }
             finally { listener.Stop(); }
             Connection = new TelefonConnection(Peer, desktop.GetStream(), sessionId, keys.ToArray(), Store,
-                (peer, payload) => { LegacyReceives++; return receive?.Invoke(Store, peer, payload) ?? Task.FromResult<TelefonAck?>(null); }, deadline.Token, transport);
+                (peer, payload) => { LegacyReceives++; return receive?.Invoke(Store, peer, payload) ?? Task.FromResult<TelefonAck?>(null); }, deadline.Token, transport)
+                { AuthenticatedLocalId = authenticatedLocalId };
         }
         internal async Task Send(JsonObject message, long sequence)
         {

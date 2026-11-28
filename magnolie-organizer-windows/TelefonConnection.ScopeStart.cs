@@ -124,14 +124,9 @@ internal sealed partial class TelefonConnection
 
     private (string Authority, JsonObject Reference, int Format, JsonObject Request) BuildScopedConnectionStart()
     {
-        var identity = store.LoadOrCreateIdentity();
-        try
-        {
-            if (scopedConnectionStarted || Volatile.Read(ref acknowledgedConnectionRequest) is not null ||
-                StringComparer.Ordinal.Compare(identity.Id, peer.Id) >= 0)
-                throw new InvalidOperationException("This reader is not the elected connection initiator.");
-        }
-        finally { CryptographicOperations.ZeroMemory(identity.PrivateKey); }
+        if (scopedConnectionStarted || Volatile.Read(ref acknowledgedConnectionRequest) is not null ||
+            AuthenticatedLocalId is not { } localId || StringComparer.Ordinal.Compare(localId, peer.Id) >= 0)
+            throw new InvalidOperationException("This reader is not the elected connection initiator.");
         if (Volatile.Read(ref sentConnectionCapabilities) is not { } sent ||
             disposed || cancellation.IsCancellationRequested || store.RestoreFenced ||
             CurrentConnectionReader?.Invoke(this) != true || !ContentScopeControlsReady || receivedContentScope is null)

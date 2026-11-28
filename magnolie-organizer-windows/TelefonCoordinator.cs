@@ -1709,7 +1709,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
-                { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
+                { AuthenticatedLocalId = identity.Id,
+                     SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CurrentConnectionReader = source => { lock (gate) return online.TryGetValue(peer.Id, out var active) && ReferenceEquals(active, source); },
                     ConnectionReplyBook = () => NativeSavedBook(),
                     ScopedConnectionBatchReady = value => emit("App.personalSyncConnectionBatch", value),

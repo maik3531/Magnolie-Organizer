@@ -20,6 +20,9 @@ aufgeführt.
   und Wechsel der Verbindung bestanden.
   Notes setzt dieselbe Wahl vor der Anlage eines eingehenden
   automatischen Laufs durch. Alle 133 Release-JVM-Laufzeitfälle bestanden.
+  Windows verwendet dafür die lokale UUID aus derselben authentifizierten
+  Verbindung. Sechs native Windows-Testgruppen einschließlich des
+  verschlüsselten Bluetooth-Kontrolltransports bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte

@@ -28,6 +28,7 @@ internal sealed partial class TelefonConnection
     internal Func<NativeBookSaveState?>? ConnectionReplyBook { get; set; }
     internal Func<JsonObject, Task>? ScopedConnectionBatchReady { get; set; }
     private string? offeredConnectionBatch;
+    internal string? AuthenticatedLocalId { get; init; }
     internal Func<TelefonConnection, bool>? CurrentConnectionReader { get; set; }
     private string ScopePublicKey => Convert.ToHexString(peer.PublicKey);
     private bool ContentScopeSelected
@@ -386,6 +387,8 @@ internal sealed partial class TelefonConnection
                     var trigger = body["trigger"]!.GetValue<string>();
                     if (connectionRequest)
                     {
+                        if (AuthenticatedLocalId is not { } localId || StringComparer.Ordinal.Compare(peer.Id, localId) >= 0)
+                            throw new InvalidOperationException("The peer is not the elected connection initiator.");
                         var acknowledged = Volatile.Read(ref acknowledgedConnectionRequest);
                         if (scopedConnectionStarted || acknowledged is not null && acknowledged != body["run_id"]!.GetValue<string>())
                             throw new InvalidOperationException("The original reader already acknowledged a connection request.");
