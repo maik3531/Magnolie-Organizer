@@ -12,6 +12,7 @@ internal sealed partial class TelefonConnection
     private long actorRemoteOwnRevision;
     private long actorCapabilityRevision = -1, actorGrantRevision = -1;
     private JsonObject? sentConnectionCapabilities;
+    private byte[]? receivedConnectionRequestHash;
     private string? acknowledgedConnectionRequest;
     private readonly ConcurrentDictionary<string, byte> acknowledgedConnectionBatches = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> acknowledgedReplyOriginalControls = new(StringComparer.Ordinal);
@@ -389,13 +390,15 @@ internal sealed partial class TelefonConnection
                     {
                         if (AuthenticatedLocalId is not { } localId || StringComparer.Ordinal.Compare(peer.Id, localId) >= 0)
                             throw new InvalidOperationException("The peer is not the elected connection initiator.");
-                        var acknowledged = Volatile.Read(ref acknowledgedConnectionRequest);
-                        if (scopedConnectionStarted || acknowledged is not null && acknowledged != body["run_id"]!.GetValue<string>())
-                            throw new InvalidOperationException("The original reader already acknowledged a connection request.");
+                        var requestHash = SHA256.HashData(TelefonCrypto.Canonical(message));
+                        if (scopedConnectionStarted ||
+                            receivedConnectionRequestHash is { } previous && !previous.AsSpan().SequenceEqual(requestHash))
+                            throw new InvalidOperationException("The original reader already admitted a connection request.");
                         var reference = wrapped["scope"]!.AsObject();
                         var authority = ConnectionRequestAuthority(body, reference);
                         boundReceipt = runs.RememberScopedConnectionRequest(peer.Id, peer.PublicKey, message, Now(), authority,
                             () => ConnectionRequestAuthority(body, reference));
+                        receivedConnectionRequestHash = requestHash;
                         boundAuthority = authority;
                         authorityRequest = body;
                     }

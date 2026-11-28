@@ -1399,8 +1399,11 @@ internal static class SharedSyncTransportTests
     internal static Task RejectsNonElectedConnectionRequestAsync() =>
         ScopedConnectionRequestAsync("bluetooth", nonElectedPeer: true);
 
+    internal static Task RejectsSecondConnectionRequestAfterUnsentAckAsync() =>
+        ScopedConnectionRequestAsync("bluetooth", supersedeBeforeAck: true);
+
     private static async Task ScopedConnectionRequestAsync(string transport, bool originals = false, bool initiate = false,
-        bool nonElectedPeer = false)
+        bool nonElectedPeer = false, bool supersedeBeforeAck = false)
     {
         static Task<TelefonAck?> PublishControls(TelefonStore store, TelefonPeer peer, JsonObject message)
         {
@@ -1499,6 +1502,41 @@ internal static class SharedSyncTransportTests
             var announcement = Message("capabilities.update", localCaps);
             await connection.SendPlainAsync(announcement);
             TestAssert.That(JsonNode.DeepEquals(announcement, await fixture.Read(received++)), "Local capability did not reach the original reader.");
+            if (supersedeBeforeAck)
+            {
+                // Keep the request's ACK waiting after its SQLite commit, then supersede its capability.
+                var firstReceipt = frame["message_id"]!.GetValue<string>();
+                var nextCaps = localCaps.DeepClone().AsObject();
+                TestAssert.That(await fixture.Writer.WaitAsync(TimeSpan.FromSeconds(5)), "Could not hold the encrypted writer.");
+                try
+                {
+                    await fixture.Send(frame, written++);
+                    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    while (!store.HasIncomingReceipt(peer.Id, firstReceipt))
+                        await Task.Delay(10, deadline.Token);
+                    nextCaps["revision"] = store.NextOwnRevision("capabilities");
+                }
+                finally { fixture.Writer.Release(); }
+                var rejectedAck = await fixture.Read(received++);
+                TestAssert.That(JsonNode.DeepEquals(rejectedAck["message_id"], frame["message_id"]) &&
+                    rejectedAck["status"]?.GetValue<string>() == "rejected" && rejectedAck["error"]?.GetValue<string>() == "not_granted",
+                    "A capability revision changed before the ACK, but the original acceptance was sent.");
+                var nextAnnouncement = Message("capabilities.update", nextCaps);
+                await connection.SendPlainAsync(nextAnnouncement);
+                TestAssert.That(JsonNode.DeepEquals(nextAnnouncement, await fixture.Read(received++)), "The new capability was not sent.");
+                var competing = request.DeepClone().AsObject();
+                var competingId = Guid.NewGuid().ToString("D");
+                competing["run_id"] = competingId;
+                var packet = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", competing, collection));
+                await Expect(packet, "rejected", "not_granted");
+                TestAssert.That(runs.LoadRun(peer.Id, runId, Now())?.Policy == "connection_only" &&
+                    runs.LoadRun(peer.Id, competingId, Now()) is null &&
+                    !store.HasIncomingReceipt(peer.Id, packet["message_id"]!.GetValue<string>()),
+                    "The unsent ACK released the first committed admission.");
+                await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, written++);
+                await run;
+                return;
+            }
             if (nonElectedPeer)
             {
                 await Expect(frame, "rejected", "not_granted");
@@ -1742,6 +1780,10 @@ internal static class SharedSyncTransportTests
             await Expect(frame, "duplicate");
             TestAssert.That(runs.LoadRun(peer.Id, runId, Now())?.Policy == "connection_only" &&
                 store.ReceivedMatches(peer.Id, frame), "Original wire request did not make a typed committed receipt.");
+            var repackaged = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", request, collection));
+            await Expect(repackaged, "rejected", "not_granted");
+            TestAssert.That(!store.HasIncomingReceipt(peer.Id, repackaged["message_id"]!.GetValue<string>()),
+                "Repackaging the request created another receipt.");
             var another = request.DeepClone().AsObject();
             var anotherId = Guid.NewGuid().ToString("D"); another["run_id"] = anotherId;
             await Expect(Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", another, collection)), "rejected", "not_granted");

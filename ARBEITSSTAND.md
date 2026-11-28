@@ -33,6 +33,10 @@ aufgeführt.
   Notes nimmt pro Verbindung ebenfalls nur einen automatischen Start an.
   Die exakte Wiederholung bleibt möglich; ein gescheiterter SQLite-Commit
   reserviert die Verbindung nicht. 135 Release-JVM-Laufzeitfälle bestanden.
+  Windows reserviert den Start ebenfalls beim SQLite-Commit. Wird die
+  Bestätigung vor dem Versand ungültig, kann dieselbe Verbindung keinen
+  zweiten Start annehmen. Folgeframes brauchen weiterhin die gesendete
+  Bestätigung. Sieben native Testgruppen und der WinForms-Bau bestanden.
 
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
