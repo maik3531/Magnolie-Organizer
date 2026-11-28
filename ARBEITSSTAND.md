@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#128](https://github.com/maik3531/Magnolie-Organizer/issues/128):
+  Notes nimmt Verbindungsautomatik erst an, wenn die aktuelle lokale
+  Capability-Revision über genau diese Verbindung gesendet wurde.
+  Ein fehlender oder veralteter Versandbeleg hält den Lauf vor der
+  Speicherung zurück. Die verschlüsselte Gegenprobe und 156
+  Release-JVM-Fälle bestanden. Installierte Kopplung und weitere
+  Automatikumfänge sind offen.
+
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
   Brücke mit exakter Regions- und Jahresabdeckung. Ungebundene Antworten

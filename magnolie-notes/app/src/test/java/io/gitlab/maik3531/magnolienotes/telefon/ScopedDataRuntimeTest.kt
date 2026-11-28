@@ -131,6 +131,8 @@ class ScopedDataRuntimeTest {
     @Test fun provenanceFormatProducesACompleteMatchingScopedReply() = exercise("receive-request", 14)
     @Test fun scopedWifiRequestOnBluetoothLeavesNoRunOrScope() = exercise("receive-auto-wifi-bluetooth", 14)
     @Test fun scopedConnectionRequestOnCurrentBluetoothNeedsItsOwnRunPolicy() = exercise("receive-auto-connection", 14)
+    @Test fun scopedConnectionRequestWaitsForTheActuallyAdvertisedRevision() =
+        exercise("receive-auto-connection-advertisement", 14)
     @Test fun scopedConnectionInitiatorWaitsForTheOriginalRequestAckBeforeItsBatch() =
         exercise("start-auto-connection", 3)
     @Test fun scopedConnectionInitiatorSavesTheReplyOriginalBeforeSendingItsResult() =
@@ -545,6 +547,7 @@ class ScopedDataRuntimeTest {
             val newerFormat = if (format == 14 || missingRemoteFormat) listOf(14) else emptyList()
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
+                capabilities_revision = if (connectionAutomation) 2 else 0,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
                 personal_deletions_sync_granted = deletionGrant, remote_personal_deletions_sync_granted = deletionGrant,
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
@@ -616,6 +619,10 @@ class ScopedDataRuntimeTest {
                 }
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
+            fun queueConnectionAdvertisement(revision: Long) = queue.queue(peerId, "capabilities.update",
+                TelefonNachrichten.capabilities(revision, work.sharedLocalCapabilities()), 60_000)
+            val lateAdvertisement = mode == "receive-auto-connection-advertisement"
+            if (connectionAutomation && !lateAdvertisement) queueConnectionAdvertisement(peer.capabilities_revision)
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
             if (automaticReconnect) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("wifi"))
             if (connectionAutomation) local = work.changeSharedSetting(peerId, peer.static_public, "auto_mode", JsonPrimitive("connection"))
@@ -2105,8 +2112,31 @@ class ScopedDataRuntimeTest {
                          put("body", request)
                      }
                      // The outer frame bypasses the local encoder only; receive and acknowledgement use the product handler.
-                     val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, wrapped, 60000)
-                     fun requestAck() = sent().single { it["message_id"] == requestMessage["message_id"] }
+                      val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, wrapped, 60000)
+                      fun requestAck() = sent().single { it["message_id"] == requestMessage["message_id"] }
+                      if (lateAdvertisement) {
+                          fun assertWaiting() {
+                              work.receiveMessage(peer, requestMessage, channel, 0)
+                              val waiting = requestAck()
+                              assertEquals("rejected", waiting.string("status"))
+                              assertEquals("temporary_failure", waiting.string("error"))
+                              assertNull(queue.personalRun(peerId, run))
+                              assertFalse(queue.containsScopedRun(peerId, run))
+                              assertNull(queue.duplicateResult(peerId, requestMessage.string("message_id")))
+                          }
+                          fun publish(revision: Long) {
+                              val advertisement = queueConnectionAdvertisement(revision)
+                              pump.invoke(work, peer, channel, 0L, false)
+                              assertEquals(advertisement, sent().single { it["message_id"] == advertisement["message_id"] })
+                              assertEquals(revision, session.connectionCapabilityRevision)
+                              queue.acknowledge(peerId, advertisement.string("message_id"))
+                          }
+                          assertNull(session.connectionCapabilityRevision)
+                          assertWaiting()
+                          publish(peer.capabilities_revision - 1)
+                          assertWaiting()
+                          publish(peer.capabilities_revision)
+                      }
                      if (mode.endsWith("-atomic")) {
                          val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
                          database.execSQL("CREATE TRIGGER connection_request_receipt_failure BEFORE INSERT ON inbox " +

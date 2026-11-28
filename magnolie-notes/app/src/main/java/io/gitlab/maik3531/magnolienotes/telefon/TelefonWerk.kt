@@ -1165,6 +1165,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         check(body.long("format").toInt() in connectionFormats(peer, modules, localCapabilities)) {
             "Personal-Sync-Format wurde nicht ausgehandelt."
         }
+        if (session.connectionCapabilityRevision != peer.capabilities_revision)
+            throw java.io.IOException("Connection automation has not been advertised on this reader.")
         return PersonalSync.hash(buildJsonObject {
             put("session", JsonPrimitive(session.actorSourceEpoch)); put("transport", JsonPrimitive(transport.name))
             put("peer", JsonPrimitive(peer.device_id)); put("peer_key", JsonPrimitive(peer.static_public))
