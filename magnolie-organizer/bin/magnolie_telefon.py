@@ -8202,12 +8202,12 @@ class PhoneService:
                 raise RuntimeError("Widersprüchlicher Personal-Sync-Trigger.")
         ttl = 60 * 60 * 1000 if kind == "personal_sync.request" else DAY_MS
         policy = "wifi_only" if trigger == "auto_wifi" else "any"
+        descriptors = {}
+        if kind == "personal_sync.batch" and format >= 2:
+            _check_attachment_manifest(body["records"], descriptors)
         if attachment_sources:
-            if kind != "personal_sync.batch" or body.get("format", 1) < 2:
+            if kind != "personal_sync.batch" or format < 2:
                 raise ValueError("attachment sources require format 2 batch")
-            descriptors = {item["sha256"]: item for record in body["records"]
-                           if record["kind"] == "note"
-                           for item in record["value"]["attachments"]}
             if (not isinstance(attachment_sources, list) or len(attachment_sources) > MAX_ATTACHMENTS
                     or any(not isinstance(item, dict) or set(item) != {"sha256", "data"}
                            for item in attachment_sources)):

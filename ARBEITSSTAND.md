@@ -64,10 +64,12 @@ aufgeführt.
   Anhangsgrößen und MIME-Typen mit den geprüften Quellbytes ab, bevor
   eine Anfrage eingereiht werden kann. Fünf native Bridge-Fälle sowie
   zwei weitere Windows-Testgruppen bestanden. Linux weist beim gruppierten
-  Senden und beim Empfang widersprüchliche Angaben zum selben Anhang ab.
+  Senden, beim Einzelbatch und beim Empfang widersprüchliche Angaben zum
+  selben Anhang ab.
   Ein fehlerhaftes empfangenes Paket erhält keine Annahmebestätigung.
   Alte widersprüchliche Gruppen bleiben bis zum Ablauf gespeichert
-  und blockieren gültige Gruppen nicht. 124 Hosttests bestanden.
+  und blockieren gültige Gruppen nicht. 124 Hosttests für gruppierte
+  Übertragung und Empfang sowie 73 für den Einzelbatch-Stand bestanden.
   Die gemeinsame Transaktion für das nachgelagerte Windows-Staging und
   die Automatik über weitere freigegebene Transporte bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):

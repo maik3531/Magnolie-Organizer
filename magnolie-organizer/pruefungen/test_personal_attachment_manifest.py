@@ -97,6 +97,33 @@ def test_historical_attachment_conflict_does_not_block_other_run(tmp_path, monke
     assert len(before) == 2 and history_rows() == before
 
 
+@pytest.mark.parametrize("with_source", [False, True])
+@pytest.mark.parametrize("conflict", [False, True])
+def test_single_batch_validates_all_attachment_references(tmp_path, with_source, conflict):
+    service, peer = _personal_service(tmp_path, lambda *_: None)
+    service.store.peer(peer)["capabilities"] = phone.desktop_capabilities()
+    service.store.save_peers()
+    first = _descriptor(RAW, "a.png")
+    second = _descriptor(RAW, "b.png")
+    if conflict:
+        first["size"] += 1
+    message, = _received_batches(service.store, peer, [_record(1, [first]), _record(2, [second])], False)
+    body = dict(message["body"])
+    if with_source:
+        body["_attachment_sources"] = [
+            dict(sha256=second["sha256"], data="data:image/png;base64," + base64.b64encode(RAW).decode("ascii"))]
+    if conflict:
+        with pytest.raises(ValueError, match="conflicting attachment manifest"):
+            service.send_personal_sync(peer, "personal_sync.batch", body)
+        assert service.store.pending(peer, "wifi") == []
+    else:
+        message_id = service.send_personal_sync(peer, "personal_sync.batch", body)
+        queued, = service.store.pending(peer, "wifi")
+        assert queued["message_id"] == message_id
+        assert queued["body"] == message["body"]
+    assert service.store.has_outgoing_attachments(peer, body["run_id"]) == (with_source and not conflict)
+
+
 @pytest.mark.parametrize("mutation, split, reverse", [
     ("size", False, False), ("size", True, False), ("mime", False, False), ("mime", True, False),
     ("size", False, True), ("mime", False, True), ("none", False, False), ("none", True, False),
