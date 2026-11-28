@@ -64,8 +64,12 @@ aufgeführt.
   bestand 144 Fälle, darunter fehlende Steuerungsbestätigung, verlorene
   Verbindung, eine Aktion mit veraltetem Rechnerschlüssel sowie ein alter
   manueller Klick nach Wechsel auf **Bei Verbindung**. Das Handbuch
-  erklärt die Kopfzeile in allen 20 Sprachen. Native Bedienung über WLAN und
-  Bluetooth, Rechnerwechsel und Fernabnahme bleiben separat zu prüfen.
+  erklärt die Kopfzeile in allen 20 Sprachen. Im isolierten Android-34-Gast
+  bestätigte der reguläre Linux-Telefondienst einen manuellen Abgleich,
+  deaktivierten Knopf nach Freigabeentzug und einen neuen authentisierten
+  Kanal nach **Trennen** und Wiederwahl derselben gespeicherten Paarung.
+  Bluetooth, Wechsel zwischen mehreren Paarungen und Fernabnahme bleiben
+  in [#849](https://github.com/maik3531/Magnolie-Organizer/issues/849) offen.
 - [#790](https://github.com/maik3531/Magnolie-Organizer/issues/790):
   Die Workflow-Tests für Mac und Tablet prüfen den aktuellen Checkout,
   während die historische Codec-Referenz separat bleibt. Die Tablet-
