@@ -919,8 +919,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             Task {
                 var response: [String: Any]
                 do {
-                    let entries = try await HolidayService().fetch(query)
-                    response = ["feiertage": entries.map { $0.organizerValue }, "jahre": query.years,
+                    let result = try await HolidayService().fetchResult(query)
+                    response = ["feiertage": result.entries.map { $0.organizerValue }, "jahre": query.years,
+                                "abrufbereiche": result.coverage.map { $0.organizerValue },
                                 "bericht": holidayMessage]
                 } catch { response = ["fehler": error.localizedDescription] }
                 if let id = holidayRequestID { response["requestId"] = id }

@@ -118,9 +118,17 @@ class HolidayService(
             .put("regionName", regionLabel)
     }
 
-    data class Result(val entries: List<Entry>, val years: List<Int>, val requestId: String?, val report: String) {
+    data class Coverage(val country: String, val region: String, val kind: String, val start: String, val end: String) {
+        fun organizerValue(): JSONObject = JSONObject().put("country", country).put("region", region)
+            .put("art", kind).put("von", start).put("bis", end)
+    }
+
+    data class Result(val entries: List<Entry>, val years: List<Int>, val requestId: String?, val report: String,
+        val coverage: List<Coverage> = emptyList()) {
         fun callbackValue(): JSONObject = JSONObject().put("feiertage", JSONArray(entries.map { it.organizerValue() }))
-            .put("jahre", JSONArray(years)).put("bericht", report).also { if (requestId != null) it.put("requestId", requestId) }
+            .put("jahre", JSONArray(years)).put("bericht", report)
+            .put("abrufbereiche", JSONArray(coverage.map { it.organizerValue() }))
+            .also { if (requestId != null) it.put("requestId", requestId) }
     }
 
     private data class Key(val start: String, val end: String, val name: String, val kind: String)
@@ -143,6 +151,7 @@ class HolidayService(
         val kinds = if (query.includeSchool) listOf("PublicHolidays" to "public-holiday", "SchoolHolidays" to "school-holiday")
             else listOf("PublicHolidays" to "public-holiday")
         val groups = linkedMapOf<Key, Group>()
+        val coverage = mutableListOf<Coverage>()
         var receivedBytes = 0
         for (year in query.years) for ((endpoint, kind) in kinds) for (region in selections) {
             val remaining = remainingMillis()
@@ -167,6 +176,7 @@ class HolidayService(
             if (response.body.size > RESPONSE_BYTES || receivedBytes > TOTAL_BYTES) throw HolidayException("holiday_response_too_large")
             val rows = parse(response.body) { remainingMillis() }
             if (rows.length() > 10_000) throw HolidayException("holiday_response_too_large")
+            var complete = true
             for (index in 0 until rows.length()) {
                 remainingMillis()
                 val row = rows.opt(index) as? JSONObject ?: invalidResponse()
@@ -178,10 +188,21 @@ class HolidayService(
                 }
                 val name = title(row.opt("name"), query.language)
                 if (!validDate(start) || !validDate(end) || end < start || name.isEmpty() || name.length > 1024) invalidResponse()
+                // Refs #855: tolerated metadata must not authorize cache deletion.
+                val rawNationwide = row.opt("nationwide")
+                val rawEnd = row.opt("endDate")
+                if (rawNationwide !is Boolean || rawEnd !is String || rawEnd.isBlank()) complete = false
+                if (end < fields.getValue("validFrom") || start > fields.getValue("validTo")) complete = false
+                val rawNames = row.opt("name")
+                if (rawNames is JSONArray && (0 until rawNames.length()).any { index ->
+                    val value = rawNames.opt(index) as? JSONObject
+                    value == null || value.opt("text") !is String || (value.has("language") && value.opt("language") !is String)
+                }) complete = false
                 val key = Key(start, end, normalizedName(name), kind)
                 val group = groups.getOrPut(key) { Group(start, end, name, kind) }
                 val nationwide = row.opt("nationwide") == true
                 val scopes = sortedSetOf<String>()
+                if (row.has("subdivisions") && row.opt("subdivisions") !is JSONArray) complete = false
                 when (val subdivisions = row.opt("subdivisions")) {
                     null, JSONObject.NULL -> Unit
                     is JSONArray -> {
@@ -196,6 +217,12 @@ class HolidayService(
                     }
                     else -> invalidResponse()
                 }
+                if (scopes.any { "-" in it && !it.startsWith(query.country + "-") }) complete = false
+                if (!nationwide && region == null && scopes.isEmpty()) complete = false
+                if (!nationwide && region != null && scopes.isNotEmpty() && scopes.none {
+                    val code = if ("-" in it || it == query.country) it else query.country + "-" + it
+                    code == region.code || code.startsWith(region.code + "-") || region.code.startsWith(code + "-")
+                }) complete = false
                 if (region != null) {
                     group.selected.add(region.code)
                     if (region.name.isNotEmpty()) group.names.add(region.name)
@@ -205,6 +232,8 @@ class HolidayService(
                 group.regions.addAll(scopes)
                 if (groups.size > 20_000) throw HolidayException("holiday_response_too_large")
             }
+            if (complete) coverage.add(Coverage(query.country, region?.code.orEmpty(), kind,
+                fields.getValue("validFrom"), fields.getValue("validTo")))
         }
         val allNames = query.regions.map { it.name }.filter { it.isNotEmpty() }.toSet()
         val entries = groups.values.map { group ->
@@ -222,7 +251,7 @@ class HolidayService(
                 group.kind, query.country, group.nationwide, group.regions.toList(), group.selected.toList(), group.names.toList(), label)
         }.sortedWith(compareBy({ it.start }, { it.name }, { it.kind }))
         remainingMillis()
-        return Result(entries, query.years, query.requestId, report(entries, query))
+        return Result(entries, query.years, query.requestId, report(entries, query), coverage.toList())
     }
 
     companion object {

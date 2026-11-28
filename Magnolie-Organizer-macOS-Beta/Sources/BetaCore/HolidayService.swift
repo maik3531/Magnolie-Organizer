@@ -56,6 +56,20 @@ public struct HolidayService {
              "region": selectedRegions.joined(separator: ","), "regionName": regionLabel]
         }
     }
+    public struct Coverage: Equatable, Sendable {
+        public let country: String
+        public let region: String
+        public let kind: String
+        public let start: String
+        public let end: String
+        public var organizerValue: [String: Any] {
+            ["country": country, "region": region, "art": kind, "von": start, "bis": end]
+        }
+    }
+    public struct Result: Sendable {
+        public let entries: [Entry]
+        public let coverage: [Coverage]
+    }
     private struct GroupKey: Hashable { let start: String; let end: String; let name: String; let kind: String }
     private struct Group {
         var start: String; var end: String; var name: String; var kind: String
@@ -85,10 +99,14 @@ public struct HolidayService {
         return text?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     public func fetch(_ query: Query) async throws -> [Entry] {
+        (try await fetchResult(query)).entries
+    }
+    public func fetchResult(_ query: Query) async throws -> Result {
         let selections: [Region?] = query.regions.isEmpty ? [nil] : query.regions.map { Optional($0) }
         let kinds = query.includeSchool ? [("PublicHolidays", "public-holiday"), ("SchoolHolidays", "school-holiday")]
                                        : [("PublicHolidays", "public-holiday")]
         var groups: [GroupKey: Group] = [:]
+        var coverage: [Coverage] = []
         var receivedBytes = 0
         let deadline = ProcessInfo.processInfo.systemUptime + 90
         for year in query.years {
@@ -115,6 +133,7 @@ public struct HolidayService {
                     let document = try JSONSerialization.jsonObject(with: response.body)
                     let rows = (document as? [[String: Any]]) ?? ((document as? [String: Any])?["data"] as? [[String: Any]])
                     guard let rows, rows.count <= 10_000 else { throw BetaError("The holiday service returned an unreadable response.") }
+                    var complete = true
                     for row in rows {
                         try Task.checkCancellation()
                         guard ProcessInfo.processInfo.systemUptime < deadline else { throw BetaError("Holiday retrieval timed out; no partial result was applied.") }
@@ -124,6 +143,18 @@ public struct HolidayService {
                               let title = Self.name(row["name"], language: query.language), !title.isEmpty, title.count <= 1024 else {
                             throw BetaError("The holiday service returned an invalid entry; no partial result was applied.")
                         }
+                        // Refs #855: retain tolerant rows, but never certify malformed scope metadata.
+                        if !(row["endDate"] is String) { complete = false }
+                        if let raw = row["nationwide"] {
+                            if let number = raw as? NSNumber {
+                                if CFGetTypeID(number) != CFBooleanGetTypeID() { complete = false }
+                            } else { complete = false }
+                        } else { complete = false }
+                        if let raw = row["subdivisions"], !(raw is [[String: Any]]) { complete = false }
+                        if rawEnd < String(format: "%04d-01-01", year) || start > String(format: "%04d-12-31", year) { complete = false }
+                        if let names = row["name"] as? [[String: Any]], names.contains(where: {
+                            !($0["text"] is String) || ($0["language"] != nil && !($0["language"] is String))
+                        }) { complete = false }
                         let key = GroupKey(start: start, end: rawEnd,
                             name: title.precomposedStringWithCompatibilityMapping.lowercased(), kind: kind)
                         var group = groups[key] ?? Group(start: start, end: rawEnd, name: title, kind: kind)
@@ -139,6 +170,12 @@ public struct HolidayService {
                                 rowRegions.insert(code)
                             }
                         }
+                        if rowRegions.contains(where: { $0.contains("-") && !$0.hasPrefix(query.country + "-") }) { complete = false }
+                        if !rowNationwide && region == nil && rowRegions.isEmpty { complete = false }
+                        if !rowNationwide, let region, !rowRegions.isEmpty, !rowRegions.contains(where: {
+                            let code = $0.contains("-") || $0 == query.country ? $0 : query.country + "-" + $0
+                            return code == region.code || code.hasPrefix(region.code + "-") || region.code.hasPrefix(code + "-")
+                        }) { complete = false }
                         if let region {
                             group.selected.insert(region.code)
                             if !region.name.isEmpty { group.names.insert(region.name) }
@@ -148,10 +185,14 @@ public struct HolidayService {
                         groups[key] = group
                         guard groups.count <= 20_000 else { throw BetaError("The holiday service returned too many entries.") }
                     }
+                    if complete {
+                        coverage.append(Coverage(country: query.country, region: region?.code ?? "", kind: kind,
+                            start: String(format: "%04d-01-01", year), end: String(format: "%04d-12-31", year)))
+                    }
                 }
             }
         }
-        return groups.values.map { value in
+        let entries = groups.values.map { value in
             let names = value.names.sorted()
             var title = value.name
             var regionLabel = names.first ?? ""
@@ -171,5 +212,8 @@ public struct HolidayService {
                   country: query.country, nationwide: value.nationwide, regions: value.regions.sorted(),
                   selectedRegions: value.selected.sorted(), regionNames: value.names.sorted(), regionLabel: regionLabel)
         }.sorted { ($0.start, $0.name, $0.kind) < ($1.start, $1.name, $1.kind) }
+        try Task.checkCancellation()
+        guard ProcessInfo.processInfo.systemUptime < deadline else { throw BetaError("Holiday retrieval timed out; no partial result was applied.") }
+        return Result(entries: entries, coverage: coverage)
     }
 }

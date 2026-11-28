@@ -78,6 +78,102 @@ final class HolidayServiceTests: XCTestCase {
         XCTAssertTrue(rows.isEmpty); XCTAssertEqual(transport.requests.count, 1)
         XCTAssertEqual(transport.requests[0].url.path, "/PublicHolidays")
     }
+    func testSuccessfulEmptyResponsesCertifyOnlyActualRequestedScopes() async throws {
+        let transport = Transport { _ in BoundedHTTPResponse(status: 200, body: Data("[]".utf8)) }
+        let query = try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin"),
+            .init(code: "DE-BB", name: "Brandenburg")], years: [2028, 2027], includeSchool: true, regionRequired: true)
+        let result = try await HolidayService(transport: transport).fetchResult(query)
+        XCTAssertTrue(result.entries.isEmpty); XCTAssertEqual(result.coverage.count, 8)
+        let expected = transport.requests.map { request -> [String] in
+            let fields = Dictionary(uniqueKeysWithValues: URLComponents(url: request.url, resolvingAgainstBaseURL: false)!
+                .queryItems!.map { ($0.name, $0.value ?? "") })
+            return [fields["countryIsoCode"]!, fields["subdivisionCode"]!,
+                    request.url.path == "/SchoolHolidays" ? "school-holiday" : "public-holiday",
+                    fields["validFrom"]!, fields["validTo"]!]
+        }
+        XCTAssertEqual(result.coverage.map { [$0.country, $0.region, $0.kind, $0.start, $0.end] }, expected)
+        XCTAssertEqual(result.coverage.map { value in
+            ["country", "region", "art", "von", "bis"].map { value.organizerValue[$0] as! String }
+        }, expected)
+    }
+    func testSchoolOptOutAndMissingRegionNeverCertifySchoolScopes() async throws {
+        for query in [try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin")],
+                         years: [2028], includeSchool: false),
+                      try HolidayService.Query(country: "CH", years: [2028], includeSchool: true, regionRequired: true)] {
+            let result = try await HolidayService(transport: Transport { _ in
+                BoundedHTTPResponse(status: 200, body: Data("[]".utf8))
+            }).fetchResult(query)
+            XCTAssertEqual(result.coverage.count, 1)
+            XCTAssertEqual(result.coverage[0].kind, "public-holiday")
+            XCTAssertEqual(result.coverage[0].region, query.regions.first?.code ?? "")
+        }
+    }
+    func testToleratedMalformedMetadataNeverCertifiesReplacement() async throws {
+        let query = try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin")],
+            years: [2028], includeSchool: false)
+        let malformed: [[String: Any]] = [["nationwide": "true"], ["subdivisions": "DE-BE"],
+                                          ["endDate": 123], ["endDate": NSNull()], ["nationwide": NSNull()],
+                                          ["subdivisions": NSNull()], ["name": [["language": "EN", "text": "Fixture"], [:]]]]
+        for extra in malformed {
+            var row: [String: Any] = ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture"]
+            row.merge(extra) { _, new in new }
+            let result = try await HolidayService(transport: Transport { _ in
+                BoundedHTTPResponse(status: 200, body: try self.body([row]))
+            }).fetchResult(query)
+            XCTAssertEqual(result.entries.count, 1)
+            XCTAssertTrue(result.coverage.isEmpty)
+        }
+        for missing in ["endDate", "nationwide"] {
+            var row: [String: Any] = ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture"]
+            row.removeValue(forKey: missing)
+            let result = try await HolidayService(transport: Transport { _ in
+                BoundedHTTPResponse(status: 200, body: try self.body([row]))
+            }).fetchResult(query)
+            XCTAssertEqual(result.entries.count, 1); XCTAssertTrue(result.coverage.isEmpty)
+        }
+    }
+    func testUnrelatedYearsOrRegionsCannotCertifyTheRequestedScope() async throws {
+        let query = try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin")],
+            years: [2028], includeSchool: false)
+        let mismatches: [[String: Any]] = [["startDate": "2027-12-25", "endDate": "2027-12-25", "nationwide": false, "name": "Fixture"],
+            ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture", "subdivisions": [["code": "AT-9"]]],
+            ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture", "subdivisions": [["code": "DE-BY"]]]]
+        for row in mismatches {
+            let result = try await HolidayService(transport: Transport { _ in
+                BoundedHTTPResponse(status: 200, body: try self.body([row]))
+            }).fetchResult(query)
+            XCTAssertEqual(result.entries.count, 1); XCTAssertTrue(result.coverage.isEmpty)
+        }
+        for code in ["DE-BE-TEST", "BE"] {
+            let matching = try await HolidayService(transport: Transport { _ in
+                BoundedHTTPResponse(status: 200, body: try self.body([
+                    ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture", "subdivisions": [["code": code]]]
+                ]))
+            }).fetchResult(query)
+            XCTAssertEqual(matching.coverage.map { $0.region }, ["DE-BE"])
+        }
+        let unknown = try await HolidayService(transport: Transport { _ in
+            BoundedHTTPResponse(status: 200, body: try self.body([
+                ["startDate": "2028-02-29", "endDate": "2028-02-29", "nationwide": false, "name": "Fixture"]
+            ]))
+        }).fetchResult(try HolidayService.Query(country: "DE", years: [2028], includeSchool: false))
+        XCTAssertEqual(unknown.entries.count, 1); XCTAssertTrue(unknown.coverage.isEmpty)
+    }
+    func testLaterFailedRequestPublishesNoPartialCoverage() async throws {
+        let query = try HolidayService.Query(country: "DE", years: [2028], includeSchool: true)
+        let transport = Transport { request in
+            BoundedHTTPResponse(status: request.url.path == "/SchoolHolidays" ? 503 : 200, body: Data("[]".utf8))
+        }
+        do {
+            _ = try await HolidayService(transport: transport).fetchResult(query)
+            XCTFail("A failed school request must not publish public-only cache authority")
+        } catch { }
+        let result = try await HolidayService(transport: Transport { _ in
+            BoundedHTTPResponse(status: 200, body: Data("[]".utf8))
+        }).fetchResult(try HolidayService.Query(country: "DE", years: [2029], includeSchool: false))
+        XCTAssertEqual(result.coverage.count, 1)
+        XCTAssertEqual(result.coverage[0].start, "2029-01-01")
+    }
     func testInvalidSelectionAndMalformedResponsesReject() async throws {
         XCTAssertThrowsError(try HolidayService.Query(country: "DE/../", years: [2026], includeSchool: false))
         XCTAssertThrowsError(try HolidayService.Query(country: "DE", years: [2025, 2026, 2027, 2028], includeSchool: false))

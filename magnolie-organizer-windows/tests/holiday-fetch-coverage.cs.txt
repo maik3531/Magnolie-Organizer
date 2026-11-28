@@ -1,0 +1,218 @@
+using System.Net;
+using System.Text;
+
+namespace MagnolieOrganizer.Windows;
+
+// Actual FetchHolidaysAsync/AddHolidayEntriesAsync/Text/Boolean are supplied
+// verbatim by holiday-fetch-coverage.py. Only HTTP, callback and gettext are doubles.
+public sealed partial class HolidayFetchCoverageHost
+{
+    private readonly HttpClient http;
+    private readonly Callback form = new();
+    private HolidayFetchCoverageHost(HttpMessageHandler handler) => http = new(handler);
+    private static string T(string value) => value;
+    private sealed class Callback
+    {
+        internal JsonElement Result;
+        internal Task SendAsync(string name, object payload)
+        {
+            if (name != "App.feiertageErgebnis") throw new InvalidOperationException(name);
+            Result = JsonSerializer.SerializeToElement(payload);
+            return Task.CompletedTask;
+        }
+    }
+    private sealed record Request(string Path, Dictionary<string, string> Fields);
+    private sealed record Result(JsonElement Value, List<Request> Requests);
+    private sealed class OfflineHttp(Func<Request, HttpResponseMessage> responder) : HttpMessageHandler
+    {
+        internal readonly List<Request> Requests = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            var uri = request.RequestUri!;
+            if (uri.Scheme != "https" || uri.Host != "openholidaysapi.org") throw new InvalidOperationException("Unexpected HTTP origin");
+            var fields = uri.Query.TrimStart('?').Split('&').Select(part => part.Split('=', 2))
+                .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
+            var recorded = new Request(uri.AbsolutePath, fields); Requests.Add(recorded);
+            return Task.FromResult(responder(recorded));
+        }
+    }
+    private static HttpResponseMessage Raw(string data, HttpStatusCode status = HttpStatusCode.OK) =>
+        new(status) { Content = new StringContent(data, Encoding.UTF8, "application/json") };
+    private static HttpResponseMessage Data(object? data) => Raw(JsonSerializer.Serialize(data));
+    private static Dictionary<string, object?> Row() => new() { ["startDate"] = "2026-06-01", ["endDate"] = "2026-06-02", ["name"] = "Synthetic holiday", ["nationwide"] = false };
+    private static async Task<Result> Fetch(Func<Request, HttpResponseMessage>? reply = null, string country = "DE", string region = "DE-SN",
+        int[]? years = null, bool school = true, string[][]? regions = null, bool regionRequired = false)
+    {
+        using var handler = new OfflineHttp(reply ?? (_ => Data(Array.Empty<object>())));
+        var host = new HolidayFetchCoverageHost(handler); using var client = host.http;
+        await host.FetchHolidaysAsync(JsonSerializer.SerializeToElement(new {
+            requestId = "synthetic-coverage", land = country, region, jahre = years ?? [2026], ferien = school,
+            regionen = regions ?? [], regionErforderlich = regionRequired }));
+        return new Result(host.form.Result, handler.Requests);
+    }
+    private static string Scope(string kind = "public-holiday", string region = "DE-SN", int year = 2026, string country = "DE") =>
+        $"{country}|{region}|{kind}|{year}-01-01|{year}-12-31";
+    private static HashSet<string> Scopes(Result result) => result.Value.TryGetProperty("abrufbereiche", out var scopes)
+        ? scopes.EnumerateArray().Select(scope => string.Join("|", new[] { "country", "region", "art", "von", "bis" }
+            .Select(key => scope.GetProperty(key).GetString()))).ToHashSet(StringComparer.Ordinal) : [];
+    private static void EqualScopes(Result result, params string[] expected)
+    {
+        var actual = Scopes(result);
+        Check(actual.SetEquals(expected), $"Scopes differ: actual={string.Join(';', actual)} expected={string.Join(';', expected)}");
+        Check(!result.Value.TryGetProperty("fehler", out _), "Unexpected whole-operation failure");
+    }
+    private static void Check(bool condition, string message)
+    { if (!condition) throw new InvalidOperationException(message); }
+    private static int Count(Result result) => result.Value.GetProperty("feiertage").GetArrayLength();
+
+    public static async Task<int> Main()
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en");
+        var cases = new List<(string Name, Func<Task> Run)>
+        {
+            ("successful empty pages certify both requested kinds", async () => {
+                var result = await Fetch(); EqualScopes(result, Scope(), Scope("school-holiday"));
+                Check(Count(result) == 0 && result.Requests.Count == 2, "Empty retrieval contract changed");
+            }),
+            ("opt-out certifies public only", async () => {
+                var result = await Fetch(school: false); EqualScopes(result, Scope());
+                Check(result.Requests.Count == 1, "School endpoint requested after opt-out");
+            }),
+            ("missing required region certifies no school", async () => {
+                var result = await Fetch(region: "", regionRequired: true); EqualScopes(result, Scope(region: ""));
+                Check(result.Requests.Count == 1, "School endpoint requested without required region");
+            }),
+            ("country request remains separate from subdivisions", async () => {
+                var result = await Fetch(country: "FR", region: "", school: false); EqualScopes(result, Scope(country: "FR", region: ""));
+                Check(!result.Requests.Single().Fields.ContainsKey("subdivisionCode"), "Invented subdivision");
+            }),
+            ("each year region and kind gets independent success", async () => {
+                var result = await Fetch(region: "", years: [2027, 2026, 2026], regions: [["DE-SN", "Saxony"], ["DE-BY", "Bavaria"]]);
+                EqualScopes(result, (from kind in new[] { "public-holiday", "school-holiday" }
+                    from region in new[] { "DE-SN", "DE-BY" } from year in new[] { 2026, 2027 } select Scope(kind, region, year)).ToArray());
+                Check(result.Value.GetProperty("abrufbereiche").GetArrayLength() == 8, "Duplicate coverage");
+            }),
+            ("failed school region does not certify it", async () => {
+                var result = await Fetch(request => request.Path == "/SchoolHolidays" && request.Fields["subdivisionCode"] == "DE-BY"
+                    ? Raw("", HttpStatusCode.ServiceUnavailable) : Data(Array.Empty<object>()), region: "", regions: [["DE-SN", "Saxony"], ["DE-BY", "Bavaria"]]);
+                EqualScopes(result, Scope(), Scope(region: "DE-BY"), Scope("school-holiday"));
+            }),
+            ("failed later school year preserves other success", async () => {
+                var result = await Fetch(request => request.Path == "/SchoolHolidays" && request.Fields["validFrom"].StartsWith("2027", StringComparison.Ordinal)
+                    ? Raw("", HttpStatusCode.ServiceUnavailable) : Data(Array.Empty<object>()), years: [2026, 2027]);
+                EqualScopes(result, Scope(year: 2026), Scope(year: 2027), Scope("school-holiday", year: 2026));
+            }),
+            ("unreadable school JSON retains whole failure contract", async () => {
+                var result = await Fetch(request => request.Path == "/SchoolHolidays" ? Raw("not-json") : Data(Array.Empty<object>()));
+                Check(result.Value.TryGetProperty("fehler", out _) && Scopes(result).Count == 0, "Malformed JSON gained coverage");
+            }),
+            ("wrong JSON shapes never authorize removal", async () => {
+                foreach (var payload in new[] { "{}", "{\"data\":{}}", "{\"data\":null}", "null", "42", "\"wrong\"" }) {
+                    var result = await Fetch(_ => Raw(payload), school: false); EqualScopes(result);
+                    Check(Count(result) == 0, "Wrong-shaped response created records");
+                }
+            }),
+            ("valid wrapper may certify empty array", async () => {
+                EqualScopes(await Fetch(_ => Raw("{\"data\":[]}"), school: false), Scope());
+            }),
+            ("skipped invalid row retains valid data without coverage", async () => {
+                var result = await Fetch(_ => Data(new object[] { Row(), new { startDate = "invalid", name = "Malformed" } }), school: false);
+                EqualScopes(result); Check(Count(result) == 1, "Valid row lost during tolerant parsing");
+            }),
+            ("corrected end dates do not certify coverage", async () => {
+                foreach (var end in new string?[] { "2026-05-31", "2026-06-99", "", null }) {
+                    var row = Row(); row["endDate"] = end;
+                    var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                    Check(Count(result) == 1 && result.Value.GetProperty("feiertage")[0].GetProperty("bis").GetString() == "2026-06-01", "Legacy end fallback changed");
+                }
+            }),
+            ("absent required end keeps point fallback without coverage", async () => {
+                var row = Row(); row.Remove("endDate");
+                var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                Check(result.Value.GetProperty("feiertage")[0].GetProperty("bis").GetString() == "2026-06-01", "Missing end changed");
+            }),
+            ("absent required nationwide keeps row without coverage", async () => {
+                var row = Row(); row.Remove("nationwide");
+                var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                Check(Count(result) == 1, "Tolerated missing nationwide changed");
+            }),
+            ("unscoped regional row cannot certify country response", async () => {
+                var result = await Fetch(_ => Data(new[] { Row() }), region: "", school: false); EqualScopes(result);
+                Check(Count(result) == 1, "Tolerated unscoped row changed");
+            }),
+            ("malformed scope metadata cannot certify response", async () => {
+                var bad = new (string Key, object? Value)[] { ("subdivisions", null), ("subdivisions", "DE-SN"),
+                    ("subdivisions", new object[] { new { code = "../bad" } }),
+                    ("subdivisions", new object[] { new { code = "DE-SN" }, 17 }), ("nationwide", "true"), ("nationwide", null) };
+                foreach (var field in bad) {
+                    var row = Row(); row[field.Key] = field.Value;
+                    var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                    Check(Count(result) == 1, "Tolerated row unexpectedly lost");
+                }
+            }),
+            ("blank or partly malformed names cannot certify response", async () => {
+                foreach (var name in new object[] { "   ", new object[] { new { language = "EN", text = "Synthetic" }, 17 }, Array.Empty<object>() }) {
+                    var row = Row(); row["name"] = name;
+                    EqualScopes(await Fetch(_ => Data(new[] { row }), school: false));
+                }
+            }),
+            ("cross-year dates are returned intact", async () => {
+                var row = Row(); row["startDate"] = "2025-12-20"; row["endDate"] = "2026-01-05";
+                var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result, Scope());
+                var entry = result.Value.GetProperty("feiertage")[0];
+                Check(entry.GetProperty("von").GetString() == "2025-12-20" && entry.GetProperty("bis").GetString() == "2026-01-05", "Cross-year interval clipped");
+            }),
+            ("out-of-year response cannot certify requested year", async () => {
+                foreach (var dates in new[] { ("2025-01-01", "2025-12-31"), ("2027-01-01", "2027-01-02") }) {
+                    var row = Row(); row["startDate"] = dates.Item1; row["endDate"] = dates.Item2;
+                    var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                    Check(Count(result) == 1, "Tolerated row changed");
+                }
+            }),
+            ("unrelated or foreign scopes cannot certify query", async () => {
+                foreach (var code in new[] { "AT-9", "DE-BY" }) {
+                    var row = Row(); row["subdivisions"] = new[] { new { code } };
+                    var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result);
+                    Check(Count(result) == 1, "Tolerated scope changed");
+                }
+            }),
+            ("parent child and relative scope codes remain compatible", async () => {
+                foreach (var code in new[] { "DE", "DE-SN", "DE-SN-TEST", "SN" }) {
+                    var row = Row(); row["subdivisions"] = new[] { new { code } };
+                    EqualScopes(await Fetch(_ => Data(new[] { row }), school: false), Scope());
+                }
+            }),
+            ("nationwide record belongs to subdivision response", async () => {
+                var row = Row(); row["nationwide"] = true;
+                var result = await Fetch(_ => Data(new[] { row }), school: false); EqualScopes(result, Scope());
+                Check(result.Value.GetProperty("feiertage")[0].GetProperty("nationwide").GetBoolean(), "Nationwide metadata lost");
+            }),
+            ("invalid requested subdivision fails before HTTP", async () => {
+                var result = await Fetch(region: "AT-9");
+                Check(result.Value.TryGetProperty("fehler", out _) && result.Requests.Count == 0 && Scopes(result).Count == 0, "Invalid query reached provider");
+            }),
+            ("public HTTP failure yields no successful partial response", async () => {
+                var result = await Fetch(_ => Raw("", HttpStatusCode.ServiceUnavailable));
+                Check(result.Value.TryGetProperty("fehler", out _) && Scopes(result).Count == 0, "Public error gained coverage");
+            }),
+            ("size failure is not downgraded to school absence", async () => {
+                var result = await Fetch(request => request.Path == "/PublicHolidays" ? Data(Array.Empty<object>()) : Raw(new string(' ', 8 * 1024 * 1024 + 1)));
+                Check(result.Value.TryGetProperty("fehler", out _) && Scopes(result).Count == 0, "Size error gained coverage");
+            }),
+            ("existing parser entry point remains compatible", () => {
+                using var document = JsonDocument.Parse(JsonSerializer.Serialize(new[] { Row() }));
+                var rows = OpenHolidayData.Parse(document.RootElement, "school-holiday", "DE", "DE-SN", "", "EN");
+                Check(rows.Count == 1 && rows[0].von == "2026-06-01" && rows[0].bis == "2026-06-02", "Original parser entry changed");
+                return Task.CompletedTask;
+            })
+        };
+        var failed = 0;
+        foreach (var test in cases) {
+            try { await test.Run(); Console.WriteLine("PASS " + test.Name); }
+            catch (Exception error) { failed++; Console.WriteLine("FAIL " + test.Name + ": " + error.Message); }
+        }
+        Console.WriteLine(JsonSerializer.Serialize(new { total = cases.Count, passed = cases.Count - failed, failed,
+            runtime = Environment.Version.ToString(), scope = "actual C# methods / offline HTTP / Linux source host" }));
+        return failed == 0 ? 0 : 1;
+    }
+}

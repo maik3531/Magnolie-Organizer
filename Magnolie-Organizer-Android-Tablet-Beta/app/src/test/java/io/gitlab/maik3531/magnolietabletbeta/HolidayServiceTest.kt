@@ -15,7 +15,7 @@ class HolidayServiceTest {
     }
     private fun response(vararg rows: JSONObject) = BoundedHttpResponse(200, body = JSONArray(rows.toList()).toString().toByteArray())
     private fun row(start: String = "2028-02-29", end: String = start, name: Any = "Spring") =
-        JSONObject().put("startDate", start).put("endDate", end).put("name", name)
+        JSONObject().put("startDate", start).put("endDate", end).put("name", name).put("nationwide", false)
     private fun names() = JSONArray().put(JSONObject().put("language", "EN").put("text", "Spring"))
         .put(JSONObject().put("language", "DE").put("text", "Frühling"))
     private fun query(regions: List<HolidayService.Region> = emptyList(), school: Boolean = false) =
@@ -95,6 +95,73 @@ class HolidayServiceTest {
         assertTrue(HolidayService(transport).fetch(q).entries.isEmpty())
         assertEquals(1, transport.requests.size); assertEquals("/PublicHolidays", transport.requests.single().uri.path)
         assertFalse(fields(transport.requests.single()).containsKey("subdivisionCode"))
+    }
+
+    @Test fun successfulEmptyResponsesCertifyOnlyTheirActualRequestedScopes() {
+        val transport = Transport { _, _ -> response() }
+        val q = HolidayService.Query("DE", listOf(HolidayService.Region("DE-BE", "Berlin"),
+            HolidayService.Region("DE-BB", "Brandenburg")), listOf(2028, 2027), true, true, requestId = "coverage-1")
+        val result = HolidayService(transport).fetch(q)
+        assertTrue(result.entries.isEmpty()); assertEquals(8, result.coverage.size)
+        val expected = transport.requests.map { request ->
+            val f = fields(request)
+            listOf(f.getValue("countryIsoCode"), f.getValue("subdivisionCode"),
+                if (request.uri.path == "/SchoolHolidays") "school-holiday" else "public-holiday",
+                f.getValue("validFrom"), f.getValue("validTo"))
+        }
+        assertEquals(expected, result.coverage.map { listOf(it.country, it.region, it.kind, it.start, it.end) })
+        val callback = result.callbackValue()
+        assertEquals("coverage-1", callback.getString("requestId"))
+        val scopes = callback.getJSONArray("abrufbereiche")
+        assertEquals(expected, (0 until scopes.length()).map { index ->
+            val value = scopes.getJSONObject(index)
+            listOf("country", "region", "art", "von", "bis").map(value::getString)
+        })
+    }
+
+    @Test fun schoolOptOutAndMissingRequiredRegionNeverCertifySchoolScopes() {
+        for (q in listOf(query(listOf(HolidayService.Region("DE-BE", "Berlin")), school = false),
+            HolidayService.Query("CH", years = listOf(2028), includeSchool = true, regionRequired = true))) {
+            val result = HolidayService(Transport { _, _ -> response() }).fetch(q)
+            assertEquals(1, result.coverage.size)
+            assertEquals("public-holiday", result.coverage.single().kind)
+            assertEquals(q.regions.singleOrNull()?.code.orEmpty(), result.coverage.single().region)
+        }
+    }
+
+    @Test fun toleratedMalformedMetadataNeverCertifiesCacheReplacement() {
+        val regions = listOf(HolidayService.Region("DE-BE", "Berlin"))
+        for (bad in listOf(row().put("nationwide", "true"), row().put("nationwide", JSONObject.NULL),
+            row(end = ""), row().put("endDate", JSONObject.NULL), row().put("subdivisions", JSONObject.NULL),
+            row().also { it.remove("endDate") }, row().also { it.remove("nationwide") },
+            row(name = JSONArray().put(JSONObject().put("language", "EN").put("text", "Spring")).put(JSONObject())))) {
+            val result = HolidayService(Transport { _, _ -> response(bad) }).fetch(query(regions))
+            assertEquals(1, result.entries.size)
+            assertTrue(result.coverage.isEmpty())
+            assertEquals(0, result.callbackValue().getJSONArray("abrufbereiche").length())
+        }
+        val partial = HolidayService(Transport { request, _ ->
+            if (request.uri.path == "/SchoolHolidays") response(row().put("nationwide", "true")) else response()
+        }).fetch(query(regions, school = true))
+        assertEquals(listOf("public-holiday"), partial.coverage.map { it.kind })
+        assertEquals("school-holiday", partial.entries.single().kind)
+    }
+
+    @Test fun unrelatedYearsOrRegionsNeverCertifyTheRequestedScope() {
+        val q = query(listOf(HolidayService.Region("DE-BE", "Berlin")))
+        for (bad in listOf(row("2027-12-25"),
+            row().put("subdivisions", JSONArray().put(JSONObject().put("code", "AT-9"))),
+            row().put("subdivisions", JSONArray().put(JSONObject().put("code", "DE-BY"))))) {
+            val result = HolidayService(Transport { _, _ -> response(bad) }).fetch(q)
+            assertEquals(1, result.entries.size); assertTrue(result.coverage.isEmpty())
+        }
+        for (code in listOf("DE-BE-TEST", "BE")) {
+            val matching = row().put("subdivisions", JSONArray().put(JSONObject().put("code", code)))
+            val result = HolidayService(Transport { _, _ -> response(matching) }).fetch(q)
+            assertEquals("DE-BE", result.coverage.single().region)
+        }
+        val unknown = HolidayService(Transport { _, _ -> response(row()) }).fetch(query())
+        assertEquals(1, unknown.entries.size); assertTrue(unknown.coverage.isEmpty())
     }
 
     @Test fun groupedRowsRetainEveryFallbackRegionAndNationwideBoolean() {

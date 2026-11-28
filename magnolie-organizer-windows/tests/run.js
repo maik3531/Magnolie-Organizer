@@ -18,7 +18,7 @@ process.env.MAGNOLIE_PYTHON = python;
 
 let failed = false;
 const results = [];
-for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "regional-language-direction.js", "web-smoke.js",
+for (const test of ["cycle-calendar.js", "cycle-forecast.js", "welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "regional-language-direction.js", "holiday-cache.js", "holiday-cache-mcp.js", "web-smoke.js",
   "handbook-page-ids.js",
   "handbook-source-diagnostics.js",
   "calendar-attachment-actions.js", "calendar-attachment-native.js",

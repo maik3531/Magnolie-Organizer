@@ -18517,7 +18517,7 @@ def _name_waehlen(namen, sprache=None):
     return bester
 
 
-def _openholidays_auswerten(rohtext, art):
+def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False):
     """Wertet die Antwort des Feiertagsdienstes aus und liefert Einträge
     der Form {von, bis, name, art}."""
     try:
@@ -18525,17 +18525,41 @@ def _openholidays_auswerten(rohtext, art):
     except ValueError:
         raise RuntimeError(_("The holiday service returned an unreadable response."))
     if isinstance(daten, dict):
-        daten = daten.get("data") or []
+        daten = daten.get("data")
+    vollstaendig = isinstance(daten, list)
     eintraege = []
     for satz in daten if isinstance(daten, list) else []:
         if not isinstance(satz, dict):
+            vollstaendig = False
             continue
+        # Tolerated omissions/normalization must not turn a partial response
+        # into permission to remove previously cached records (Refs #855).
+        namen = satz.get("name")
+        namenform = isinstance(namen, str) or (isinstance(namen, list) and all(
+            isinstance(wert, dict) and isinstance(wert.get("text"), str)
+            and ("language" not in wert or isinstance(wert["language"], str))
+            for wert in namen))
+        unterregionen = satz.get("subdivisions", [])
+        regionenform = isinstance(unterregionen, list) and all(
+            isinstance(wert, dict) and isinstance(wert.get("code"), str)
+            and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())
+            for wert in unterregionen)
+        if (not isinstance(satz.get("startDate"), str) or not namenform
+                or not regionenform
+                or not isinstance(satz.get("nationwide"), bool)
+                or not isinstance(satz.get("endDate"), str)
+                or len(satz["endDate"].strip()) < 10):
+            vollstaendig = False
         von = (satz.get("startDate") or "").strip()[:10]
         bis = (satz.get("endDate") or von).strip()[:10] or von
         name = _name_waehlen(satz.get("name"))
+        if isinstance(name, str) and not name.strip():
+            vollstaendig = False
         if not _ist_iso(von) or not name:
+            vollstaendig = False
             continue
         if not _ist_iso(bis) or bis < von:
+            vollstaendig = False
             bis = von
         regionen = sorted({wert["code"].strip().upper()
                            for wert in satz.get("subdivisions", []) if isinstance(wert, dict)
@@ -18543,7 +18567,7 @@ def _openholidays_auswerten(rohtext, art):
                            and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())}) if isinstance(satz.get("subdivisions", []), list) else []
         eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
                           "nationwide": satz.get("nationwide") is True, "regions": regionen})
-    return eintraege
+    return (eintraege, vollstaendig) if mit_vollstaendigkeit else eintraege
 
 
 def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
@@ -18587,6 +18611,7 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
             code and school_holiday_region(land, code)[0] != code for code, _name in ziele):
         raise RuntimeError(_("School holidays are not available for this region."))
     gesammelt = []
+    abrufbereiche = []
     abruf_bytes = 0
     for jahr in jahre:
         wege = [("PublicHolidays", "public-holiday")]
@@ -18609,13 +18634,31 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                     if abruf_bytes > FEIERTAG_ABRUF_MAX:
                         raise GroessenFehler(
                             _("The holiday service returned too much data."))
-                    eintraege = _openholidays_auswerten(rohtext, art)
+                    eintraege, vollstaendig = _openholidays_auswerten(
+                        rohtext, art, mit_vollstaendigkeit=True)
                 except GroessenFehler:
                     raise
                 except RuntimeError:
                     if art == "school-holiday":
                         continue      # Schulferien sind nicht überall gepflegt
                     raise
+                anfang, ende = "%d-01-01" % jahr, "%d-12-31" % jahr
+                def passt_zum_abruf(eintrag):
+                    if eintrag["von"] > ende or eintrag["bis"] < anfang:
+                        return False
+                    codes = eintrag["regions"]
+                    if any("-" in code and not code.startswith(land + "-") for code in codes):
+                        return False
+                    if not region_code and not eintrag["nationwide"] and not codes:
+                        return False
+                    if not region_code or eintrag["nationwide"] or not codes:
+                        return True
+                    return any(code == region_code or code.startswith(region_code + "-")
+                        or region_code.startswith(code + "-") for code in
+                        (code if "-" in code or code == land else land + "-" + code for code in codes))
+                if vollstaendig and all(passt_zum_abruf(eintrag) for eintrag in eintraege):
+                    abrufbereiche.append({"country": land, "region": region_code,
+                        "art": art, "von": anfang, "bis": ende})
                 for eintrag in eintraege:
                     eintrag["country"] = land
                     if not eintrag["nationwide"] and not eintrag["regions"] and region_code:
@@ -18681,7 +18724,8 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
         "items": ", ".join(teile),
         "years": ", ".join(str(j) for j in jahre)}) if teile else \
         _("The service returned no entries for this selection.")
-    return {"feiertage": sauber, "bericht": bericht, "jahre": jahre}
+    return {"feiertage": sauber, "bericht": bericht, "jahre": jahre,
+            "abrufbereiche": abrufbereiche}
 
 
 # ---------------------------------------------------------------------------

@@ -18,7 +18,49 @@ Canonical implementations: `magnolie-organizer` (GTK/Python) and
 
 Retrieval does not enqueue an ICS import or create appointments. Existing synchronized
 holiday deduplication is reused. Repeated setup handoff is ignored in a session;
-repeated results replace the retrieved years instead of appending duplicates.
+repeated results merge without appending duplicate periods.
+
+## Cache replacement authority (Refs #855)
+
+The additive native result field `abrufbereiche` lists only completely parsed,
+successful endpoint/year/region requests. Each object contains `country`,
+`region` (empty for a whole-country query), `art` (`public-holiday` or
+`school-holiday`), `von` (`YYYY-01-01`) and `bis` (`YYYY-12-31`). A valid empty
+response certifies an empty area; an omitted school request, caught transport
+failure, malformed/partial response or row outside the requested area does not.
+Tolerated valid rows can still be displayed without certifying cache removal.
+The official provider requires explicit end dates and nationwide flags; their
+legacy display fallbacks do not establish complete replacement data.
+
+The shared importer binds these areas to the captured country, requested
+regions, school opt-in and years. GUI callbacks without a pending request are
+ignored; MCP retains its existing request/revision/save gates. Visibility of
+public holidays is independent of successful retrieval and cache replacement.
+
+An old row is removable only when all its years and geographic scope are
+covered. Other countries, opt-out/failed school areas and unqualified or
+contradictory legacy geography survive. An explicit multi-region row can retain
+its unaffected regions; both geographic fields and generated labels are updated
+together. Equivalent positive regional rows are reunited so repeated narrow
+refreshes cannot accumulate duplicate remainders. Ordinary appointments,
+recurrence, synchronized calendar records, notes and tasks are not changed.
+
+OpenHolidays uses inclusive overlapping intervals and returns complete start/end
+dates. Nevertheless an omitted old period can have been moved outside the
+requested year, so one year alone cannot delete a period spanning an unrequested
+year. Likewise a regional query alone cannot remove a nationwide record.
+These ambiguous records are retained conservatively; this can leave an older
+partial view until a sufficiently complete request is available. Stable provider
+identities and richer coverage/status remain a separate international extension.
+Older native hosts without `abrufbereiche` merge returned rows without deleting
+unmatched old cache entries. The field itself is transient and introduces no
+persistent book-format migration or additional permission.
+
+Regression entry points: `tests/holiday-cache.js` and
+`tests/holiday-cache-mcp.js` in the Windows source tree execute both complete
+desktop frontends. Native provider/source-host tests and Mac/Tablet service
+tests cover the response contract. Native GUI, real HTTP availability and
+installed packages remain separate acceptance work.
 
 ## Availability and consent
 

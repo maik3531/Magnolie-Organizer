@@ -2377,18 +2377,19 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 FirstRunSetupSelectionNormalizer.SchoolHolidayRegion(country, target.Code) != target.Code))
                 throw new ArgumentException(T("School holidays are not available for this region."));
             var entries = new List<HolidayEntry>();
+            var coverage = new List<HolidayFetchScope>();
             var downloadedBytes = 0;
             foreach (var year in years)
             {
                 foreach (var target in targets)
                 {
-                    downloadedBytes += await AddHolidayEntriesAsync(entries, "PublicHolidays", "public-holiday",
+                    downloadedBytes += await AddHolidayEntriesAsync(entries, coverage, "PublicHolidays", "public-holiday",
                         country, target, year, HolidayDownloadMaxBytes - downloadedBytes);
                     if (includeSchool)
                     {
                         try
                         {
-                            downloadedBytes += await AddHolidayEntriesAsync(entries, "SchoolHolidays", "school-holiday",
+                            downloadedBytes += await AddHolidayEntriesAsync(entries, coverage, "SchoolHolidays", "school-holiday",
                                 country, target, year, HolidayDownloadMaxBytes - downloadedBytes);
                         }
                         catch (HttpRequestException) { }
@@ -2420,7 +2421,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         string.Join(",", codes), suffix, country, nationwide, scopes);
                 }).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
             var report = clean.Length == 0 ? T("The service returned no entries for this selection.") : T("The holidays were imported.");
-            await form.SendAsync("App.feiertageErgebnis", new { requestId, feiertage = clean, bericht = report, jahre = years });
+            await form.SendAsync("App.feiertageErgebnis", new { requestId, feiertage = clean, bericht = report, jahre = years,
+                abrufbereiche = coverage });
         }
         catch (Exception error)
         {
@@ -2430,7 +2432,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private const int HolidayDownloadMaxBytes = 8 * 1024 * 1024;
 
-    private async Task<int> AddHolidayEntriesAsync(List<HolidayEntry> target, string path, string kind,
+    private async Task<int> AddHolidayEntriesAsync(List<HolidayEntry> target, List<HolidayFetchScope> coverage, string path, string kind,
         string country, HolidayRegion region, int year, int remainingBytes)
     {
         if (remainingBytes <= 0) throw new IOException(T("The holiday service returned too much data."));
@@ -2455,7 +2457,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         buffer.Position = 0;
         using var document = await JsonDocument.ParseAsync(buffer);
-        target.AddRange(OpenHolidayData.Parse(document.RootElement, kind, country, region.Code, region.Name, language));
+        var entries = OpenHolidayData.Parse(document.RootElement, kind, country, region.Code, region.Name, language, out var complete);
+        target.AddRange(entries);
+        if (complete && OpenHolidayData.ReturnedRowsMatchQuery(entries, country, region.Code, year))
+            coverage.Add(new HolidayFetchScope(country, region.Code, kind, $"{year}-01-01", $"{year}-12-31"));
         return checked((int)buffer.Length);
     }
 

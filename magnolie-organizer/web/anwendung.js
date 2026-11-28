@@ -34298,7 +34298,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (feiertageLaufen) return;
     feiertageLaufen = true;
     feiertageAnfrage = { daten: DATEN, land: o.land, region: o.region, ferien: o.ferien,
-      alleRegionen: o.alleRegionen };
+      alleRegionen: o.alleRegionen, jahre: Array.isArray(jahre) ? jahre.slice() : [] };
     const knopfFeld = $("#ort-abrufen");
     if (knopfFeld) knopfFeld.disabled = true;
     const stand = $("#ort-stand");
@@ -37787,6 +37787,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     feiertageErgebnis(nutzlast) {
       if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "feiertageErgebnis"); return; }
       nutzlast = nutzlast || {};
+      if (!feiertageAnfrage) return;
       feiertageLaufen = false;
       const anfrage = feiertageAnfrage;
       feiertageAnfrage = null;
@@ -37805,7 +37806,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zettel(nutzlast.fehler);
         return;
       }
-      wendeFeiertageDatenAn(nutzlast, anfrage?.land || "");
+      wendeFeiertageDatenAn(nutzlast, anfrage);
       planeSpeichern();
       zeichneAlles();
       if (!$("#einstellungen-schleier").classList.contains("verborgen")) {
@@ -43321,17 +43322,110 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const count = DATEN.feiertage.length; DATEN.feiertage = [];
     DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = []; return count;
   }
-  function wendeFeiertageDatenAn(value, country) {
-    const years = [...new Set((value.jahre || []).map(Number).filter(year => Number.isInteger(year) && year >= 1900 && year <= 2200))];
-    DATEN.feiertage = DATEN.feiertage.filter(item => !years.some(year => year >= Number(String(item.von || "").slice(0, 4)) && year <= Number(String(item.bis || item.von || "").slice(0, 4))));
+  function wendeFeiertageDatenAn(value, anfrage) {
+    const years = [...new Set((Array.isArray(value.jahre) ? value.jahre : []).map(Number)
+      .filter(year => Number.isInteger(year) && year >= 1900 && year <= 2200))];
+    const country = /^[A-Z]{2}$/.test(anfrage?.land || "") ? anfrage.land : "";
+    const land = LAENDER.find(item => item.code === country);
+    const requested = new Set(Array.isArray(anfrage?.jahre) ? anfrage.jahre : []);
+    const targets = new Set(anfrage?.alleRegionen ? (land?.regionen || []).map(item => item[0])
+      : [String(anfrage?.region || "")]);
+    const scopeYears = new Map();
+    // #855: a year alone is not a successful country/type/region retrieval.
+    // Old hosts without this additive field can merge rows, but cannot delete.
+    for (const scope of (Array.isArray(value.abrufbereiche) ? value.abrufbereiche : []).slice(0, 156)) {
+      if (!scope || !country || scope.country !== country || !targets.has(scope.region) ||
+          !["public-holiday", "school-holiday"].includes(scope.art) ||
+          scope.art === "school-holiday" && (!anfrage?.ferien || land?.regionen.length && !scope.region)) continue;
+      const year = Number(String(scope.von || "").slice(0, 4));
+      if (!years.includes(year) || !requested.has(year) || scope.von !== `${year}-01-01` ||
+          scope.bis !== `${year}-12-31`) continue;
+      const key = [scope.country, scope.art, scope.region].join("|");
+      if (!scopeYears.has(key)) scopeYears.set(key, new Set());
+      scopeYears.get(key).add(year);
+    }
+    const normRegion = (code, nation) => /^[A-Z0-9-]{1,64}$/.test(code)
+      ? (code.includes("-") ? code : nation + "-" + code) : "";
+    const geography = item => {
+      const nation = feiertagLand(item), codes = [...new Set(feiertagRegionen(item)
+        .map(code => normRegion(code, nation)))];
+      return { nation, codes, known: !!nation && codes.every(code => code && code.startsWith(nation + "-")) };
+    };
+    const covered = (item, region = "") => {
+      const geo = geography(item), nation = geo.nation, from = Number(item.von.slice(0, 4));
+      if (!geo.known) return false;
+      const to = Number((item.bis || item.von).slice(0, 4));
+      if (!nation || !gueltigesISO(item.von) || !gueltigesISO(item.bis || item.von) ||
+          to < from || to - from + 1 > years.length) return false;
+      const whole = scopeYears.get([nation, item.art, ""].join("|"));
+      const local = region ? scopeYears.get([nation, item.art, region].join("|")) : undefined;
+      // A corrected boundary-spanning period can move outside a requested year.
+      // Only full date coverage proves an absent old period can be removed.
+      for (let year = from; year <= to; year++) if (!whole?.has(year) && !local?.has(year)) return false;
+      return true;
+    };
+    const baseName = item => {
+      const suffix = item.regionName ? ` (${item.regionName})` : "";
+      return suffix && item.name.endsWith(suffix) ? item.name.slice(0, -suffix.length) : item.name;
+    };
+    const withRegions = (item, codes) => {
+      const names = new Map(LAENDER.find(entry => entry.code === feiertagLand(item))?.regionen || []);
+      const regionName = codes.map(code => names.has(code) ? _(names.get(code)) : code).join(", ");
+      const name = baseName(item);
+      return { ...item, region: codes.join(","), regions: codes, regionName,
+        name: name === item.name && codes.length === 1 ? item.name : `${name} (${regionName})` };
+    };
+    const retained = [];
+    for (const item of DATEN.feiertage) {
+      if (covered(item)) continue;
+      const geo = geography(item), codes = geo.codes;
+      if (!geo.known || item.nationwide === true || !codes.length) { retained.push(item); continue; }
+      const rest = codes.filter(code => !covered(item, code));
+      if (rest.length === codes.length) { retained.push(item); continue; }
+      if (!rest.length) continue;
+      // Both geographic fields are consumed by existing display/grouping paths.
+      retained.push(withRegions(item, rest));
+    }
+    const family = item => JSON.stringify([item.von, item.bis, baseName(item), item.art,
+      feiertagLand(item), item.nationwide === true]);
+    const identity = item => {
+      const geo = geography(item);
+      // Unknown/free-text geography is not equivalent to a missing region.
+      const regions = !geo.known ? [item.country, item.region, item.regions, item.regionName]
+        : item.nationwide === true ? [] : geo.codes.slice().sort();
+      return JSON.stringify([family(item), regions]);
+    };
+    const mergeable = item => { const geo = geography(item); return geo.known &&
+      item.nationwide !== true && geo.codes.length > 0; };
+    const touched = new Set();
+    const positions = new Map();
+    retained.forEach((item, index) => { if (!positions.has(identity(item))) positions.set(identity(item), index); });
     let imported = 0;
-    for (const item of value.feiertage || []) {
+    for (const item of Array.isArray(value.feiertage) ? value.feiertage : []) {
       if (!item || !gueltigesISO(item.von) || !item.name) continue;
-      DATEN.feiertage.push({ id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
+      const clean = { id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
         art: enumWert(item.art, { ferien: "school-holiday", "school-holiday": "school-holiday", feiertag: "public-holiday", "public-holiday": "public-holiday" }, "public-holiday"),
         region: String(item.region || ""), regionName: String(item.regionName || ""), country: /^[A-Z]{2}$/.test(item.country || "") ? item.country : country,
-        nationwide: item.nationwide === true, regions: Array.isArray(item.regions) ? [...new Set(item.regions.map(S).filter(code => /^[A-Z0-9-]{1,64}$/.test(code)))] : [] }); imported++;
+        nationwide: item.nationwide === true, regions: Array.isArray(item.regions) ? [...new Set(item.regions.map(S).filter(code => /^[A-Z0-9-]{1,64}$/.test(code)))] : [] };
+      if (mergeable(clean)) touched.add(family(clean));
+      const key = identity(clean), previous = positions.get(key);
+      if (previous === undefined) { positions.set(key, retained.length); retained.push(clean); }
+      else retained[previous] = { ...clean, id: retained[previous].id };
+      imported++;
     }
+    // A regional response can describe the same period for several regions.
+    // Rejoin equivalent positive rows, otherwise each refresh would leave one
+    // more identical remainder. Unrelated/ambiguous legacy rows stay untouched.
+    const merged = [], groups = new Map();
+    for (const item of retained) {
+      const key = family(item);
+      if (!touched.has(key) || !mergeable(item)) { merged.push(item); continue; }
+      const previous = groups.get(key);
+      if (previous === undefined) { groups.set(key, merged.length); merged.push(item); }
+      else merged[previous] = withRegions(merged[previous], [...new Set([
+        ...geography(merged[previous]).codes, ...geography(item).codes])].sort());
+    }
+    DATEN.feiertage = merged;
     const settings = DATEN.einstellungen.ort; settings.abgerufen = Date.now(); settings.setupFerienAbruf = false;
     settings.jahre = [...new Set((settings.jahre || []).map(Number).concat(years))].filter(Number.isInteger).sort((a, b) => a - b);
     return imported;
@@ -43369,7 +43463,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             const value = await mcpNativeAufruf("feiertage", { land: settings.land, region: settings.alleRegionen ? "" : settings.region, regionen: settings.alleRegionen ? country.regionen : [], regionErforderlich: country.regionen.length > 0, jahre: args.years, ferien: !!settings.ferien }, "feiertageErgebnis", signal);
             if (signal.aborted || DATEN !== book || snapshot() !== before) throw new MagnolieMcp.ToolError("conflict", "Holiday settings changed during retrieval");
             if (value.fehler || !Array.isArray(value.feiertage) || !Array.isArray(value.jahre) || value.jahre.length !== args.years.length || value.jahre.some(year => !args.years.includes(year))) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval failed or returned unexpected years");
-            mcpEditorPruefen(); return { imported_count: wendeFeiertageDatenAn(value, settings.land) };
+            mcpEditorPruefen(); return { imported_count: wendeFeiertageDatenAn(value, { ...settings, jahre: args.years }) };
           } finally { feiertageLaufen = false; }
         }) }
     ];

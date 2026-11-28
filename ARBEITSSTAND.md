@@ -7,6 +7,23 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#855](https://github.com/maik3531/Magnolie-Organizer/issues/855),
+  vorbereiteter Reviewpatch: Feiertags-/Ferienabrufe ersetzen gespeicherte
+  Bereiche nur anhand vollständig ausgewerteter nativer Abrufnachweise.
+  Fremde Länder, nicht erneuerte Regionen und Ferien bei Opt-out/Teilfehlern
+  bleiben erhalten. Gemeinsame Regionszeilen werden ohne wachsende Dubletten
+  aufgeteilt beziehungsweise zusammengeführt. Vollständige Desktopskripte:
+  80 gezielte JSDOM-Fälle und sechs MCP-/SaveACK-Fälle bestanden; bestehender
+  Einrichtungsablauf: 50 Fälle mit englischem Quellkatalog bestanden.
+  Python- und C#-Providerquellen: jeweils 26 kontrollierte Hostfälle bestanden,
+  C# unter Linux mit .NET 8.0.428. Tablet-Dienst: 20 tatsächliche Kotlin/JUnit-
+  Prüfungen bestanden, keine Android-Geräteabnahme. Mac-Antwortparität und fünf
+  Swift-Testmethoden vorbereitet, hier mangels Compiler nicht ausgeführt.
+  Native GUI-/Live-Provider-/Paketabnahme und übrige Sprachläufe bleiben offen.
+  Unvollständig abgedeckte nationale beziehungsweise jahresübergreifende
+  Altzeilen werden konservativ erhalten; keine vollständige Aktualitätszusage
+  für diese Restbestände. Keine Paketfreigabe durch diese Quellprüfung.
+
 - [#192](https://github.com/maik3531/Magnolie-Organizer/issues/192):
   MCP liest die eingestellten SMS-/Anrufwege und Kommunikationsvorgaben.
   Nur die Anzeigedauer für SMS-Benachrichtigungen ist über dieses Werkzeug
