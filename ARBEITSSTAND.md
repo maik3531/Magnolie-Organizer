@@ -7,6 +7,13 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
+  Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten
+  Geografie. Ein laufender Abruf wird nur seiner Auswahl zugeordnet;
+  globale alte Abrufdaten und Jahre werden nicht regional ausgegeben.
+  Status-/Cache-, MCP- und Einrichtungsprüfungen bestanden. Native
+  Paketabnahme in #113.
+
 - [#851](https://github.com/maik3531/Magnolie-Organizer/issues/851):
   Abgerufene Schulferien werden vor der Gruppierung geografisch gefiltert.
   Länder- und Regionswechsel aktualisieren den offenen Kalender. Die

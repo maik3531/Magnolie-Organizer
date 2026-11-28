@@ -33004,25 +33004,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       holKnopf.disabled = true;
     } else if (feiertageLaufen) {
       holKnopf.disabled = true;
-      stand.textContent = _("Retrieving holidays …");
     }
     wurzel.append(holen);
   }
 
   function ortStandText() {
     const o = DATEN.einstellungen.ort;
-    if (!DATEN.feiertage.length) {
-      return o.land
-        ? _("There are no holidays in the organizer for this selection yet.")
-        : _("Choose a country first.");
+    if (feiertageLaufen && feiertageAnfrage?.daten === DATEN &&
+        ["land", "region", "ferien", "alleRegionen"].every(key => feiertageAnfrage[key] === o[key])) {
+      return _("Retrieving holidays …");
     }
-    const feier = DATEN.feiertage.filter((f) => f.art === "public-holiday").length;
-    const ferien = DATEN.feiertage.length - feier;
-    const d = o.abgerufen ? new Date(o.abgerufen) : null;
-    const wann = d
-      ? " " + uebersetzt("Retrieved on %(date)s.", { date: datumText(d,
-        { day: "2-digit", month: "2-digit", year: "numeric" }, true) })
-      : "";
+    if (!o.land) return _("Choose a country first.");
+    // The saved date and years are global. Only count rows whose geography matches this selection.
+    const records = DATEN.feiertage.filter(f => feiertagPasstZurAuswahl(f, true));
+    if (!records.length) return _("There are no holidays in the organizer for this selection yet.");
+    const feier = records.filter(f => f.art === "public-holiday").length;
+    const ferien = records.filter(f => f.art === "school-holiday").length;
     const auswahl = o.alleRegionen
       ? " · " + (o.land === "CH" ? _("all cantons") : _("all states"))
       : (o.regionName ? " · " + o.regionName : "");
@@ -33030,11 +33027,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       "%(count)s public holiday", "%(count)s public holidays", feier)];
     if (ferien) teile.push(uebersetztMehrzahl(
       "%(count)s holiday period", "%(count)s holiday periods", ferien));
-    const jahre = o.jahre.length
-      ? uebersetzt(" for %(years)s", { years: o.jahre.join(", ") }) : "";
     return uebersetzt("In the organizer%(selection)s: %(items)s%(years)s.", {
-      selection: auswahl, items: teile.join(" " + _("and") + " "), years: jahre
-    }) + wann;
+      selection: auswahl, items: teile.join(" " + _("and") + " "), years: ""
+    });
+  }
+
+  function ortStandAktualisieren() {
+    const stand = $("#ort-stand");
+    if (stand) stand.textContent = ortStandText();
   }
 
   function starteFeiertage(jahre) {
@@ -33055,8 +33055,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       alleRegionen: o.alleRegionen, jahre: Array.isArray(jahre) ? jahre.slice() : [] };
     const knopfFeld = $("#ort-abrufen");
     if (knopfFeld) knopfFeld.disabled = true;
-    const stand = $("#ort-stand");
-    if (stand) stand.textContent = _("Retrieving holidays …");
+    ortStandAktualisieren();
     Bruecke.sende({ cmd: "feiertage", land: o.land, region: o.alleRegionen ? "" : o.region,
       regionen: o.alleRegionen && land ? land.regionen : [],
       regionErforderlich: !!(land && land.regionen.length),
@@ -42147,11 +42146,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     if (values.feiertage !== undefined) next.feiertage = values.feiertage;
     if (values.ferien !== undefined) { next.ferien = values.ferien; if (!next.ferien) next.setupFerienAbruf = false; }
-    Object.assign(current, next); return true;
+    Object.assign(current, next);
+    ortStandAktualisieren();
+    return true;
   }
   function entferneFeiertageDaten() {
     const count = DATEN.feiertage.length; DATEN.feiertage = [];
-    DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = []; return count;
+    DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = [];
+    ortStandAktualisieren();
+    return count;
   }
   function wendeFeiertageDatenAn(value, anfrage) {
     const years = [...new Set((Array.isArray(value.jahre) ? value.jahre : []).map(Number)
@@ -42259,6 +42262,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     DATEN.feiertage = merged;
     const settings = DATEN.einstellungen.ort; settings.abgerufen = Date.now(); settings.setupFerienAbruf = false;
     settings.jahre = [...new Set((settings.jahre || []).map(Number).concat(years))].filter(Number.isInteger).sort((a, b) => a - b);
+    ortStandAktualisieren();
     return imported;
   }
   function mcpFeiertagWerkzeuge() {

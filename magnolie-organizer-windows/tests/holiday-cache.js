@@ -205,6 +205,36 @@ test("duplicate unbound legacy callback cannot add an unqualified copy", web => 
     b.reply({ feiertage: [row] }); const before = b.entries(); b.reply({ feiertage: [row] }); assert.deepEqual(b.entries(), before); }
   finally { b.close(); }
 });
+test("location status counts matching cache without attributing a pending or past fetch", web => {
+  const b = boot(web, [
+    entry("saxon", { art: "public-holiday" }), entry("bavarian-school", { region: "DE-BY", regions: ["DE-BY"] }),
+    entry("vienna", { country: "AT", region: "AT-9", regions: ["AT-9"] }),
+    entry("unqualified", { country: "", region: "", regions: [] })
+  ], { abgerufen: 1764000000000, jahre: [2025] });
+  try {
+    const d = b.w.document, status = () => d.querySelector("#ort-stand").textContent;
+    const change = (selector, value) => {
+      const select = d.querySelector(selector); select.value = value;
+      select.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    };
+    const before = b.entries();
+    b.start();
+    assert.equal(status(), "Retrieving holidays …");
+    change("#ort-region", "DE-BY");
+    assert.match(status(), /Bavaria.*\b1 holiday period\b/);
+    assert.doesNotMatch(status(), /Retrieving|Retrieved|2025/);
+    b.reply({ abrufbereiche: [scope("DE-SN", "public-holiday")] });
+    assert.match(status(), /Bavaria.*\b1 holiday period\b/);
+    assert.equal(d.querySelector("#ort-abrufen").disabled, false);
+    change("#ort-land", "AT");
+    assert.match(status(), /\b1 holiday period\b/);
+    assert.doesNotMatch(status(), /Bavaria|Retrieved|2025/);
+    change("#ort-land", "");
+    assert.equal(status(), "Choose a country first.");
+    assert.deepEqual(b.entries(), before);
+  } finally { b.close(); }
+});
+
 const results = [];
 for (const web of ["magnolie-organizer/web", "magnolie-organizer-windows/app/web"]) {
   for (const { name, fn } of cases) {
