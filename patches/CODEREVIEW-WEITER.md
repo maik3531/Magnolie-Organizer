@@ -1,3 +1,10 @@
+
+## 28.11.2026 – #854 Frankreich, geprüfter erster Teilpatch
+
+- Main weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`; bisherige Synchronisations- und Wasserzeichenstände unverändert.
+- [Teilpatch und Prüfnachweise](codereview-holiday-fr-regions-2026-11-28/README.md), Artefaktcommit `9cc09e713119d5eb7b3447c938f6d94b19d3beca`. Anwendung nach #851/#852/#855/#856; kein Produktmerge. 12 belegte französische Ferienregionen, GUI/MCP; beide Produkt-JS-Dateien syntaktisch geprüft, kontrollierte V8-Tests jeweils 7/31 → 31/31. Keine Live-/native Abnahme; Anbieter-Abdeckung und örtliche gesetzliche Feiertage nicht vollständig gelöst.
+- Nächster konkreter Schritt #854: BE/NL-Gruppe als separaten SchoolHolidays-Parameter groupCode statt subdivisionCode durch native Abrufpfade, Parser und Cache führen. Vorher frischen main und Issue-Kommentare abgleichen; #128 nicht konkurrierend bearbeiten. Danach weitere #854-Abdeckung, #853-Symbole und offene native Abnahmen. Alle früheren Übergaben bleiben unten erhalten.
+
 # Magnolie-Codereview – Fortsetzung
 
 ## Auftrag und maßgebliche Quellen
