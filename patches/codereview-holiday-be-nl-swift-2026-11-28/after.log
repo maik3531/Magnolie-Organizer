@@ -1,0 +1,51 @@
+PASS BE-DE group param
+PASS BE-DE public scope
+PASS BE-DE school scope + end
+PASS BE-FR group param
+PASS BE-FR public scope
+PASS BE-FR school scope + end
+PASS BE-NL group param
+PASS BE-NL public scope
+PASS BE-NL school scope + end
+PASS BE multi groups
+PASS BE one public per year
+PASS BE national groups
+PASS BE partial national no coverage
+PASS BE missing no school data or coverage
+PASS BE foreign no school data or coverage
+PASS BE unknown no school data or coverage
+PASS BE wrong group no school data or coverage
+PASS BE mixed no school data or coverage
+PASS BE contradictory nationwide no school data or coverage
+PASS BE empty no coverage
+PASS BE nationwide only no coverage
+PASS BE country mixed keeps subdivision only
+PASS BE mixed request rejected
+PASS BE failed response
+PASS NL-NO group param
+PASS NL-NO public scope
+PASS NL-NO school scope + end
+PASS NL-MI group param
+PASS NL-MI public scope
+PASS NL-MI school scope + end
+PASS NL-ZU group param
+PASS NL-ZU public scope
+PASS NL-ZU school scope + end
+PASS NL multi groups
+PASS NL one public per year
+PASS NL national groups
+PASS NL partial national no coverage
+PASS NL missing no school data or coverage
+PASS NL foreign no school data or coverage
+PASS NL unknown no school data or coverage
+PASS NL wrong group no school data or coverage
+PASS NL mixed no school data or coverage
+PASS NL contradictory nationwide no school data or coverage
+PASS NL empty no coverage
+PASS NL nationwide only no coverage
+PASS NL country mixed keeps subdivision only
+PASS NL mixed request rejected
+PASS NL failed response
+PASS Austria subdivision mapping
+PASS Germany subdivision unchanged
+RESULT 50/50

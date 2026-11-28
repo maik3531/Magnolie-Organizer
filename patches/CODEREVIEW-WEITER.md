@@ -1,3 +1,7 @@
+## 28.11.2026 – #854 BE/NL, Swift-Dienst-Teilpatch
+
+Main weiterhin `1749c92eb42801c38eaba31b272d8c0e27be9164`, #128 privat aktiv; #691/älterer Desktop-Pumpfix nicht als übernommen bestätigt. [Swift-Teilpatch, Probe und Belege](codereview-holiday-be-nl-swift-2026-11-28/README.md) nach #855/#856, unabhängig vom Linux-Teilpatch. Kompletter tatsächlicher Swift-Dienst auf Linux mit kontrolliertem HTTP: 12/50 → 50/50, exakter Basisblob und isolierter Git-apply-Rundlauf, keine native Mac-/Live-/Paketabnahme. Keine GUI-Freischaltung. **Nächster Schritt:** Windows und Kotlin, dann gemeinsame GUI/MCP/Cache-Anfrage mit landesweiter PublicHolidays-Deckung trotz Schulgruppe, anschließend Handbuch/Live/Abnahme. Windows .NET im aktuellen Container fehlt, Kotlin verfügbar. #853 und Sync-Aufsetzpunkt unten erhalten. Kein Produktmerge.
+
 
 ## 28.11.2026 – #854 BE/NL, Linux-Provider-Teilpatch
 
