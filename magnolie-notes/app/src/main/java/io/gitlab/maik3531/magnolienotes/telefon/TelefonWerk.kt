@@ -5658,7 +5658,16 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun timeTransmissionAllowed(peer: TelefonPeer, body: JsonObject, session: PersonalNoteSession?, outgoing: Boolean): Boolean {
         if (!timeControlsReady(peer, session) || !Ablage.hole(context).bestand.value.zeiterfassung.enabled ||
             session?.timeReady(peer.personal_time_policy, peer.remote_personal_time_policy) != true) return false
-        if (body["trigger"]?.jsonPrimitive?.content == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI) return false
+        if (body["trigger"] == JsonPrimitive("auto_wifi")) {
+            if (activeTransport?.first != TelefonTransportArt.WIFI) return false
+            val common = commonValues(peer)
+            if (common != null) {
+                val channel = activeChannel ?: return false
+                if (noteSessions[channel] !== session || !sessionTransportAktuell(channel, pairingGeneration) ||
+                    common["auto_mode"] != JsonPrimitive("wifi") || common["time_enabled"] != JsonPrimitive(true) ||
+                    !noteModeReady(peer, session)) return false
+            }
+        }
         return TimeSyncProtokoll.allowed(body, if (outgoing) peer.remote_personal_time_policy else peer.personal_time_policy,
             if (outgoing) peer.personal_time_policy else peer.remote_personal_time_policy,
             true, true, true, listOf(7), listOf(7))

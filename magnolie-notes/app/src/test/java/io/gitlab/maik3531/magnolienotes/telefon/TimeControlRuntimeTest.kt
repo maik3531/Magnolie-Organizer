@@ -33,17 +33,25 @@ class TimeControlRuntimeTest {
                           val transportCurrent: AtomicReference<() -> Boolean>) {
         fun receive(body: JsonObject, target: TelefonPeer = peer, generation: Long = 0): JsonObject? {
             work.receiveMessage(target, TelefonNachrichten.message(TimeControlProtokoll.REQUEST, body, 60000), channel, generation)
-            val input = ByteArrayInputStream(output.toByteArray()); output.reset()
-            if (input.available() == 0) return null
-            val envelope = TelefonRahmen.lesen(input, TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
-            val header = JsonObject(envelope - "ciphertext")
-            val clear = TelefonKrypto.entschluesseln(ByteArray(32) { 11 }, TelefonKrypto.nonce(ByteArray(4) { 12 }, envelope.long("seq")),
-                Base64.getDecoder().decode(envelope.string("ciphertext")), TelefonKanonisch.bytes(header))
-            return try {
-                val wire = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
+            val replies = frames()
+            if (replies.isEmpty()) return null
+            return replies.single().let { wire ->
                 assertEquals(TimeControlProtokoll.REPORT, wire.string("kind")); TelefonNachrichten.validate(wire)
-                wire.getValue("body").jsonObject.also { assertEquals(0, input.available()) }
-            } finally { clear.fill(0) }
+                wire.getValue("body").jsonObject
+            }
+        }
+        fun frames(): List<JsonObject> {
+            val input = ByteArrayInputStream(output.toByteArray()); output.reset()
+            return buildList {
+                while (input.available() > 0) {
+                    val envelope = TelefonRahmen.lesen(input, TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
+                    val header = JsonObject(envelope - "ciphertext")
+                    val clear = TelefonKrypto.entschluesseln(ByteArray(32) { 11 }, TelefonKrypto.nonce(ByteArray(4) { 12 }, envelope.long("seq")),
+                        Base64.getDecoder().decode(envelope.string("ciphertext")), TelefonKanonisch.bytes(header))
+                    try { add(TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject) }
+                    finally { clear.fill(0) }
+                }
+            }
         }
         fun read() = receive(TimeControlProtokoll.request(UUID.randomUUID().toString()))!!
         fun command(action: String, state: JsonObject, id: String = "") = ZeitSteuerBefehl(UUID.randomUUID().toString(), action, state.string("revision"), id)
@@ -165,6 +173,73 @@ class TimeControlRuntimeTest {
         f.work.personalHeaderSyncNow(peer)
         val queue = field(TelefonWerk::class.java, "queue").get(f.work) as TelefonQueue
         assertFalse(queue.hasKind(peer.device_id, TimeSyncProtokoll.REQUEST))
+    }
+
+    @Test fun automaticTimeWaitsForTheSharedWifiEchoWithoutOtherModules() = exerciseAutomaticTime("late")
+    @Test fun automaticTimeDoesNotSendQueuedFramesAfterManualSelection() = exerciseAutomaticTime("manual")
+    @Test fun automaticTimeCannotStartOnBluetooth() = exerciseAutomaticTime("bluetooth")
+    @Test fun automaticTimeCannotStartFromARetiredWifiReader() = exerciseAutomaticTime("retired")
+    @Test fun automaticTimeCannotStartWhenTimeIsOff() = exerciseAutomaticTime("off")
+
+    private fun exerciseAutomaticTime(mode: String) = fixture { f ->
+        val peer = f.peer.copy(remote_personal_notes_sync_available = true,
+            remote_personal_notes_sync_versions = listOf(SharedSyncSettings.VERSION),
+            remote_personal_tasks_sync_versions = f.peer.remote_personal_tasks_sync_versions + SharedSyncSettings.VERSION)
+        f.storage.savePeer(peer)
+        (field(TelefonWerk::class.java, "scopedWakeup").get(f.work) as AtomicBoolean).set(true)
+        val actor = f.storage.identity("Native fixture").let { (identity, key) -> key.fill(0); identity.device_id }
+        val initial = SharedSyncSettings.effective(SharedSyncSettings.create(peer.device_id)) + mapOf(
+            "auto_mode" to JsonPrimitive("wifi"), "time_enabled" to JsonPrimitive(mode != "off"))
+        val local = f.work.configureCommonPreferences(peer.device_id, peer.static_public, initial)
+        val agreed = SharedSyncSettings.merge(SharedSyncSettings.create(peer.device_id, initial), local, peer.device_id, actor)
+        val entry = Zeiteintrag(startMinute = 1000, endMinute = 1060, zone = "UTC",
+            clock = mapOf(actor to 1L), note = "Independent WLAN time")
+        f.documents.aendereZeiterfassung { it.copy(actor = actor, counter = 1L, entries = listOf(entry)) }
+        val transport = if (mode == "bluetooth") TelefonTransportArt.BLUETOOTH else TelefonTransportArt.WIFI
+        field(TelefonWerk::class.java, "activeTransport").set(f.work, transport to f.pipe)
+        val pump = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java,
+            Long::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+        fun advance() { pump.invoke(f.work, peer, f.channel, 0L, false) }
+        fun observe(settings: JsonObject) =
+            f.work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, settings, 60000), f.channel, 0)
+        val queue = field(TelefonWerk::class.java, "queue").get(f.work) as TelefonQueue
+        val timeKinds = setOf(TimeSyncProtokoll.BATCH, TimeSyncProtokoll.REQUEST)
+        fun timeFrames() = f.frames().filter { it["kind"]?.jsonPrimitive?.content in timeKinds }
+        if (mode == "late") {
+            advance()
+            assertFalse("Unconfirmed shared settings staged a V7 request", queue.hasKind(peer.device_id, TimeSyncProtokoll.REQUEST))
+            assertTrue(timeFrames().isEmpty())
+        }
+        observe(agreed)
+        if (mode == "retired") field(TelefonWerk::class.java, "activeChannel").set(f.work, null)
+        if (mode == "manual") {
+            advance()
+            timeFrames()
+            assertTrue(queue.hasKind(peer.device_id, TimeSyncProtokoll.REQUEST))
+            observe(SharedSyncSettings.change(agreed, peer.device_id, actor, "auto_mode", JsonPrimitive("manual")))
+        }
+        repeat(2) { advance() }
+        val sent = timeFrames()
+        if (mode != "late") {
+            assertTrue(sent.isEmpty())
+            return@fixture
+        }
+        val byKind = sent.associateBy { it.string("kind") }
+        assertEquals(timeKinds, byKind.keys)
+        assertEquals(2, sent.size)
+        sent.forEach { packet ->
+            assertEquals("auto_wifi", packet.getValue("body").jsonObject.string("trigger"))
+            assertEquals("wifi_only", queue.outboxPolicy(peer.device_id, packet.string("message_id")))
+            f.work.handleSessionAck(peer, TelefonNachrichten.ack(packet.string("message_id"), "accepted", "none"),
+                f.session, 0, transport, f.channel)
+        }
+        val exported = TimeSyncProtokoll.decodeRecords(byKind.getValue(TimeSyncProtokoll.BATCH).getValue("body").jsonObject,
+            fromOrganizer = false)
+        assertEquals(entry.id, exported.single().id)
+        assertFalse(queue.hasActiveAutoRun(peer.device_id))
+        assertFalse(queue.hasKind(peer.device_id, "personal_sync.custom_request"))
+        repeat(3) { advance() }
+        assertTrue(timeFrames().isEmpty())
     }
 
     @Test fun sourceBoundCommandsUseActualEncryptedWriterAndNativeLifecycle() = fixture { f ->
