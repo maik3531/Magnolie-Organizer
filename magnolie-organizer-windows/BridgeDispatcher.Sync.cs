@@ -1370,12 +1370,19 @@ internal sealed partial class BridgeDispatcher
         var descriptors = batches.SelectMany(batch => (batch["records"] as JsonArray ?? []).OfType<JsonObject>())
             .SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
             .GroupBy(descriptor => descriptor["sha256"]!.GetValue<string>(), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().DeepClone().AsObject(), StringComparer.Ordinal);
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         if (!descriptors.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(sources.Keys)) throw new InvalidDataException(T("The personal synchronization attachment sources are incomplete."));
+        // Check every reference to the source before the initial request can be sent.
+        foreach (var source in sources.Values)
+        {
+            var references = descriptors[source.Hash];
+            if (!PersonalSyncContract.AttachmentSourceMatches(references, source.Mime, source.Data.LongLength))
+                throw new InvalidDataException(T("The personal synchronization attachment identity does not match."));
+            source.Descriptor = references[0].DeepClone().AsObject();
+        }
         if (!reply) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
         foreach (var source in sources.Values)
         {
-            source.Descriptor = descriptors[source.Hash];
             var chunks = source.Data.Chunk(PersonalSyncContract.ChunkRaw).Select((data, index) => (index, data));
             telefon.StagePersonalAttachment(peerId, runId, reply, recordsHash, source.Descriptor, "outgoing",
                 request["trigger"]?.GetValue<string>() == "auto_wifi" ? DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds() : DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeMilliseconds(), chunks);

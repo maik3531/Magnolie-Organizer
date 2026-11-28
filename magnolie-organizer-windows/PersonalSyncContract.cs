@@ -462,6 +462,11 @@ internal static class PersonalSyncContract
         return id;
     }
 
+    // The bridge has already validated the descriptors and verified the source hash.
+    internal static bool AttachmentSourceMatches(IEnumerable<JsonObject> descriptors, string mime, long size) =>
+        descriptors.All(descriptor => TelefonProtocolContract.Integer(descriptor["size"]) == size &&
+            string.Equals(descriptor["mime"]?.GetValue<string>(), mime, StringComparison.Ordinal));
+
     private static void ValidateReport(JsonObject body)
     {
         var format = DataFormat(body); Exact(body, format >= 2 ? ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions", "attachments"] : ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions"]);

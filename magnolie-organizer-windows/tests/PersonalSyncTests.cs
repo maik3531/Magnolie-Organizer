@@ -89,6 +89,20 @@ internal static class PersonalSyncTests
         var format2 = vectors["format2"]!.AsObject(); var format2Value = format2["value"]!.AsObject();
         TestAssert.That(Encoding.UTF8.GetString(TelefonCrypto.Canonical(format2Value)) == format2["canonical"]!.GetValue<string>() && PersonalSyncContract.ProjectionHash(format2Value) == format2["sha256"]!.GetValue<string>(), "Format-2-Projektion weicht ab.");
         var decoded = PersonalSyncContract.DecodeDataUrl(format2["data_url"]!.GetValue<string>()); TestAssert.That(decoded.Mime == "image/png" && decoded.Data.Length == 8, "PNG-Data-URL wurde nicht streng dekodiert.");
+        var sourceDescriptor = format2Value["attachments"]![0]!.AsObject();
+        var sameSource = sourceDescriptor.DeepClone().AsObject();
+        sameSource["attachment_id"] = "other-id";
+        sameSource["name"] = "other-name.png";
+        TestAssert.That(PersonalSyncContract.AttachmentSourceMatches([sourceDescriptor, sameSource], decoded.Mime, decoded.Data.LongLength),
+            "Two valid references to the same attachment bytes were rejected.");
+        foreach (var (field, incorrect) in new[] { ("size", (JsonNode)JsonValue.Create(9)!), ("mime", JsonValue.Create("image/jpeg")!) })
+        {
+            var inconsistent = sameSource.DeepClone().AsObject();
+            inconsistent[field] = incorrect;
+            TestAssert.That(!PersonalSyncContract.AttachmentSourceMatches([sourceDescriptor, inconsistent], decoded.Mime, decoded.Data.LongLength) &&
+                !PersonalSyncContract.AttachmentSourceMatches([inconsistent, sourceDescriptor], decoded.Mime, decoded.Data.LongLength),
+                "Inconsistent references to the same attachment bytes were accepted.");
+        }
         foreach (var invalid in format2["invalid_names"]!.AsArray())
         {
             var bad = format2Value.DeepClone().AsObject(); bad["attachments"]![0]!["name"] = invalid!.GetValue<string>();

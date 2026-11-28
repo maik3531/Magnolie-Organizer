@@ -60,8 +60,12 @@ aufgeführt.
   zusammen mit insgesamt 105 Hosttests. Windows speichert den
   gewöhnlichen Initialrequest und seine Laufdaten ebenfalls gemeinsam.
   Sechs native .NET-Testgruppen bestanden, darunter Rollback und Retry
-  für Formate 1/2/3/14. Die nachgelagerte Windows-Anhangsvorbereitung
-  und die Automatik über weitere freigegebene Transporte bleiben offen.
+  für Formate 1/2/3/14. Windows gleicht beim gruppierten Start alle
+  Anhangsgrößen und MIME-Typen mit den geprüften Quellbytes ab, bevor
+  eine Anfrage eingereiht werden kann. Fünf native Bridge-Fälle sowie
+  zwei weitere Windows-Testgruppen bestanden. Die gemeinsame Transaktion
+  für das nachgelagerte Windows-Staging und die Automatik über weitere
+  freigegebene Transporte bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere
