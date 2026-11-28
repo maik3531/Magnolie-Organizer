@@ -12,6 +12,21 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
     try {
       const d = b.w.document;
       if (locale !== "en") { b.w.eval(fs.readFileSync(path.join(web, "i18n", locale + ".js"), "utf8")); b.w.MagnolieI18n.setLocale(locale); }
+      if (locale === "en") {
+        const now = Date.parse("2026-12-10T12:00:00Z");
+        b.w.Date = class extends Date {
+          constructor(...args) { super(...(args.length ? args : [now])); }
+          static now() { return now; }
+        };
+        b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-ort").click();
+        const country = d.querySelector("#ort-land");
+        for (const [value, season] of [["ES", null], ["DE", "crystals"], ["ES", null], ["DE", "crystals"]]) {
+          country.value = value;
+          country.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+          assert.equal(d.querySelector("#magnolie-saison")?.dataset.season || null, season,
+            "Changing the saved country updates the actual background immediately");
+        }
+      }
       b.t.zustand().kalender.tag = "2026-12-06";
       await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
       assert(d.querySelector('.wo-tag[data-appearance-date="2026-12-06"] [data-appearance-watermark="boots"]'));

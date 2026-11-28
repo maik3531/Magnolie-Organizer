@@ -15672,7 +15672,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     sichereNotizSnapshot();
     aktualisiereZyklusPausenstatus();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     stabilisiereAktiveOrtszeiten();
     beendeZeicheneingabe(true);
     beendeGesundheitReserve();
@@ -27006,7 +27006,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueSeiteEntwickler(wurzel) {
     if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
     const ab = abschnitt(_("Developer options"));
-    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
+    window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: true, locked: gesperrt });
     window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
       Bruecke.sende(state ? { cmd: "tray_darstellung_test", ...state } : { cmd: "tray_darstellung_test_ende" }) : null);
     const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
@@ -27028,7 +27028,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(row, show, knopf(_("Disable developer mode"), "", () => {
       entwicklerDiagnoseAnfrage = null; output.textContent = "";
       DATEN.einstellungen.allgemein.entwicklermodus = false;
-      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
+      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: false, locked: gesperrt });
       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
       planeSpeichern(); speichereJetzt(); einstSeite = "ueber"; baueEinstellungen();
     })); wurzel.append(ab);
@@ -34175,6 +34175,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       wendeOrtAuswahlDatenAn({ land: landWahl.value });
       planeSpeichern();
       regionenZeigen();
+      window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     });
     regionenZeigen();
     const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";
@@ -44714,7 +44715,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       aktualisiereKontaktOrtszeiten();
       const heute = isoHeute();
       if (heute !== letzterTag) {
-        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+        window.MagnolieAppearance?.update({ today: heute, country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
         if (editorIstGeaendert()) return;
         letzterTag = heute;
         if (initialisiert) {

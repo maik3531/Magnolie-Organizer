@@ -71,10 +71,13 @@
     const n = h + l - 7 * m + 114;
     return new Date(Date.UTC(year, Math.floor(n / 31) - 1, n % 31 + 1));
   }
-  function season(iso) {
+  // Decorative northern winter convention, not a forecast. Countries with mixed
+  // climates and no regional selection are deliberately left without crystals.
+  const winterCrystalCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "PL", "CZ"]);
+  function season(iso, country = "") {
     const value = dateParts(iso); if (!value) return "none";
     if (value.month === 12 && value.day >= 30 || value.month === 1 && value.day === 1) return "stars";
-    return value.month === 12 && value.day >= 6 ? "crystals" : "none";
+    return winterCrystalCountries.has(country) && value.month === 12 && value.day >= 6 ? "crystals" : "none";
   }
   function holiday(iso) {
     const value = dateParts(iso); if (!value) return "none";
@@ -131,7 +134,7 @@
     const svg = element("svg", { viewBox: "0 0 80 80", "aria-hidden": "true", focusable: "false" });
     svg.append(element("path", { d: "M40 5L49 29L75 30L55 47L62 73L40 58L18 73L25 47L5 30L31 29Z", fill: "currentColor" })); return svg;
   }
-  let context = { today: "", developer: false, locked: true };
+  let context = { today: "", country: "", developer: false, locked: true };
   const defaults = () => ({ connected: "auto", mode: "auto", sync: false, season: "auto", holiday: "auto", date: "" });
   let preview = defaults(), panel = null, backgroundKey = "", nativeActive = false, nativeSender = null;
   function stopNative() { if (nativeActive) nativeSender?.(null); nativeActive = false; }
@@ -153,7 +156,7 @@
   }
   function apply() {
     const test = simulated(), date = test && preview.date || context.today;
-    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date);
+    const backdrop = context.locked ? "none" : test && preview.season !== "auto" ? preview.season : season(date, context.country);
     const desktop = document.querySelector("#schreibtisch");
     const key = backdrop + ":" + test;
     if (desktop && (key !== backgroundKey || backdrop !== "none" && !desktop.querySelector("#magnolie-saison"))) {
@@ -192,8 +195,8 @@
       if (image) panel.sample.append(image);
     } else panel = null;
   }
-  function update({ today, developer, locked }) {
-    context = { today: dateParts(today) ? today : "", developer: developer === true, locked: locked !== false };
+  function update({ today, country = "", developer, locked }) {
+    context = { today: dateParts(today) ? today : "", country, developer: developer === true, locked: locked !== false };
     if (!context.developer || context.locked) { stopNative(); nativeSender = null; preview = defaults(); panel = null; }
     apply();
   }

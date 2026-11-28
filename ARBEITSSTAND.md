@@ -7,6 +7,12 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#850](https://github.com/maik3531/Magnolie-Organizer/issues/850):
+  Automatische Eiskristalle berücksichtigen das gewählte Land. Ein normaler
+  Länderwechsel aktualisiert den Hintergrund sofort. 41 Modellproben und
+  40 Oberflächenläufe mit 20 Sprachen auf beiden Desktopquellen bestanden.
+  Die native Darstellung im Paket bleibt Teil von #113.
+
 - [#856](https://github.com/maik3531/Magnolie-Organizer/issues/856),
   übernommener Folgefix zu #855: Die neun österreichischen ISO-Regionen
   werden an der OpenHolidays-Grenze in die tatsächlich erwarteten Kennungen

@@ -9,7 +9,8 @@ try {
   const appearance = dom.window.MagnolieAppearance;
   assert.deepEqual([appearance.connection(false, false), appearance.connection(true, false), appearance.connection(false, true), appearance.connection(true, true)], ["none", "notes", "kde", "both"]);
   assert.equal(appearance.connection("paired", 1), "none", "Pairing/truthy values must never count as a native connection");
-  for (const [date, expected] of [["2026-12-05", "none"], ["2026-12-06", "crystals"], ["2026-12-29", "crystals"], ["2026-12-30", "stars"], ["2026-12-31", "stars"], ["2027-01-01", "stars"], ["2027-01-02", "none"], ["2026-02-30", "none"]]) assert.equal(appearance.season(date), expected, date);
+  for (const [date, expected] of [["2026-12-05", "none"], ["2026-12-06", "crystals"], ["2026-12-29", "crystals"], ["2026-12-30", "stars"], ["2026-12-31", "stars"], ["2027-01-01", "stars"], ["2027-01-02", "none"], ["2026-02-30", "none"]]) assert.equal(appearance.season(date, "DE"), expected, date);
+  for (const country of ["", "ES", "FR", "IT", "AU", "CN", "ZZ"]) assert.equal(appearance.season("2026-12-10", country), "none", country);
   for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date), expected, date);
   for (const connected of ["none", "notes", "kde", "both"]) for (const mode of ["flower", "camera", "phone"]) for (const sync of [false, true]) {
     const svg = appearance.tray({ connected, mode, sync });
@@ -60,7 +61,7 @@ try {
   const desktop = dom.window.document.createElement("main"); desktop.id = "schreibtisch";
   const draft = dom.window.document.createElement("textarea"); draft.value = "Unsaved original"; desktop.append(draft); dom.window.document.body.append(desktop);
   for (const [today, expected] of [["2026-12-05", null], ["2026-12-06", "crystals"], ["2026-12-30", "stars"], ["2027-01-01", "stars"], ["2027-01-02", null]]) {
-    appearance.update({ today, developer: false, locked: false });
+    appearance.update({ today, country: "DE", developer: false, locked: false });
     const layer = desktop.querySelector("#magnolie-saison");
     assert.equal(layer?.dataset.season || null, expected);
     if (layer) {
@@ -76,12 +77,22 @@ try {
       assert.equal(layer.querySelectorAll('[data-season-accent="soft"]').length, 4);
       assert.equal(layer.querySelectorAll('[data-season-accent="bright"]').length, 2);
       assert.equal(new Set(motifs.map(motif => motif.style.left + ":" + motif.style.top)).size, 34);
-      appearance.update({ today, developer: false, locked: false });
+      appearance.update({ today, country: "DE", developer: false, locked: false });
       assert.equal(desktop.querySelector("#magnolie-saison"), layer, "Repeated status updates must not redraw motifs");
     }
     assert.equal(draft.value, "Unsaved original", "Date rollover may not replace an unsaved editor");
     assert.equal(dom.window.document.body.hasAttribute("data-appearance-test"), false);
   }
+  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
+  assert.equal(desktop.querySelector("#magnolie-saison")?.dataset.season, "crystals");
+  appearance.update({ today: "2026-12-10", country: "ES", developer: false, locked: false });
+  assert.equal(desktop.querySelector("#magnolie-saison"), null);
+  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
+  assert.equal(desktop.querySelector("#magnolie-saison")?.dataset.season, "crystals");
+  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: true });
+  assert.equal(desktop.querySelector("#magnolie-saison"), null);
+  appearance.update({ today: "2026-12-10", country: "DE", developer: false, locked: false });
+  assert.equal(draft.value, "Unsaved original");
   const day = dom.window.document.createElement("div");
   appearance.day(day, "2026-12-06");
   assert(day.querySelector('.magnolie-feiertags-schatten[data-appearance-watermark="boots"] [data-motif-part="candy-cane"]'));

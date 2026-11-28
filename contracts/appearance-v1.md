@@ -7,7 +7,12 @@ kopiert oder als Programmbestandteil übernommen.
 
 ## Saison und Wochenansicht
 
-- 6.–29. Dezember: dezente sechsarmige Eiskristalle auf dem grünen Hintergrund.
+- 6.–29. Dezember: dezente sechsarmige Eiskristalle auf dem grünen Hintergrund
+  nur bei explizit ausgewähltem Land DE, AT, CH, LI, LU, BE, NL, PL oder CZ.
+  Ohne Auswahl und bei klimatisch gemischten Ländern ohne regionale Auswahl
+  (FR, IT, ES) sowie anderen Ländern keine Eiskristalle. Diese konservative
+  Dekorationsregel ist keine Wettervorhersage; weder Sprache noch Standortdienste
+  bestimmen sie. Die bestehende explizite Entwicklervorschau bleibt möglich.
 - 30. Dezember–1. Januar: Sterne; sie haben am überlappenden 30. Dezember Vorrang.
 - 28 statische, unterschiedlich große Elemente, jeweils höchstens 35 CSS-Pixel
   und zusätzlich auf 1 cm CSS-Maß begrenzt; keine Animation/zusätzliche Uhr.
