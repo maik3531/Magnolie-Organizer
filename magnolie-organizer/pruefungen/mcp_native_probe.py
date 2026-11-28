@@ -3,6 +3,7 @@
 import importlib.machinery
 import importlib.util
 import base64
+from contextlib import contextmanager
 from datetime import date, timedelta
 from functools import wraps
 import hashlib
@@ -34,11 +35,13 @@ LARGE_BOOK_ROWS = int(os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ROWS", "0"))
 LARGE_BOOK_STARTUP_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_STARTUP_ONLY") == "1"
 LARGE_BOOK_SAVE_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_ONLY") == "1"
 LARGE_BOOK_SAVE_TRACE = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_SAVE_TRACE") == "1"
+LARGE_BOOK_PHASE_TRACE = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_PHASE_TRACE") == "1"
 LARGE_BOOK_ANNIVERSARIES_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ANNIVERSARIES_ONLY") == "1"
 assert LARGE_BOOK_ROWS in (0, 10_000, 50_000) and not (LARGE_BOOK_ROWS and TRAY_SOAK_SECONDS)
 assert sum((LARGE_BOOK_STARTUP_ONLY, LARGE_BOOK_SAVE_ONLY, LARGE_BOOK_ANNIVERSARIES_ONLY)) <= 1
 assert not (LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_SAVE_ONLY or LARGE_BOOK_ANNIVERSARIES_ONLY) or LARGE_BOOK_ROWS
 assert not LARGE_BOOK_SAVE_TRACE or LARGE_BOOK_SAVE_ONLY
+assert not LARGE_BOOK_PHASE_TRACE or LARGE_BOOK_ROWS
 PROBE_TIMEOUT = 240 if LARGE_BOOK_ROWS else TRAY_SOAK_SECONDS + 90
 if BACKGROUND_PROBE:
     current_network = os.readlink("/proc/self/ns/net")
@@ -280,13 +283,17 @@ product = importlib.util.module_from_spec(spec)
 sys.modules[loader.name] = product
 loader.exec_module(product)
 assert product.GTK_OK and product.WEBKIT_OK
-if LARGE_BOOK_SAVE_TRACE:
+if LARGE_BOOK_SAVE_TRACE or LARGE_BOOK_PHASE_TRACE:
     import magnolie_native_book_json
 
     def trace_save(function):
         @wraps(function)
         def measured(*args, **kwargs):
             start = time.monotonic()
+            structured = None
+            if function.__name__ == "bei_nachricht" and len(args) > 2 and args[2] is not None:
+                result = args[2]
+                structured = (result.get_js_value() if hasattr(result, "get_js_value") else result).is_array()
 
             def emit(marker):
                 fields = ({"phase": function.__qualname__, "marker": marker, "monotonic": time.monotonic(),
@@ -295,6 +302,8 @@ if LARGE_BOOK_SAVE_TRACE:
                 rss = next((line for line in Path("/proc/self/status").read_text().splitlines()
                             if line.startswith("VmRSS:")), "")
                 fields["host_rss"] = rss
+                if structured is not None:
+                    fields["structured_bridge"] = structured
                 print("LARGE_BOOK_SAVE_PHASE " + json.dumps(fields), flush=True)
 
             emit("begin")
@@ -310,6 +319,8 @@ if LARGE_BOOK_SAVE_TRACE:
             setattr(module, name, trace_save(getattr(module, name)))
     product.BaumSyncSnapshot.fingerprint = staticmethod(trace_save(product.BaumSyncSnapshot.fingerprint))
     product.Fenster._journal_snapshot = trace_save(product.Fenster._journal_snapshot)
+    if LARGE_BOOK_PHASE_TRACE:
+        product.Fenster.bei_nachricht = trace_save(product.Fenster.bei_nachricht)
 product._REGIONAL = product.regional_einstellungen(dict(product._REGIONAL, timeZone="UTC", language="en", formatLocale="en-GB"))
 state = {"started": False, "passed": False, "error": None, "transport_blocked": False, "activation_private": True, "network_isolated": BACKGROUND_PROBE}
 def unrelated_transport(*_args, **_kwargs):
@@ -798,7 +809,45 @@ def client():
                 state["large_book"]["actions"].append(record)
                 print("LARGE_BOOK_SAMPLE " + json.dumps(record), flush=True)
 
+            @contextmanager
+            def phase_samples(name):
+                if not LARGE_BOOK_PHASE_TRACE:
+                    yield
+                    return
+                stopped = threading.Event()
+
+                def capture(marker):
+                    memory = {}
+                    for key in ("memory.current", "memory.peak", "memory.events"):
+                        path = memory_cgroup / key
+                        if path.is_file():
+                            memory[key] = path.read_text().strip()
+                    path = memory_cgroup / "memory.stat"
+                    if path.is_file():
+                        memory["memory.stat"] = {key: int(value) for key, value in map(str.split, path.read_text().splitlines())
+                            if key in ("anon", "file", "shmem", "kernel", "pagetables")}
+                    print("LARGE_BOOK_PHASE " + json.dumps({"phase": name, "marker": marker, "monotonic": time.monotonic(),
+                        "memory": memory, "processes": resource_processes(detailed=False)}), flush=True)
+
+                def capture_during():
+                    while not stopped.wait(0.25):
+                        capture("sample")
+
+                capture("begin")
+                worker = threading.Thread(target=capture_during, name="owned-phase-sampler", daemon=True)
+                worker.start()
+                try:
+                    yield
+                finally:
+                    stopped.set()
+                    worker.join(2)
+                    capture("end")
+
             def measure(name, action):
+                with phase_samples(name):
+                    return measure_in_phase(name, action)
+
+            def measure_in_phase(name, action):
                 started = time.monotonic()
                 javascript("""(() => {
                   const meter = window.magnolieScaleMeter;
@@ -874,8 +923,9 @@ def client():
             if sampler is not None:
                 sampler.start()
             try:
-                save = call("tools/call", {"name": "organizer_note_update", "arguments": {
-                    "id": note_id, "expected_revision": note["structuredContent"]["revision"], "title": new_title}})
+                with phase_samples("save-one-note"):
+                    save = call("tools/call", {"name": "organizer_note_update", "arguments": {
+                        "id": note_id, "expected_revision": note["structuredContent"]["revision"], "title": new_title}})
             finally:
                 stop_sampling.set()
                 if sampler is not None:

@@ -1026,17 +1026,17 @@ class BaumSyncSnapshot:
     def covers(self, previous, proof, now):
         return bool(self.valid(proof) and self.snapshotted and now < self.expires and
             self.run == proof["run"] and self.peer == proof["peer"] and
-            self.after == self.fingerprint(previous) and self.ack == proof.get("before"))
+            self.ack == proof.get("before") and self.after == self.fingerprint(previous))
 
     def saved(self, previous, proposed, text, proof, changed, covered, now):
-        same = self.after == self.fingerprint(previous)
         if self.valid(proof) and (not proof.get("before") or proof["before"] == self.ack):
             if not covered:
                 self.expires = now + 600
             self.run, self.peer = proof["run"], proof["peer"]
             self.snapshotted = bool(changed or covered)
             self.after = self.fingerprint(proposed)
-        elif proof is None and not changed and same and now < self.expires:
+        elif (proof is None and not changed and self.after and now < self.expires and
+                self.after == self.fingerprint(previous)):
             self.after = self.fingerprint(proposed)
         else:
             self.run = self.peer = self.after = ""
@@ -23101,10 +23101,23 @@ class Fenster(_FENSTER_BASIS):
         try:
             if ergebnis is None:
                 roh = inhalte
+                nachricht = json.loads(roh)
             else:
                 wert = ergebnis.get_js_value() if hasattr(ergebnis, "get_js_value") else ergebnis
-                roh = wert.to_string()
-            nachricht = json.loads(roh)
+                if getattr(wert, "is_array", lambda: False)():
+                    if wert.object_get_property("length").to_int32() != 2:
+                        return
+                    kennung = wert.object_get_property_at_index(0)
+                    text = wert.object_get_property_at_index(1)
+                    if not kennung.is_number() or not text.is_string():
+                        return
+                    nummer = kennung.to_double()
+                    if not (1 <= nummer <= 2**53 - 1 and nummer.is_integer()):
+                        return
+                    nachricht = {"cmd": "speichern", "id": int(nummer), "text": text.to_string()}
+                else:
+                    roh = wert.to_string()
+                    nachricht = json.loads(roh)
         except (TypeError, ValueError, AttributeError) as fehler:
             sys.stderr.write(_("Unreadable message from the interface: %s") % fehler + "\n")
             return
@@ -24905,7 +24918,7 @@ class Fenster(_FENSTER_BASIS):
                     covered = lease.covers(previous, proof, time.monotonic())
                     def native_write(payload):
                         nonlocal warnung, contact_approval_intent, contact_approval_error, notes_choice_intent, notes_choice_error
-                        nonlocal contact_saved_payload
+                        nonlocal contact_saved_payload, previous
                         if contact_approval_store is not None:
                             try:
                                 if contact_approval_store.has_desired_consent():
@@ -24957,6 +24970,7 @@ class Fenster(_FENSTER_BASIS):
                                 warnung = fehler_deutsch(fehler, _("Saving the data"))
                             self._aktuelle_daten = daten
                             lease.saved(previous, daten, payload, proof, changed, covered, time.monotonic())
+                            previous = None
                             book_owner = getattr(self, "_notes_actor_book_owner", None)
                             observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
                             if observed is not None:
@@ -25476,6 +25490,7 @@ class Fenster(_FENSTER_BASIS):
         senden_start = time.monotonic()
         Fenster._medien_papierkorb_aufbewahrung_laden(self)
         self.antwort("App.init", {"daten": daten, "neu": ist_neu,
+                                  "speicherTextV1": not getattr(self, "_chromium", None),
                                   "echterErststart": echter_erststart,
                                   "datenPfad": daten_datei(),
                                   "migriert": migriert,
@@ -25572,6 +25587,7 @@ class Fenster(_FENSTER_BASIS):
         Fenster._medien_papierkorb_aufbewahrung_laden(self)
         self._erinnerungsprojektion_aktualisieren()
         self.antwort("App.init", {"daten": daten, "neu": False,
+                                  "speicherTextV1": not getattr(self, "_chromium", None),
                                   "datenPfad": daten_datei(),
                                   "kennwort": True,
                                   "handbuchInstalliert": handbuch_installiert(),

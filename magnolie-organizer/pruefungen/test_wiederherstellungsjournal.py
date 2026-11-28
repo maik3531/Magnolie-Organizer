@@ -61,6 +61,31 @@ einstellungen["einstellungen"]["ansicht"] = "month"
 einstellungen["letzterSync"] = 123
 einstellungen["syncMetadaten"] = {"nextcloud": {"ausstehendeTransaktion": "test"}}
 assert not m.journal_inhalt_geaendert(vorher, einstellungen)
+lease = m.BaumSyncSnapshot()
+fingerprinted = []
+
+
+def record_fingerprint(book):
+    fingerprinted.append(book)
+    return m.BaumSyncSnapshot.fingerprint(book)
+
+
+lease.fingerprint = record_fingerprint
+lease.saved(vorher, einstellungen, "ordinary", None, False, False, 1)
+assert fingerprinted == [] and lease.ack == hashlib.sha256(b"ordinary").hexdigest()
+proof = {"run": str(uuid.uuid4()), "peer": "owned-peer", "before": lease.ack}
+lease.saved(einstellungen, vorher, "scoped", proof, True, False, 2)
+assert fingerprinted == [vorher]
+assert not lease.covers(vorher, proof, 3) and fingerprinted == [vorher]
+proof["before"] = lease.ack
+assert lease.covers(vorher, proof, 3) and fingerprinted == [vorher, vorher]
+lease.saved(vorher, einstellungen, "metadata", None, False, False, 4)
+assert fingerprinted == [vorher, vorher, vorher, einstellungen]
+assert lease.covers(einstellungen, {**proof, "before": lease.ack}, 5)
+fingerprinted.clear()
+lease.saved(einstellungen, vorher, "expired", None, False, False, 603)
+assert fingerprinted == [] and not lease.snapshotted
+
 with tempfile.TemporaryDirectory(prefix="magnolie-content-only-") as basis:
     original = daten(2)
     first = m.journal_snapshot_erzeugen(original, "pre-sync", basis=basis, disk_usage=disk)

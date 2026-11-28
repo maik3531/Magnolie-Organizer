@@ -6760,9 +6760,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   const Bruecke = {
     name: window.__MAGNOLIE_BRUECKE__ || "bridge",
     vorhanden: false,
-    sende(obj) {
+    sende(obj, alsWerte = false) {
       try {
-        window.webkit.messageHandlers[this.name].postMessage(JSON.stringify(obj));
+        window.webkit.messageHandlers[this.name].postMessage(alsWerte ? obj : JSON.stringify(obj));
         return true;
       } catch (e) {
         return false;
@@ -6791,6 +6791,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   let contributorAktiv = false;
   let contributorPruefungLaeuft = false;
   let letzterSpeicherText = null;
+  let speicherTextV1 = false;
   let notesOriginalGeladenText = null; // Loaded model only, NEVER a native saved witness.
   let letzterSpeicherSha256 = "", baumSpeicherNachweis = null;
   let naechsteSpeicherId = 1;
@@ -6873,11 +6874,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       laufenderSpeicher = auftrag;
       const id = auftrag.id;
       speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: id, ok: false }), 30000);
-      if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text,
+      const nachricht = { cmd: "speichern", id: auftrag.id, text: auftrag.text,
           baumSyncLauf: baumSpeicherNachweis?.text === auftrag.text ? {run:baumSpeicherNachweis.proof.run,
             peer:baumSpeicherNachweis.proof.peer,
             before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null,
-          ...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {}) })) {
+          ...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {}) };
+      // WebKit can carry large book text directly without escaping every
+      // quote in a second JSON document. Bound saves keep the full envelope.
+      const grosseTextnachricht = speicherTextV1 && auftrag.text.length >= 8 * 1024 * 1024 &&
+        !nachricht.baumSyncLauf && !("kontaktOriginalLauf" in nachricht);
+      if (!(grosseTextnachricht ? Bruecke.sende([id, auftrag.text], true) : Bruecke.sende(nachricht))) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -36339,6 +36345,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       letzterSpeicherSha256 = ""; baumSpeicherNachweis = null;
       const startPhase = performance.now();
       nutzlast = nutzlast || {};
+      speicherTextV1 = nutzlast.speicherTextV1 === true;
       antwortErhalten = true;
       contributorAktiv = nutzlast.contributorAktiv === true;
       handbuchInstalliert = !!nutzlast.handbuchInstalliert;
