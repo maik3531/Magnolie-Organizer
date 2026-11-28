@@ -4133,6 +4133,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return true;
   }
 
+  const SMS_BENACHRICHTIGUNGS_DAUERN = [0, 15, 30, 60, 120];
+  function wendeSmsBenachrichtigungsDauerAn(seconds) {
+    DATEN.einstellungen.adressen.smsBenachrichtigungDauer = seconds;
+  }
   function oeffneSmsEinstellungen(chat) {
     const schleier = el("div", "eingabe-schleier sms-einstellungen-schleier");
     const dialog = el("div", "eingabe-dialog sms-einstellungen-dialog");
@@ -4155,7 +4159,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ["60", _("1 minute")], ["120", _("2 minutes")], ["0", _("Never automatically")]],
       String(DATEN.einstellungen.adressen.smsBenachrichtigungDauer));
     dauer.addEventListener("change", () => {
-      DATEN.einstellungen.adressen.smsBenachrichtigungDauer = Number(dauer.value);
+      wendeSmsBenachrichtigungsDauerAn(Number(dauer.value));
       planeSpeichern();
     });
     const loeschen = (alle) => frage(alle ? _("Delete all SMS histories?")
@@ -8954,7 +8958,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     za.personengruppenAn = ad.personengruppenAn === true;
     za.gruppenAusschluss = saubererGruppenAusschluss(ad.gruppenAusschluss);
     za.eigenesProfilAn = ad.eigenesProfilAn !== false;
-    za.smsBenachrichtigungDauer = [0, 15, 30, 60, 120].includes(
+    za.smsBenachrichtigungDauer = SMS_BENACHRICHTIGUNGS_DAUERN.includes(
       Number(ad.smsBenachrichtigungDauer)) ? Number(ad.smsBenachrichtigungDauer) : 60;
     za.smsSchedulingEnabled = ad.smsSchedulingEnabled === true;
     const kommunikation = ad.kommunikation && typeof ad.kommunikation === "object"
@@ -41370,6 +41374,47 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpKommunikationsEinstellungenWerkzeuge() {
+    const bookTokens = new WeakMap();
+    const revisionOf = (book, snapshot) => {
+      if (!bookTokens.has(book)) bookTokens.set(book, crypto.randomUUID());
+      return personalSyncHash(JSON.stringify([bookTokens.get(book), snapshot]));
+    };
+    const settings = () => {
+      const addresses = DATEN.einstellungen.adressen;
+      return { sms_route: addresses.kommunikation.sms.art, call_route: addresses.kommunikation.anruf.art,
+        incoming_call_notifications: addresses.kommunikation.anruf.eingehendBenachrichtigen,
+        sms_scheduling_enabled: addresses.smsSchedulingEnabled,
+        sms_notification_duration_seconds: addresses.smsBenachrichtigungDauer };
+    };
+    return [
+      { name: "organizer_communication_settings_read",
+        description: "Read the configured SMS and call routes and notification preferences. Does not report live transport availability or expose application commands or Bluetooth addresses.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+        call: async (_args, signal) => {
+          const book = DATEN, current = settings(), before = JSON.stringify(current);
+          const revision = await revisionOf(book, before);
+          if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(settings()) !== before)
+            throw new MagnolieMcp.ToolError("source_changed", "Communication preferences changed during the read");
+          return { settings: current, revision };
+        } },
+      { name: "organizer_sms_notification_settings_update",
+        description: "Save the Organizer SMS notification duration using the current communication-settings revision. Zero means never dismiss automatically. Does not change routes, permissions or scheduled messages.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          duration_seconds: { type: "integer", enum: SMS_BENACHRICHTIGUNGS_DAUERN } },
+          required: ["expected_revision", "duration_seconds"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        call: (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(settings()), revision = await revisionOf(book, before);
+          if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(settings()) !== before || revision !== args.expected_revision)
+            throw new MagnolieMcp.ToolError("conflict", "Communication preferences changed; read them again before writing");
+          mcpEditorPruefen();
+          wendeSmsBenachrichtigungsDauerAn(args.duration_seconds);
+          return { settings: settings() };
+        }) }
+    ];
+  }
   function wendeBenachrichtigungsEinstellungenDatenAn(values, anniversaries = null) {
     Object.assign(DATEN.einstellungen.erinnerung, values);
     if (anniversaries) Object.assign(DATEN.einstellungen.erinnerung.jahrestage, anniversaries);
@@ -42633,6 +42678,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_trash_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_trash_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_contact_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_communication_settings_read" || name === "organizer_sms_notification_settings_update") {
+      const fields = { sms_route: { type: "string", enum: ["kde", "system", "program"] },
+        call_route: { type: "string", enum: ["magnolie", "system", "program"] },
+        incoming_call_notifications: { type: "boolean" }, sms_scheduling_enabled: { type: "boolean" },
+        sms_notification_duration_seconds: { type: "integer", enum: SMS_BENACHRICHTIGUNGS_DAUERN } };
+      const settings = shape(fields, Object.keys(fields));
+      return name === "organizer_communication_settings_read"
+        ? shape({ settings, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"])
+        : shape({ settings, persisted: { const: true } }, ["settings", "persisted"]);
+    }
     if (name === "organizer_contact_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_notification_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_notification_settings_update") return shape({ settings: object, persisted: yes, service_reconfigured: flag, native_state: { type: ["object", "null"] }, wake_scheduled: { type: ["boolean", "null"] } }, ["settings", "persisted", "service_reconfigured", "native_state", "wake_scheduled"]);
@@ -42815,6 +42870,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpHintergrundWerkzeuge(),
       ...mcpBenachrichtigungsWerkzeuge(),
       ...mcpAdressEinstellungenWerkzeuge(),
+      ...mcpKommunikationsEinstellungenWerkzeuge(),
       ...mcpPapierkorbEinstellungenWerkzeuge(),
       ...mcpErinnerungsDatenschutzWerkzeuge(),
       ...mcpPasswortWerkzeuge(),

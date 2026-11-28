@@ -653,6 +653,36 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_SMS_PREFERENCES_ONLY") == "1":
+            def preferences():
+                result = call("tools/call", {"name": "organizer_communication_settings_read"})
+                assert not result["isError"], result
+                return result["structuredContent"]
+
+            def change(revision, seconds):
+                return call("tools/call", {"name": "organizer_sms_notification_settings_update", "arguments": {
+                    "expected_revision": revision, "duration_seconds": seconds}})
+
+            first = change(preferences()["revision"], 30)
+            assert not first["isError"] and first["structuredContent"]["persisted"], first
+            before = json.loads(data_file.read_text())
+            expected = before["einstellungen"]["adressen"]["smsBenachrichtigungDauer"]
+            assert expected == 30
+            current = preferences()
+            saved = change(current["revision"], 0)
+            assert not saved["isError"] and saved["structuredContent"]["persisted"], saved
+            durable = json.loads(data_file.read_text())
+            assert durable["einstellungen"]["adressen"]["smsBenachrichtigungDauer"] == 0
+            durable["einstellungen"]["adressen"]["smsBenachrichtigungDauer"] = expected
+            assert durable == before
+            before_stale = data_file.read_bytes()
+            stale = change(current["revision"], 60)
+            assert stale["isError"] and stale["structuredContent"]["code"] == "conflict", stale
+            assert preferences()["settings"]["sms_notification_duration_seconds"] == 0
+            assert data_file.read_bytes() == before_stale
+            state["sms_preferences_native_save_readback"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
             def call_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, "arguments": arguments or {}})
@@ -3108,6 +3138,8 @@ finally:
 assert state["passed"] and state.get("cleanup_verified"), state
 if TRAY_SOAK_SECONDS:
     print("Native TRAY SOAK PASS: registered product indicator and real Gtk tray menu hide/restore, synthetic navigation, window resizing and bounded resource samples; not a physical tray click/display/DPI or all-day endurance acceptance")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_SMS_PREFERENCES_ONLY") == "1":
+    print("Native MCP SMS PREFERENCES PASS: GTK/stdio, durable duration readback and stale revision rejection, all other book data unchanged")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
     print("Native MCP CALL ACTORS PASS: actual GTK/stdio owner jobs and three native handlers, exact decimal revision, actual command-store receipts and captured synthetic phone reports, unchanged book, no listener; no physical phone/conversation claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":

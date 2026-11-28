@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#192](https://github.com/maik3531/Magnolie-Organizer/issues/192):
+  MCP liest die eingestellten SMS-/Anrufwege und Kommunikationsvorgaben.
+  Nur die Anzeigedauer für SMS-Benachrichtigungen ist über dieses Werkzeug
+  änderbar. Die beiden Desktop-Oberflächen haben identische Schemas; im
+  nativen Linux-Test bestätigte das gespeicherte Buch genau diese Änderung.
+  Aktive Kommunikationswege, SMS-Aktionen und die native Windows-Abnahme
+  bleiben offen.
+
 - [#121](https://github.com/maik3531/Magnolie-Organizer/issues/121):
   Tablet unter API 35: native Dateiauswahl und Abbruch, verschlüsselter
   Export mit Passwortprüfung sowie bestätigtes Wiederherstellen mit

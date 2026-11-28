@@ -1451,6 +1451,46 @@ let declaredContracts;
         b.t.daten().einstellungen.adressen.smsBenachrichtigungDauer = originalDuration;
       }
       {
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_communication_settings_read" }))).result.structuredContent;
+        const addresses = b.t.daten().einstellungen.adressen;
+        const routes = addresses.kommunikation;
+        routes.sms = { art: "program", programm: "owned-private-sms-command" };
+        routes.anruf = { ...routes.anruf, art: "system", eingehendBenachrichtigen: false,
+          hfpAdresse: "AA:BB:CC:DD:EE:FF" };
+        addresses.smsSchedulingEnabled = false;
+        addresses.smsBenachrichtigungDauer = 60;
+        const before = JSON.stringify(routes), plans = JSON.stringify(b.t.daten().smsPlanung);
+        const first = await read(908);
+        assert.deepEqual(first.settings, { sms_route: "program", call_route: "system",
+          incoming_call_notifications: false, sms_scheduling_enabled: false, sms_notification_duration_seconds: 60 });
+        assert.ok(!JSON.stringify(first).includes("owned-private-sms-command") && !JSON.stringify(first).includes("AA:BB"));
+        const saved = await persisted(909, "organizer_sms_notification_settings_update", {
+          expected_revision: first.revision, duration_seconds: 0 });
+        assert.equal(saved.settings.sms_notification_duration_seconds, 0, "Never automatically is a configured value");
+        assert.equal(saved.persisted, true);
+        assert.equal(JSON.stringify(routes), before);
+        assert.equal(JSON.stringify(b.t.daten().smsPlanung), plans);
+        assert.equal(addresses.smsSchedulingEnabled, false);
+        const stale = await call(request(910, "tools/call", { name: "organizer_sms_notification_settings_update",
+          arguments: { expected_revision: first.revision, duration_seconds: 30 } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const current = await read(911);
+        const secondSession = "b".repeat(48);
+        assert.equal((await call(request(915, "initialize", { protocolVersion: "2025-06-18", capabilities: {},
+          clientInfo: { name: "independent-communication-session", version: "1" } }), secondSession)).result.serverInfo.name, "magnolie-organizer");
+        await call({ jsonrpc: "2.0", method: "notifications/initialized" }, secondSession);
+        const foreign = await call(request(916, "tools/call", { name: "organizer_sms_notification_settings_update",
+          arguments: { expected_revision: current.revision, duration_seconds: 30 } }), secondSession);
+        assert.equal(foreign.result.structuredContent.code, "conflict");
+        const invalid = await call(request(912, "tools/call", { name: "organizer_sms_notification_settings_update",
+          arguments: { expected_revision: current.revision, duration_seconds: 1 } }));
+        assert.equal(invalid.error.code, -32602);
+        const unrelated = await call(request(913, "tools/call", { name: "organizer_sms_notification_settings_update",
+          arguments: { expected_revision: current.revision, duration_seconds: 30, sms_scheduling_enabled: true } }));
+        assert.equal(unrelated.error.code, -32602);
+        assert.equal((await read(914)).settings.sms_notification_duration_seconds, 0);
+      }
+      {
         const read = async id => (await call(request(id, "tools/call", { name: "organizer_trash_settings_read" }))).result.structuredContent;
         const before = await read(930), contents = JSON.stringify(b.t.daten().papierkorb);
         const disabled = await persisted(931, "organizer_trash_settings_update", { expected_revision: before.revision, enabled: false, retention_days: 0 });
