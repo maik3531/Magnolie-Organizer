@@ -1093,8 +1093,9 @@ def gesamtarchiv_erzeugen(daten, plattform="linux", appversion=None,
     """Erzeugt den plattformneutralen, vollständigen Datencontainer."""
     if not isinstance(daten, dict):
         raise RuntimeError("Der Datenbestand muss ein JSON-Objekt sein.")
-    daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if normalisieren else
-             json.loads(json.dumps(daten, ensure_ascii=False)))
+    daten = json.loads(json.dumps(daten, ensure_ascii=False))
+    if normalisieren:
+        _gesamtarchiv_wiederholungen_normalisieren(daten)
     _gesamtarchiv_tokens_pruefen(daten)
     kanonisch = _gesamtarchiv_kanonisch(daten)
     wurzel = {
@@ -1129,16 +1130,15 @@ def _gesamtarchiv_data_urls(wert, feld):
 
 
 def _gesamtarchiv_wiederholungen_normalisieren(daten):
-    ergebnis = json.loads(json.dumps(daten, ensure_ascii=False))
-    for termin in ergebnis.get("termine") or []:
+    """Normalisiert die Wiederholungen im eigenen, bereits dekodierten Archiv."""
+    for termin in daten.get("termine") or []:
         if not isinstance(termin, dict) or not isinstance(termin.get("wiederholung"), dict):
             continue
         wiederholung = termin["wiederholung"]
         if str(wiederholung.get("art") or "").lower() == "monthly_weekday":
             wiederholung["art"] = "monthly"
-    _aufgaben_graph_normalisieren(ergebnis.get("aufgaben") or [])
-    ergebnis["version"] = max(7, int(ergebnis.get("version") or 0))
-    return ergebnis
+    _aufgaben_graph_normalisieren(daten.get("aufgaben") or [])
+    daten["version"] = max(7, int(daten.get("version") or 0))
 
 
 def _aufgaben_graph_normalisieren(aufgaben):
@@ -1240,7 +1240,7 @@ def gesamtarchiv_lesen_text(text, kennwort="", *, normalisieren=True):
         raise RuntimeError("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.")
     _gesamtarchiv_tokens_pruefen(daten)
     if normalisieren:
-        daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+        _gesamtarchiv_wiederholungen_normalisieren(daten)
     namen = ("termine", "aufgaben", "kontakte", "notizen", "notizgruppen",
              "notizbuecher", "jahrestage", "feiertage", "urlaube",
              "muelltermine", "personen", "schichten", "zyklusmarker",
@@ -1760,8 +1760,9 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                maximum=None, tage=None, exakt=False):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
-    archiv_daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if not exakt else
-                   json.loads(json.dumps(daten, ensure_ascii=False)))
+    archiv_daten = json.loads(json.dumps(daten, ensure_ascii=False))
+    if not exakt:
+        _gesamtarchiv_wiederholungen_normalisieren(archiv_daten)
     zeit = _journal_zeit(jetzt)
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
     quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()

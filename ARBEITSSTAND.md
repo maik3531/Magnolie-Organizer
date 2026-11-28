@@ -7,6 +7,15 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#395](https://github.com/maik3531/Magnolie-Organizer/issues/395):
+  Linux normalisiert gelesene Wiederherstellungsarchive ohne zweite JSON-Kopie.
+  Archivbytes und gelesene Daten blieben im Vergleich identisch. 25 Journal-/
+  Restore-Fälle, Archiv-Goldenvektor und Archivierung der SMS-Felder bestanden.
+  Die GTK-Vollfolge mit 250.000 Einträgen bestand für Basis und Änderung
+  bei 4,7 GiB Spitze ohne Swap. Journalphasen im Save-Worker waren kürzer;
+  über den gesamten Save hinweg blieb die Dauer bei rund 18,7 s.
+  N100 und 30-Tage-Tray-Abnahme bleiben offen.
+
 - [#867](https://github.com/maik3531/Magnolie-Organizer/issues/867) und
   [#868](https://github.com/maik3531/Magnolie-Organizer/issues/868):
   Die macOS-UI-Projektion bindet wieder die aktuelle Sendebrücke und
