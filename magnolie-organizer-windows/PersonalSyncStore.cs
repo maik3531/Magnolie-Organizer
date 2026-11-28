@@ -15,19 +15,20 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     private const int MaximumAttachmentsPerRun = 64;
     private const int MaximumChunkRows = 4096;
 
-    internal void RememberRun(string peerId, JsonObject request, long now, long? claimedExpiresMs = null)
+    internal void RememberRun(string peerId, JsonObject request, long now, long? claimedExpiresMs = null,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
     {
         if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         PersonalSyncContract.ValidateBody("personal_sync.request", request); var runId = request["run_id"]!.GetValue<string>();
         var expires = Math.Min(checked(now + RunLifetimeMs), claimedExpiresMs ?? long.MaxValue);
         if (expires <= now) throw new InvalidDataException("Personal-Sync-Lauf ist abgelaufen.");
-        var key = RunKey(peerId, runId); var existing = ReadMeta(key, "personal_run");
+        var key = RunKey(peerId, runId); var existing = ReadMeta(key, "personal_run", context);
         if (existing is not null)
         {
             if (!JsonNode.DeepEquals(existing["body"], request) || claimedExpiresMs > existing["expires_ms"]?.GetValue<long>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
             return;
         }
-        WriteMeta(key, "personal_run", new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = expires }, false);
+        WriteMeta(key, "personal_run", new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = expires }, false, context);
     }
 
     internal PersonalSyncRun? LoadRun(string peerId, string runId, long now)
@@ -493,7 +494,17 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "", format);
     }
 
-    private JsonObject? ReadMeta(string key, string type) { using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT value FROM meta WHERE key=$key"; command.Parameters.AddWithValue("$key", key); return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null; }
+    private JsonObject? ReadMeta(string key, string type,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
+    {
+        using var owned = context is null ? store.OpenDatabase() : null;
+        owned?.Open();
+        using var command = (context?.Connection ?? owned!).CreateCommand();
+        command.Transaction = context?.Transaction;
+        command.CommandText = "SELECT value FROM meta WHERE key=$key";
+        command.Parameters.AddWithValue("$key", key);
+        return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null;
+    }
     private JsonObject LoadAttachmentMetadata(string peerId, string runId, bool reply, string recordsHash, string hash, string direction, long now)
     {
         using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT size,mime,transport_policy,expires_ms,complete,metadata FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND records_hash=$records AND sha256=$hash AND direction=$direction"; Parameters(command, peerId, runId, reply); command.Parameters.AddWithValue("$records", recordsHash); command.Parameters.AddWithValue("$hash", hash); command.Parameters.AddWithValue("$direction", direction); using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidDataException("Attachment-Manifest fehlt.");
@@ -501,7 +512,18 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         if (metadata["peer_id"]?.GetValue<string>() != peerId || metadata["run_id"]?.GetValue<string>() != runId || metadata["reply"]?.GetValue<bool>() != reply || metadata["records_hash"]?.GetValue<string>() != recordsHash || metadata["sha256"]?.GetValue<string>() != hash || metadata["direction"]?.GetValue<string>() != direction || metadata["size"]?.GetValue<long>() != reader.GetInt64(0) || metadata["mime"]?.GetValue<string>() != reader.GetString(1) || metadata["transport_policy"]?.GetValue<string>() != reader.GetString(2) || metadata["expires_ms"]?.GetValue<long>() != reader.GetInt64(3) || metadata["complete"]?.GetValue<bool>() != reader.GetBoolean(4) || reader.GetInt64(3) <= now) throw new InvalidDataException("Unauthentisierte oder abgelaufene Attachment-Metadaten.");
         return metadata;
     }
-    private void WriteMeta(string key, string type, JsonObject value, bool replace) { using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = $"INSERT OR {(replace ? "REPLACE" : "IGNORE")} INTO meta(key,value) VALUES($key,$value)"; command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", store.Seal(type, key, TelefonCrypto.Canonical(value))); command.ExecuteNonQuery(); }
+    private void WriteMeta(string key, string type, JsonObject value, bool replace,
+        (SqliteConnection Connection, SqliteTransaction Transaction)? context = null)
+    {
+        using var owned = context is null ? store.OpenDatabase() : null;
+        owned?.Open();
+        using var command = (context?.Connection ?? owned!).CreateCommand();
+        command.Transaction = context?.Transaction;
+        command.CommandText = $"INSERT OR {(replace ? "REPLACE" : "IGNORE")} INTO meta(key,value) VALUES($key,$value)";
+        command.Parameters.AddWithValue("$key", key);
+        command.Parameters.AddWithValue("$value", store.Seal(type, key, TelefonCrypto.Canonical(value)));
+        command.ExecuteNonQuery();
+    }
     private void WriteApplied(SqliteConnection connection, SqliteTransaction transaction, string peerId, string runId, bool reply, string token, long now) { var key = $"personal_applied:{peerId}:{runId}:{(reply ? 1 : 0)}"; var value = store.Seal("personal_applied", key, TelefonCrypto.Canonical(new JsonObject { ["commit_token"] = token, ["applied_ms"] = now })); using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = "INSERT OR REPLACE INTO meta VALUES($key,$value)"; command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", value); command.ExecuteNonQuery(); }
     private void EnsureAttachmentCapacity(SqliteConnection connection, SqliteTransaction transaction, string peerId, string runId, bool reply, string recordsHash, string hash, string direction, bool transferExists, IReadOnlyList<(int Index, byte[] Payload)> chunks)
     {

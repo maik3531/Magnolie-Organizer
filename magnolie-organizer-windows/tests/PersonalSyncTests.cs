@@ -6,6 +6,67 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PersonalSyncTests
 {
+    internal static async Task AtomicInitialRequestAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-atomic-sync-request-" + Guid.NewGuid().ToString("N"));
+        var paths = new WindowsPaths(root);
+        var key = Enumerable.Repeat((byte)37, 32).ToArray();
+        var store = new TelefonStore(paths, key);
+        const string peerId = "55555555-5555-4555-8555-555555555555";
+        var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
+        capabilities["personal_notes_sync"]!["versions"] = new JsonArray(1, 2, 3, 14);
+        store.SavePeers([new TelefonPeer(peerId, "Synthetic", TelefonCrypto.GenerateX25519().Public,
+            StoredCapabilities: capabilities, StoredGrants: new JsonObject { ["personal_notes_sync"] = true, ["personal_tasks_sync"] = true })]);
+        store.SetLocalGrant("personal_notes_sync", true);
+        store.SetLocalGrant("personal_tasks_sync", true);
+        store.SetPersonalSettings(peerId, ownDevice: true, remoteOwnDevice: true);
+        using var pool = store.OpenDatabase();
+        try
+        {
+            using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store);
+            foreach (var (format, trigger) in new[] { (1, "auto_wifi"), (2, "auto_wifi"), (3, "auto_wifi"), (14, "auto_wifi"), (1, "manual") })
+            {
+                var runId = Guid.NewGuid().ToString("D");
+                var request = new JsonObject { ["format"] = format, ["run_id"] = runId, ["trigger"] = trigger,
+                    ["modules"] = new JsonArray("notes", "tasks") };
+                using (var db = store.OpenDatabase())
+                {
+                    db.Open();
+                    using var command = db.CreateCommand();
+                    command.CommandText = "CREATE TRIGGER reject_initial_request BEFORE INSERT ON outbox WHEN NEW.kind='personal_sync.request' BEGIN SELECT RAISE(ABORT,'injected'); END";
+                    command.ExecuteNonQuery();
+                }
+                await TestAssert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(
+                    () => coordinator.SendPersonalSyncAsync(peerId, "personal_sync.request", request),
+                    "The injected INSERT failure did not reach the caller.");
+                var reopened = new TelefonStore(paths, key);
+                var personal = new PersonalSyncStore(reopened);
+                var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                TestAssert.That(personal.LoadRun(peerId, runId, now) is null, "Failed request left persistent run metadata.");
+                using (var db = store.OpenDatabase())
+                {
+                    db.Open();
+                    using var command = db.CreateCommand();
+                    command.CommandText = "DROP TRIGGER reject_initial_request";
+                    command.ExecuteNonQuery();
+                }
+                var messageId = await coordinator.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
+                now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var auto = trigger == "auto_wifi";
+                TestAssert.That(personal.LoadRun(peerId, runId, now)?.Policy == (auto ? "wifi_only" : "any"),
+                    "The retry did not persist the correct run policy.");
+                TestAssert.That(reopened.Due(peerId, now, transport: "wifi").Any(row => row.Id == messageId) &&
+                    reopened.Due(peerId, now, transport: "bluetooth").Any(row => row.Id == messageId) == !auto,
+                    "The retry changed the transport boundary.");
+            }
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearPool(pool);
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
     internal static async Task RunAsync()
     {
         PersonalCustomConsentTests.Run();

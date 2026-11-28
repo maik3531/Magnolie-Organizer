@@ -57,8 +57,11 @@ aufgeführt.
   Lauf ebenfalls gemeinsam mit seiner Anfrage und bei einem gruppierten
   Start mit Daten und Anhängen. Zwei reale SQLite-Fehlertests ließen auf
   dem alten Stand einen Lauf zurück und bestanden nach der Korrektur,
-  zusammen mit insgesamt 105 Hosttests. Windows und die Automatik über
-  weitere freigegebene Transporte bleiben offen.
+  zusammen mit insgesamt 105 Hosttests. Windows speichert den
+  gewöhnlichen Initialrequest und seine Laufdaten ebenfalls gemeinsam.
+  Sechs native .NET-Testgruppen bestanden, darunter Rollback und Retry
+  für Formate 1/2/3/14. Die nachgelagerte Windows-Anhangsvorbereitung
+  und die Automatik über weitere freigegebene Transporte bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

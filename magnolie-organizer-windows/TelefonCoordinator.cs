@@ -943,10 +943,12 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
         if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
         if (kind == "personal_sync.batch") PersonalSyncContract.ValidateSelectedRecords(run!.Request, body["records"]!.AsArray().OfType<JsonObject>());
-        string policy;
-        if (kind == "personal_sync.request") { personalSync.RememberRun(id, body, now); policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any"; }
-        else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
-        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection); var ttl = kind == "personal_sync.request" ? 3_600_000 : 86_400_000; var messageId = store.Enqueue(id, kind, body, ttl, now, policy);
+        if (run?.Expired == true) throw new InvalidOperationException(T("The personal synchronization run has expired."));
+        TelefonConnection? connection;
+        lock (gate) online.TryGetValue(id, out connection);
+        var messageId = kind == "personal_sync.request"
+            ? store.EnqueuePersonalRequest(id, body, now)
+            : store.Enqueue(id, kind, body, 86_400_000, now, run!.Policy);
         if (connection is not null) await connection.PumpOutboxNowAsync(); return messageId;
     }
 

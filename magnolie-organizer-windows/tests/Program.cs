@@ -262,6 +262,7 @@ runner.Add("Tray appearance / actual encrypted personal time actor IO", TraySync
 runner.Add("Tray appearance / native visual lease and saved developer gate", TrayAppearanceTests.VisualLeaseAsync);
 runner.Add("Tray appearance / actual KDE TLS without SMS", KdeConnectTests.TrayProjectionAsync);
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
+runner.Add("Personal synchronization initial request / atomic run registration", PersonalSyncTests.AtomicInitialRequestAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
 runner.Add("Video preview container / bounded memory input refuses external references", DeviceFileVideoPreviewTests.ContainerAsync);
 runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);

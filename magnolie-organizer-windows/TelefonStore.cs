@@ -761,6 +761,17 @@ internal sealed partial class TelefonStore
     }
 
     internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any", string? actorRunId = null)
+        => EnqueueCore(peerId, kind, body, ttlMs, now, transportPolicy, actorRunId, rememberRequest: false);
+
+    internal string EnqueuePersonalRequest(string peerId, JsonObject request, long now)
+    {
+        PersonalSyncContract.ValidateBody("personal_sync.request", request);
+        var policy = request["trigger"]!.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any";
+        return EnqueueCore(peerId, "personal_sync.request", request, 3_600_000, now, policy, null, rememberRequest: true);
+    }
+
+    private string EnqueueCore(string peerId, string kind, JsonObject body, long ttlMs, long now,
+        string transportPolicy, string? actorRunId, bool rememberRequest)
     {
         if (PhoneCameraControl.IsReserved(kind, body)) throw new InvalidDataException("webcam_ephemeral_control_required");
         if (PhoneScreenControl.IsReserved(kind, body)) throw new InvalidDataException("screen_ephemeral_control_required");
@@ -790,6 +801,8 @@ internal sealed partial class TelefonStore
             }
             using (var size = connection.CreateCommand())
             { size.Transaction = transaction; size.CommandText = "SELECT COALESCE(SUM(length(payload)),0) FROM outbox"; if ((long)(size.ExecuteScalar() ?? 0L) + payload.Length > OutboxLimitBytes) throw new InvalidOperationException("queue_full"); }
+            if (rememberRequest)
+                new PersonalSyncStore(this).RememberRun(peerId, body, now, context: (connection, transaction));
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             command.CommandText = "INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES($id,$peer,$kind,$created,$expires,$payload,0,$now,'',$policy)";
             command.Parameters.AddWithValue("$id", id); command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$kind", kind);
