@@ -24,6 +24,7 @@ SUITES = {
     'permissions': ['permissions', 'permissions-revoked'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'print': ['basics', 'print'],
+    'print-domains': ['print-contacts', 'print-tasks', 'print-calendar'],
     'notifications': ['notifications'],
     'absolute-notifications': ['absolute-notifications'],
 }
@@ -210,8 +211,23 @@ def main(argv=None):
                 session.run_test(owned, state, 'permissions-revoked', config.test_timeout)
                 return 0
 
+            def print_domains(owned, state):
+                failed = False
+                for stage in config.test:
+                    try:
+                        session.run_test(owned, state, stage, config.test_timeout)
+                    except (session.Deadline, session.Stopped):
+                        raise
+                    except RuntimeError as error:
+                        # A failed PDF assertion in one domain does not
+                        # prevent the independent stage in the next process.
+                        owned.record('print-stage-failed', test=stage, reason=str(error))
+                        failed = True
+                return int(failed)
+
+            native_suite = {'permissions': permissions, 'print-domains': print_domains}.get(opts.suite)
             code = session.run_session(owner, config, after_boot=install,
-                                       run_tests=permissions if opts.suite == 'permissions' else None)
+                                       run_tests=native_suite)
         except session.Stopped as exc:
             code = 128 + owner.signal
             owner.record('interrupted', reason=str(exc))
@@ -227,7 +243,8 @@ def main(argv=None):
                 if owner.state.get('booted') and not owner.signal and session.time.monotonic() < owner.deadline:
                     for name, command in {
                         'android-test-log': ['logcat', '-b', 'all', '-d', '-v', 'threadtime', '-s',
-                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I', 'MagnolieStartup:D'],
+                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I', 'MagnolieStartup:D',
+                            'PrintActivity:D', 'RemotePrintDocument:D', 'PrintSpoolerService:D', 'PrintDocumentAdapterDelegate:D', 'PdfManipulationService:D'],
                         'app-exit-info': ['shell', 'dumpsys', 'activity', 'exit-info',
                             'io.gitlab.maik3531.magnolieorganizer.tablet.beta'],
                         **({'webview-provider-state': ['shell', 'dumpsys', 'webviewupdate'],

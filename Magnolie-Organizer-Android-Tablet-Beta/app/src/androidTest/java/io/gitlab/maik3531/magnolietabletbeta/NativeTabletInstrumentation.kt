@@ -85,6 +85,11 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "timezone-interop" -> timezoneInterop()
                 "fault" -> fault()
                 "print" -> printPdf()
+                "print-contacts" -> printAreaPdf("adressen", "contacts", "Tablet, Synthetic", "NativeScenario.contact()")
+                "print-tasks" -> printAreaPdf("aufgaben", "tasks", "Synthetic PDF task",
+                    "NativeScenario.task('Synthetic PDF task', OrganizerTest.isoHeute(), '11:00')")
+                "print-calendar" -> printAreaPdf("kalender", "calendar", "Synthetic native calendar",
+                    "NativeScenario.calendar(OrganizerTest.isoHeute())")
                 "notifications" -> notifications(false)
                 "absolute-notifications" -> absoluteNotifications()
                 "seed-reboot" -> notifications(true)
@@ -1082,22 +1087,60 @@ class NativeTabletInstrumentation : Instrumentation() {
         SystemClock.sleep(300); dump("print-selection")
         js("NativeScenario.click('#druck-schleier button','All'); return true")
         tapExpression("document.querySelector('#druck-schleier .druck-fuss button')")
+        savePrintedPdf("tablet-print.pdf")
+    }
+
+    private fun printAreaPdf(section: String, name: String, expected: String, seed: String) {
+        launch()
+        scenario(seed)
+        saved()
+        val filename = "tablet-$name.pdf"
+        documentControl(filename, delete = true)
+        raw("OrganizerTest.oeffneDruckvorschau(null, '$section')")
+        raw("NativeScenario.click('#druck-schleier button', 'All')")
+        waitFor("print preview contains the saved $name fixture", 12) {
+            value("document.querySelector('#druck-schleier .druck-vorschau')?.textContent.includes(${JSONObject.quote(expected)})") == "true"
+        }
+        raw("document.querySelector('#druck-schleier .druck-fuss button').click()")
+        savePrintedPdf(filename)
+    }
+
+    private fun savePrintedPdf(filename: String) {
         waitFor("Android print spooler") {nodes().any {it.packageName?.toString()?.contains("printspooler")==true}}
         dump("print-spooler"); capture("print-spooler")
         val printer=nodes().firstOrNull {it.text?.toString()?.contains("Save as PDF")==true}
         if(printer==null) {clickNode("Select a printer"); clickNode("Save as PDF")}
-        val save=nodes().firstOrNull {it.contentDescription?.toString() in listOf("Save to PDF","Save as PDF","Save") || it.viewIdResourceName?.endsWith("/print_button")==true}
-            ?: error("Print PDF action missing")
-        check(save.performAction(AccessibilityNodeInfo.ACTION_CLICK)); SystemClock.sleep(500)
-        selectProvider(); setNativeText("tablet-print.pdf")
-        confirmDocumentDestination("tablet-print.pdf")
+        var save: AccessibilityNodeInfo? = null
+        waitFor("Android preview page and enabled Save to PDF action", 20) {
+            val printNodes = nodes().filter { it.packageName?.toString() == "com.android.printspooler" && it.isVisibleToUser }
+            checkPrintSpoolerError(printNodes)
+            val page = printNodes.any { it.viewIdResourceName == "com.android.printspooler:id/page_number" && !it.text.isNullOrBlank() }
+            save = printNodes.firstOrNull { it.isEnabled && it.viewIdResourceName == "com.android.printspooler:id/print_button" }
+            page && save != null
+        }
+        check(save!!.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+        waitFor("Android document picker after generating PDF", 15) {
+            val snapshot = nodes()
+            checkPrintSpoolerError(snapshot)
+            snapshot.any {
+                it.packageName?.toString() in setOf("com.android.documentsui", "com.google.android.documentsui")
+            }
+        }
+        selectProvider(); setNativeText(filename)
+        confirmDocumentDestination(filename)
         waitFor("Android print flow returned to Organizer", 25) {
             uiAutomation.rootInActiveWindow?.packageName?.toString() == targetContext.packageName
         }
-        val bytes=documentControl("tablet-print.pdf")
+        val bytes=documentControl(filename)
         check(bytes.size >= 5 && String(bytes.copyOfRange(0,5))=="%PDF-") {"Invalid PDF output (${bytes.size} bytes)"}
-        File(out,"tablet-print.pdf").writeBytes(bytes)
+        File(out,filename).writeBytes(bytes)
         pass("actual PrintManager/Print UI/SAF PDF file",bytes.size)
+    }
+
+    private fun checkPrintSpoolerError(snapshot: List<AccessibilityNodeInfo>) {
+        val retry = snapshot.any { it.isVisibleToUser && it.viewIdResourceName == "com.android.printspooler:id/action_button" }
+        val problem = snapshot.firstOrNull { it.isVisibleToUser && it.viewIdResourceName == "com.android.printspooler:id/message" }
+        check(!retry || problem == null) { "Android PrintSpooler rejected PDF: ${problem?.text}" }
     }
     private fun customTimeKeyboard() {
         launch(); shell("settings put system time_12_24 24")

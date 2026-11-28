@@ -13,9 +13,9 @@ window.NativeScenario = (() => {
     $('#aufgabe-erinnern').checked=due; click('#inhalt-rechts button','Add'); await tick(); T.speichereJetzt();
     const record=T.daten().aufgaben.find(x=>!existing.has(x.id)&&x.titel===title); if(!record) throw Error('Task editor did not save a new record'); return record;
   }
-  async function calendar() {
+  async function calendar(date='2030-05-10') {
     const existing=new Set(T.daten().termine.map(x=>x.id));
-    await T.wechsel('kalender'); T.oeffneTerminBlatt(null,'2030-05-10'); await tick();
+    await T.wechsel('kalender'); T.oeffneTerminBlatt(null,date); await tick();
     set('#tb-titel','Synthetic native calendar'); set('#tb-ort','Tablet test room');
     if($('#tb-ganztaegig').checked) $('#tb-ganztaegig').click();
     set('#tb-zeit','10:00'); set('#tb-endzeit','11:00'); $('#tb-fertig').click(); await tick(); T.speichereJetzt();

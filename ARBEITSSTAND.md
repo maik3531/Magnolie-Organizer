@@ -26,7 +26,11 @@ aufgeführt.
   Die isolierte Tablet-Druck-WebView lädt ihr Hauptdokument direkt.
   Die Android-Druckvorschau einer Notiz und die Speicherung über den
   Dateidialog bestanden unter API 35. Die erzeugte PDF enthielt den
-  erwarteten Notiztext. Druck weiterer Bereiche bleibt Teil von #121.
+  erwarteten Notiztext. Kontakte, Aufgaben und der Monatskalender
+  bestanden unter API 35 ebenfalls vom App-Editor über die Android-
+  Vorschau bis zur gespeicherten PDF. Der extrahierte Text enthielt
+  die Kontaktkarte mit Notiz, die Aufgabe sowie den Termin samt Raum.
+  Weitere Druckbereiche bleiben Teil von #121.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere
