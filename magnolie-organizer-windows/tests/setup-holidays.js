@@ -83,6 +83,21 @@ for (const web of [path.join(root, "magnolie-organizer/web"), path.join(root, "m
     try { assert.equal(b.t.daten().einstellungen.adressen.route, false); b.start(); assert.equal(b.holidays().length, 0); count++; }
     finally { b.close(); }
   }
+  for (const [country, state, code] of [
+    ["FR", "La Réunion", "FR-RU"], ["BE", "Vlaamse Gemeenschap", "BE-NL"], ["NL", "NL-MI", "NL-MI"]
+  ]) {
+    const b = boot(web, {}, selection({ address: { ...address, country, state },
+      schoolHolidays: true, schoolHolidayRegion: code }));
+    try {
+      const ort = b.t.daten().einstellungen.ort;
+      assert.equal(ort.land, country);
+      assert.equal(ort.region, "", "An address cannot select a separate school area");
+      assert.equal(ort.setupFerienAbruf, false);
+      b.start();
+      assert.equal(b.holidays().length, 0);
+      count++;
+    } finally { b.close(); }
+  }
   const existing = { einstellungen: { adressen: { absender: "Existing 2\n8000 Zürich", route: false,
     land: "CH", landCode: "CH", karten: "openstreetmap" }, ort: { land: "CH", region: "CH-ZH", ferien: true } } };
   for (const setup of [undefined, selection({ setupSkipped: true }), selection({ address: { country: "DE" }, addressChanged: false })]) {

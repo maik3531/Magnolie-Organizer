@@ -56,6 +56,16 @@ Older native hosts without `abrufbereiche` merge returned rows without deleting
 unmatched old cache entries. The field itself is transient and introduces no
 persistent book-format migration or additional permission.
 
+In the regular Desktop settings and MCP (#854), France uses OpenHolidays
+school subdivisions; Belgium and the Netherlands use the explicit school
+groups verified in #857. A group request may replace only that group's
+school rows and the independent nationwide public calendar. Local public
+rows and other groups remain unchanged. Missing or unconfirmed school years
+are merged without removing cached school rows; a selected school area
+must have provider evidence at both calendar-year edges before replacement.
+Choosing “All” still sends the unfiltered country request. A mailing address
+in setup does not select one of these separate school areas.
+
 Regression entry points: `tests/holiday-cache.js` and
 `tests/holiday-cache-mcp.js` in the Windows source tree execute both complete
 desktop frontends. Native provider/source-host tests and Mac/Tablet service

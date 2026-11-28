@@ -299,6 +299,69 @@ for (const wrong of [
   } finally { b.close(); }
 });
 
+for (const [land, region, other, administrative, groups] of [
+  ["BE", "BE-FR", "BE-NL", "BE-WAL", ["BE-DE", "BE-FR", "BE-NL"]],
+  ["NL", "NL-NO", "NL-MI", "NL-NH", ["NL-NO", "NL-MI", "NL-ZU"]]
+]) {
+  const groupRow = (id, code = region, values = {}) => entry(id, { name: id, country: land, region: code, regions: [code], ...values });
+  const national = id => groupRow(id, "", { art: "public-holiday", nationwide: true, regions: [] });
+  const local = id => groupRow(id, administrative, { art: "public-holiday" });
+  const coverage = [scope("", "public-holiday", 2026, land), scope(region, "school-holiday", 2026, land)];
+  test(`${land}: normal group picker and deliberate unfiltered request`, web => {
+    const b = boot(web, [], { land, region: "", alleRegionen: true });
+    try {
+      const request = b.start(), d = b.w.document;
+      assert.deepEqual([...d.querySelector("#ort-region").options].map(node => node.value), ["", ...groups]);
+      assert.equal(d.querySelector("#ort-alle-regionen"), null);
+      assert.deepEqual([request.region, request.regionen, request.regionErforderlich], ["", [], false]);
+      b.reply({});
+      const picker = d.querySelector("#ort-region");
+      picker.value = region; picker.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+      assert.equal(b.messages.filter(item => item.cmd === "feiertage").length, 1);
+      assert.equal(b.start().region, region);
+    } finally { b.close(); }
+  });
+  test(`${land}: a selected group replaces only its term dates and the national public calendar`, web => {
+    const b = boot(web, [groupRow("old-school"), groupRow("other-school", other), national("old-national"), local("old-local")], { land, region });
+    try {
+      b.start();
+      b.reply({ abrufbereiche: coverage, feiertage: [
+        groupRow("new-school", region, { regions: [region, other] }),
+        groupRow("winter-start", region, { von: "2025-12-22", bis: "2026-01-04" }),
+        groupRow("winter-end", region, { von: "2026-12-21", bis: "2027-01-04" }),
+        national("new-national"), local("new-local") ] });
+      assert.ok(find(b, "other-school") && find(b, "old-local"));
+      assert.equal(find(b, "old-school"), undefined);
+      assert.equal(find(b, "old-national"), undefined);
+      assert.deepEqual(b.entries().find(item => item.name === "new-school").regions, [region]);
+      assert.ok(b.entries().some(item => item.name === "new-national"));
+      assert.ok(!b.entries().some(item => item.name === "new-local"));
+      assert.ok(b.t.feiertageAm("2026-10-12", true).some(item => item.name === "new-national"));
+      const reopened = boot(web, [], {}, b.save());
+      try { assert.deepEqual(reopened.entries(), b.entries()); } finally { reopened.close(); }
+    } finally { b.close(); }
+  });
+  test(`${land}: a missing or wrong school group cannot erase dates or block the national calendar`, web => {
+    const b = boot(web, [groupRow("old-school"), national("old-national")], { land, region });
+    try {
+      b.start();
+      b.reply({ abrufbereiche: coverage, feiertage: [groupRow("wrong-school", other), national("new-national")] });
+      assert.ok(find(b, "old-school"));
+      assert.equal(find(b, "old-national"), undefined);
+      assert.ok(b.entries().some(item => item.name === "new-national"));
+      assert.ok(!b.entries().some(item => item.name === "wrong-school"));
+      b.start();
+      b.reply({ abrufbereiche: coverage, feiertage: [groupRow("first-term", region, { von: "2025-12-22", bis: "2026-01-04" })] });
+      assert.ok(find(b, "old-school"));
+      assert.ok(b.entries().some(item => item.name === "first-term"));
+      b.start();
+      b.reply({ abrufbereiche: coverage, feiertage: [] });
+      assert.ok(find(b, "old-school"));
+      assert.ok(b.entries().some(item => item.name === "new-national"));
+    } finally { b.close(); }
+  });
+}
+
 const results = [];
 for (const web of ["magnolie-organizer/web", "magnolie-organizer-windows/app/web"]) {
   for (const { name, fn } of cases) {

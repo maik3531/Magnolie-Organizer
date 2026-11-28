@@ -24,7 +24,8 @@ aufgeführt.
   Gruppenidentität; lokale oder unvollständige Antworten bestätigen keine
   vollständige Abdeckung. Je 90 Gruppenfälle im Python- und C#-Host
   bestanden; bytegleiche Swift-/Kotlin-Nachweise: 98 und 112 Fälle.
-  Normale Auswahl, Ersteinrichtung und Desktop-Importer bleiben in #854;
+  Die reguläre Desktop-Auswahl und ihr Cachevertrag sind in #854 ergänzt;
+  die Auswahlschritte der Ersteinrichtung bleiben dort offen.
   die native Paketabnahme bleibt in #113.
 
 - [#854](https://github.com/maik3531/Magnolie-Organizer/issues/854):
@@ -36,8 +37,16 @@ aufgeführt.
   sowie offene und zonengebundene Abrufe mit aufgezeichneten Anbieterantworten
   geprüft. Quelle: [OpenHolidays API](https://www.openholidaysapi.org/en/),
   [Daten unter ODbL 1.0](https://github.com/openpotato/openholidaysapi.data).
-  Belgien/Niederlande in der normalen Auswahl, Ersteinrichtung, Handbuch
-  und native Paketabnahme bleiben offen.
+  Auch alle sechs belgischen und niederländischen Schulgruppen sind jetzt
+  in der normalen Desktop-Auswahl und im MCP verfügbar. Gruppenabrufe
+  aktualisieren die gewählte Schuleinheit getrennt von den landesweiten
+  Feiertagen; lokale Feiertage und andere Gruppen bleiben erhalten. Die
+  Auswahl allein löst keinen Abruf aus. 106 Desktop-DOM-, 14 MCP- und
+  94 Einrichtungs-DOM-Fälle in 20 Sprachen bestanden. Beide Desktopskripte
+  verarbeiteten acht echte Anbieterantwortsätze (sechs Gruppen, beide
+  Länder ohne Gruppenfilter). Die in den Adressschritt eingetragene
+  Region gilt dabei nicht als eigene Schulferienwahl. Ersteinrichtung,
+  Handbuch, Lückenanzeige und native Paketabnahme bleiben offen.
 
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten

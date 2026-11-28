@@ -7,14 +7,14 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
 const plain = value => JSON.parse(JSON.stringify(value));
 const old = (id, country = "DE", region = "DE-SN", art = "public-holiday") => ({ id, country, region, regions: [region], art,
   von: "2026-11-01", bis: "2026-11-01", name: "MCP cache fixture", nationwide: false });
-const modes = ["success", "failed HTTP", "failed save", "France scoped", "France foreign"];
+const modes = ["success", "failed HTTP", "failed save", "France scoped", "France foreign", "Belgium scoped", "Netherlands foreign"];
 const results = [];
 (async () => {
   for (const web of harness.exports.roots) {
     for (const mode of modes) {
-      const france = mode.startsWith("France");
-      const [land, region] = france ? ["FR", "FR-ZA"] : ["DE", "DE-SN"];
-      const b = await harness.exports.boot(web, { einstellungen: { ort: { land, region, ferien: france } },
+      const [land, region] = ({ France: ["FR", "FR-ZA"], Belgium: ["BE", "BE-FR"], Netherlands: ["NL", "NL-NO"] })[mode.split(" ")[0]] || ["DE", "DE-SN"];
+      const school = land !== "DE", foreign = mode.endsWith("foreign");
+      const b = await harness.exports.boot(web, { einstellungen: { ort: { land, region, ferien: school } },
         feiertage: [old("local", land, region), old("foreign", "AT", "AT-9"), old("school", land, region, "school-holiday")] });
       const watchdog = setTimeout(() => { console.error(`Holiday MCP timeout: ${web}/${mode}`); process.exit(1); }, 20000);
       try {
@@ -30,7 +30,7 @@ const results = [];
         await call(request(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "holiday-fixture", version: "1" } }));
         await call({ jsonrpc: "2.0", method: "notifications/initialized" });
         const read = (await call(request(2, "tools/call", { name: "organizer_holidays_read" }))).result.structuredContent;
-        if (france) assert.ok(read.countries.find(item => item.code === "FR").regionen.some(item => item[0] === region));
+        if (school) assert.ok(read.countries.find(item => item.code === land).regionen.some(item => item[0] === region));
         const before = plain(b.t.daten().feiertage), settings = plain(b.t.daten().einstellungen.ort);
         const post = b.w.webkit.messageHandlers.regression.postMessage;
         let nativeRequest, saves = 0;
@@ -38,12 +38,13 @@ const results = [];
           post(text); const message = JSON.parse(text);
           if (message.cmd === "feiertage") {
             nativeRequest = message;
-            const rows = !france ? [] : mode === "France foreign"
-              ? [old("provider", "BE", "BE-FR", "school-holiday")]
-              : [{ ...old("provider", land, region, "school-holiday"), name: "Verified Zone A fixture" }];
+            const rows = !school ? [] : foreign
+              ? [old("provider", "AT", "AT-9", "school-holiday")]
+              : [{ ...old("provider", land, region, "school-holiday"), name: `Verified ${region} fixture` }];
             b.w.App.feiertageErgebnis(mode === "failed HTTP" ? { requestId: message.requestId, fehler: "Fixture unavailable" } : {
               requestId: message.requestId, jahre: message.jahre, feiertage: rows,
-              abrufbereiche: [{ country: land, region, art: "public-holiday", von: "2026-01-01", bis: "2026-12-31" }] });
+              abrufbereiche: [{ country: land, region: land === "BE" || land === "NL" ? "" : region,
+                art: "public-holiday", von: "2026-01-01", bis: "2026-12-31" }] });
           }
           if (message.cmd === "speichern") {
             saves++;
@@ -52,18 +53,18 @@ const results = [];
         };
         const response = await call(request(3, "tools/call", { name: "organizer_holidays_retrieve", arguments: { expected_revision: read.revision, years: [2026] } }));
         assert.deepEqual(nativeRequest.jahre, [2026]);
-        assert.equal(nativeRequest.region, region); assert.equal(nativeRequest.ferien, france);
-        assert.equal(nativeRequest.regionErforderlich, !france);
+        assert.equal(nativeRequest.region, region); assert.equal(nativeRequest.ferien, school);
+        assert.equal(nativeRequest.regionErforderlich, !school);
         if (mode === "success") {
           assert.equal(response.result.isError, false, JSON.stringify(response)); assert.equal(response.result.structuredContent.persisted, true);
           assert.equal(response.result.structuredContent.imported_count, 0); assert.ok(saves > 0);
           assert.deepEqual(plain(b.t.daten().feiertage).map(item => item.id), ["foreign", "school"]);
-        } else if (mode === "France scoped") {
+        } else if (mode.endsWith("scoped")) {
           assert.equal(response.result.structuredContent.persisted, true);
           assert.equal(response.result.structuredContent.imported_count, 1);
           assert.ok(saves > 0);
-          assert.ok(JSON.parse(b.saves().at(-1).text).feiertage.some(item => item.name === "Verified Zone A fixture"));
-        } else if (mode === "failed HTTP" || mode === "France foreign") {
+          assert.ok(JSON.parse(b.saves().at(-1).text).feiertage.some(item => item.name === `Verified ${region} fixture`));
+        } else if (mode === "failed HTTP" || foreign) {
           assert.equal(response.result.isError, true, JSON.stringify(response));
           assert.equal(saves, 0);
           assert.deepEqual(plain(b.t.daten().feiertage), before, "Failed fetch retains original cache");

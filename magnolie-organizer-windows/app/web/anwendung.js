@@ -8911,7 +8911,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     o.landName = S(or.landName);
     o.region = S(or.region).toUpperCase();
     o.regionName = S(or.regionName);
-    o.alleRegionen = o.land !== "FR" && !!or.alleRegionen;
+    o.alleRegionen = !schulferienOhneRegion(o.land) && !!or.alleRegionen;
     o.ferien = or.ferien === undefined ? true : !!or.ferien;
     o.feiertage = or.feiertage !== false;
     o.setupFerienAbruf = or.setupFerienAbruf === true && o.ferien;
@@ -26363,7 +26363,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const landEintrag = LAENDER.find((eintrag) => eintrag.code === land);
     const vergleich = region.toLocaleLowerCase().trim();
     const aliasCode = land === "DE" && vergleich === "sachsen" ? "DE-SN" : "";
-    const treffer = landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
+    const eigeneSchulferienwahl = schulferienOhneRegion(land);
+    const treffer = !eigeneSchulferienwahl && landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
       [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
     const ferienZustimmung = roh.schoolHolidays === true && !!treffer &&
       roh.schoolHolidayRegion === treffer[0];
@@ -26376,7 +26377,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         eigene.land = land;
       }
     }
-    if (ortUebernehmen || ferienZustimmung) {
+    if (!eigeneSchulferienwahl && (ortUebernehmen || ferienZustimmung)) {
       const fremdesLand = /^[A-Z]{2}-/i.test(region) && !region.toUpperCase().startsWith(land + "-");
       ort.region = treffer ? treffer[0] : fremdesLand ? "" : region.slice(0, 80);
       ort.regionName = treffer ? _(treffer[1]) : ort.region;
@@ -27562,6 +27563,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* Länder und Regionen des Feiertagsdienstes. Für den deutschsprachigen
      Raum sind die Bundesländer bzw. Kantone hinterlegt, weil Feiertage und
      Schulferien dort regional geregelt sind. */
+  function hatSchulferiengruppen(land) {
+    return land === "BE" || land === "NL";
+  }
+
+  function schulferienOhneRegion(land) {
+    return land === "FR" || hatSchulferiengruppen(land);
+  }
+
   const LAENDER = [
     { code: "DE", name: msgid("Germany"), regionen: [
       ["DE-BW", msgid("Baden-Württemberg")], ["DE-BY", msgid("Bavaria")], ["DE-BE", msgid("Berlin")],
@@ -27588,8 +27597,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ["CH-ZG", msgid("Zug")], ["CH-ZH", msgid("Zurich")]] },
     { code: "LI", name: msgid("Liechtenstein"), regionen: [] },
     { code: "LU", name: msgid("Luxembourg"), regionen: [] },
-    { code: "BE", name: msgid("Belgium"), regionen: [] },
-    { code: "NL", name: msgid("Netherlands"), regionen: [] },
+    { code: "BE", name: msgid("Belgium"), regionen: [
+      ["BE-DE", "Deutschsprachige Gemeinschaft"], ["BE-FR", "Communauté française"], ["BE-NL", "Vlaamse Gemeenschap"]] },
+    { code: "NL", name: msgid("Netherlands"), regionen: [
+      ["NL-NO", "Regio Noord"], ["NL-MI", "Regio Midden"], ["NL-ZU", "Regio Zuid"]] },
     // OpenHolidays school subdivisions; the labels use their local names.
     { code: "FR", name: msgid("France"), regionen: [
       ["FR-ZA", "Zone A"], ["FR-ZB", "Zone B"], ["FR-ZC", "Zone C"], ["FR-CO", "Corse"],
@@ -32890,7 +32901,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       regionZeile.textContent = "";
       const land = LAENDER.find((l) => l.code === landWahl.value);
       if (!land || !land.regionen.length) return;
-      const landesweiterAbruf = land.code === "FR";
+      const landesweiterAbruf = schulferienOhneRegion(land.code);
       const wahl = auswahlFeld(
         [["", landesweiterAbruf ? _("All") : _("— please select —")]].concat(
           land.regionen.map((r) => [r[0], _(r[1])])), o.region);
@@ -33047,7 +33058,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function feiertagsAbrufDaten(o, land, jahre) {
     return { land: o.land, region: o.alleRegionen ? "" : o.region,
       regionen: o.alleRegionen ? land.regionen : [],
-      regionErforderlich: land.code !== "FR" && land.regionen.length > 0,
+      regionErforderlich: !schulferienOhneRegion(land.code) && land.regionen.length > 0,
       jahre, ferien: !!o.ferien };
   }
 
@@ -42150,7 +42161,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (values.region) next.alleRegionen = false;
     }
     if (values.alleRegionen !== undefined) {
-      if (values.alleRegionen && (!country?.regionen.length || country.code === "FR")) return false;
+      if (values.alleRegionen && (!country?.regionen.length || schulferienOhneRegion(country.code))) return false;
       next.alleRegionen = values.alleRegionen; next.setupFerienAbruf = false;
     }
     if (values.feiertage !== undefined) next.feiertage = values.feiertage;
@@ -42171,38 +42182,48 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const country = /^[A-Z]{2}$/.test(anfrage?.land || "") ? anfrage.land : "";
     const land = LAENDER.find(item => item.code === country);
     const requested = new Set(Array.isArray(anfrage?.jahre) ? anfrage.jahre : []);
-    if (country === "FR" && (years.length !== requested.size || years.some(year => !requested.has(year)))) return null;
+    const region = String(anfrage?.region || "");
+    const schulgruppe = hatSchulferiengruppen(country) && region !== "";
+    const schulferiengebiete = schulferienOhneRegion(country);
+    if (schulferiengebiete && (years.length !== requested.size || years.some(year => !requested.has(year)))) return null;
     const targets = new Set(anfrage?.alleRegionen ? (land?.regionen || []).map(item => item[0])
-      : [String(anfrage?.region || "")]);
+      : [region]);
     const rawRows = Array.isArray(value.feiertage) ? value.feiertage : [];
-    const istSchulferienzeile = item => item.art === "school-holiday" || item.art === "ferien";
-    const rows = country !== "FR" ? rawRows : rawRows.filter(item => {
-      if (item?.country !== country || !gueltigesISO(item.von) || !gueltigesISO(item.bis) ||
-          item.bis < item.von || !item.name || !years.some(year => item.von <= `${year}-12-31` && item.bis >= `${year}-01-01`)) return false;
+    const zeilenArt = item => enumWert(item?.art, { ferien: "school-holiday", "school-holiday": "school-holiday",
+      feiertag: "public-holiday", "public-holiday": "public-holiday" }, "");
+    const unpassendeArten = new Set();
+    const rows = !schulferiengebiete ? rawRows : rawRows.filter(item => {
+      const art = zeilenArt(item);
+      if (schulgruppe && item?.country === country && art === "public-holiday" && item.nationwide !== true) return false;
+      if (!art || item?.country !== country || !gueltigesISO(item.von) || !gueltigesISO(item.bis) ||
+          item.bis < item.von || !item.name || !years.some(year => item.von <= `${year}-12-31` && item.bis >= `${year}-01-01`)) {
+        unpassendeArten.add(art);
+        return false;
+      }
       const regions = feiertagRegionen(item);
-      const passt = !anfrage.region || Array.isArray(regions) && regions.includes(anfrage.region);
-      if (istSchulferienzeile(item)) return anfrage.ferien && passt;
-      return ["public-holiday", "feiertag"].includes(item.art) && (item.nationwide === true || passt);
+      const imGebiet = !region || Array.isArray(regions) && regions.includes(region);
+      const zulassen = art === "school-holiday" ? anfrage.ferien && imGebiet : item.nationwide === true || imGebiet;
+      if (!zulassen) unpassendeArten.add(art);
+      return zulassen;
     });
-    if (country === "FR" && rawRows.length && !rows.length) return null;
+    if (unpassendeArten.size && !rows.length) return null;
     const scopeYears = new Map();
     // #855: a year alone is not a successful country/type/region retrieval.
     // Old hosts without this additive field can merge rows, but cannot delete.
     for (const scope of (Array.isArray(value.abrufbereiche) ? value.abrufbereiche : []).slice(0, 156)) {
-      if (!scope || !country || scope.country !== country || !targets.has(scope.region) ||
-          !["public-holiday", "school-holiday"].includes(scope.art) ||
+      if (!scope || !country || scope.country !== country || !["public-holiday", "school-holiday"].includes(scope.art) ||
+          (schulgruppe && scope.art === "public-holiday" ? scope.region !== "" : !targets.has(scope.region)) ||
           scope.art === "school-holiday" && (!anfrage?.ferien || land?.regionen.length && !scope.region)) continue;
       const year = Number(String(scope.von || "").slice(0, 4));
       if (!years.includes(year) || !requested.has(year) || scope.von !== `${year}-01-01` ||
           scope.bis !== `${year}-12-31`) continue;
-      if (country === "FR") {
-        if (rows.length !== rawRows.length) continue;
-        // Some French calendars stop at the end of the summer term. An
-        // explicit school subdivision must cover both holiday-year edges
-        // before absent entries can be removed; the country view only merges.
-        if (scope.art === "school-holiday" && ![scope.von, scope.bis].every(edge =>
-          rows.some(item => istSchulferienzeile(item) && item.von <= edge && edge <= item.bis))) continue;
-      }
+      if (country === "FR" && unpassendeArten.size) continue;
+      // Some providers have only published the first part of the school year.
+      // Without both calendar-year edges, merge available dates without deleting old ones.
+      if (schulferiengebiete && scope.art === "school-holiday" && ![scope.von, scope.bis].every(edge =>
+        rows.some(item => zeilenArt(item) === "school-holiday" && item.von <= edge && edge <= item.bis))) continue;
+      if (schulgruppe && (unpassendeArten.has("") || unpassendeArten.has(scope.art) ||
+          !rows.some(item => zeilenArt(item) === scope.art && item.von <= scope.bis && item.bis >= scope.von))) continue;
       const key = [scope.country, scope.art, scope.region].join("|");
       if (!scopeYears.has(key)) scopeYears.set(key, new Set());
       scopeYears.get(key).add(year);
@@ -42220,7 +42241,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const to = Number((item.bis || item.von).slice(0, 4));
       if (!nation || !gueltigesISO(item.von) || !gueltigesISO(item.bis || item.von) ||
           to < from || to - from + 1 > years.length) return false;
-      const whole = scopeYears.get([nation, item.art, ""].join("|"));
+      const whole = schulgruppe && item.art === "public-holiday" && item.nationwide !== true
+        ? undefined : scopeYears.get([nation, item.art, ""].join("|"));
       const local = region ? scopeYears.get([nation, item.art, region].join("|")) : undefined;
       // A corrected boundary-spanning period can move outside a requested year.
       // Only full date coverage proves an absent old period can be removed.
@@ -42266,10 +42288,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let imported = 0;
     for (const item of rows) {
       if (!item || !gueltigesISO(item.von) || !item.name) continue;
-      const clean = { id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
+      let clean = { id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
         art: enumWert(item.art, { ferien: "school-holiday", "school-holiday": "school-holiday", feiertag: "public-holiday", "public-holiday": "public-holiday" }, "public-holiday"),
         region: String(item.region || ""), regionName: String(item.regionName || ""), country: /^[A-Z]{2}$/.test(item.country || "") ? item.country : country,
         nationwide: item.nationwide === true, regions: Array.isArray(item.regions) ? [...new Set(item.regions.map(S).filter(code => /^[A-Z0-9-]{1,64}$/.test(code)))] : [] };
+      if (schulgruppe && clean.art === "school-holiday" && !clean.nationwide) clean = withRegions(clean, [region]);
       if (mergeable(clean)) touched.add(family(clean));
       const key = identity(clean), previous = positions.get(key);
       if (previous === undefined) { positions.set(key, retained.length); retained.push(clean); }
