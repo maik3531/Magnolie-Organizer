@@ -119,6 +119,14 @@ notiz_nachher["personalSync"] = {"revision": 2}
 assert not m.journal_inhalt_geaendert(notiz_vorher, notiz_nachher)
 notiz_nachher["notizen"][0]["text"] = "Actual edit"
 assert m.journal_inhalt_geaendert(notiz_vorher, notiz_nachher)
+for kennungen, geaendert_durch_reihenfolge in ((("a", "b"), False), (("a", "a"), True), ((None, "b"), True)):
+    notizen = [{"id": kennung, "text": text} for kennung, text in zip(kennungen, ("one", "two"))]
+    original = {"notizen": notizen}
+    metadaten = {"notizen": [{**eintrag, "geaendert": 123} for eintrag in notizen]}
+    assert not m.journal_inhalt_geaendert(original, copy.deepcopy(original))
+    assert not m.journal_inhalt_geaendert(original, metadaten)
+    metadaten["notizen"].reverse()
+    assert m.journal_inhalt_geaendert(original, metadaten) is geaendert_durch_reihenfolge
 for feld in ("termine", "kontakte", "notizen", "customOrganizer", "gesundheit", "smsPlanung", "futureContent"):
     geaendert = copy.deepcopy(einstellungen)
     geaendert[feld] = [{"id": "changed"}]

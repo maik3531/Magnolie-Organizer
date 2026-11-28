@@ -1066,8 +1066,12 @@ def journal_inhalt_geaendert(vorher, nachher):
             return sorted(cleaned, key=lambda item: item["id"]) if all(isinstance(value, str) and value for value in ids) and len(set(ids)) == len(ids) else cleaned
         return wert
 
-    return any(inhalt(name, vorher.get(name)) != inhalt(name, nachher.get(name))
-               for name in (vorher.keys() | nachher.keys()) - betriebsfelder)
+    for name in (vorher.keys() | nachher.keys()) - betriebsfelder:
+        alt, neu = vorher.get(name), nachher.get(name)
+        # Identical collections need neither the metadata projection nor sorting.
+        if alt != neu and inhalt(name, alt) != inhalt(name, neu):
+            return True
+    return False
 
 
 def _gesamtarchiv_tokens_pruefen(wert):

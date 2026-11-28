@@ -537,6 +537,11 @@ aufgeführt.
   Der längste Bildabstand beim Speichern betrug 1,56 s. Weitere
   Reaktionszeitverbesserungen sowie Windows, N100 und 30 Tray-Tage
   bleiben offen.
+  Der Vorher-/Nachher-Vergleich für das Wiederherstellungsjournal
+  sortiert unveränderte Bereiche nicht mehr. Die erneuten nativen
+  Vollfolgen bestanden mit 18,19 s (50.000 je Bereich) und 1,91 s
+  (10.000 je Bereich) bis zur bestätigten Speicherung mit Dateiprüfung.
+  Die langen Bildpausen beim großen Save bleiben offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige
   Buchsortierungen und die unbenutzte Kontaktsuche bei expliziter Auswahl.
