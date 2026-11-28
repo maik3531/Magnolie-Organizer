@@ -48,10 +48,14 @@ internal fun verbindungAbgelehnt(error: java.net.ConnectException): Boolean {
  * Der Weg über WLAN: schlichtes HTTP auf Port 8737 über einen eigenen Socket.
  * So bleibt Androids HTTP-Klartexterlaubnis für alle anderen Ziele abgeschaltet.
  */
-class WlanTransport(private val host: String, private val port: Int) : Transport {
+class WlanTransport(private val host: String, private val port: Int,
+    private val adresseFest: Boolean = false,
+    private val vorSenden: (() -> Unit)? = null
+) : Transport {
     private val sperre = Any()
     private var beendet = false
     private var buchse: Socket? = null
+    private val gebundenesZiel by lazy { LanFreigabe.ziel(host) }
 
     companion object {
         const val ANTWORT_MAX = 1024 * 1024
@@ -65,7 +69,7 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
     override val bezeichnung: String get() = Netz.hostPortAnzeigen(host, port)
 
     override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
-        val ziel = LanFreigabe.ziel(host)
+        val ziel = if (adresseFest) gebundenesZiel else LanFreigabe.ziel(host)
         val roh = Kanonisch.json.encodeToString(JsonObject.serializer(), nutzlast)
             .toByteArray(Charsets.UTF_8)
         return Socket().use { verbindung ->
@@ -99,6 +103,7 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 "Connection: close\r\n\r\n"
             verbindung.getOutputStream().apply {
                 wache.pruefen()
+                vorSenden?.invoke()
                 write(kopf.toByteArray(Charsets.US_ASCII))
                 write(roh)
                 flush()

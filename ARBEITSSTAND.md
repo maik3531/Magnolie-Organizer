@@ -252,6 +252,14 @@ aufgeführt.
   die Einstellungen und Zeitabgleichs-Oberflächen beider Desktopquellen,
   acht Linux-Rendererfälle, zwei native Windows-Testgruppen und der
   vollständige WinForms-Bau bestanden. Marker 8 bleibt unbeworben.
+  Der Fernabgleich eines ausgewählten Notes-Eintrags bindet die
+  Postfachsendung an den eingerichteten Fernweg, die Schlüssel und das
+  aktuelle Buch. Ein erneuter Versuch authentisiert denselben Partner
+  über diesen Weg. Die Anhangsfreigabe bleibt Voraussetzung für das
+  vollständige alte Notizformat. 57 Notes-Release-JVM-Prüfungen bestanden,
+  darunter verschlüsselte Bestätigung des Einzelversands, Entzug nach
+  Anmeldung und Wiederanlauf. Die automatische Fernverbindung und
+  installierte Fernabnahme bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

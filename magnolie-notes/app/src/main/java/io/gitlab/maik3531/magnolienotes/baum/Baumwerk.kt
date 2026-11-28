@@ -15,6 +15,7 @@ import io.gitlab.maik3531.magnolienotes.daten.Aufgabe
 import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
 import io.gitlab.maik3531.magnolienotes.daten.Eingangsstueck
 import io.gitlab.maik3531.magnolienotes.daten.Freigabe
+import io.gitlab.maik3531.magnolienotes.daten.FernSendebindung
 import io.gitlab.maik3531.magnolienotes.daten.Notiz
 import io.gitlab.maik3531.magnolienotes.daten.Partner
 import io.gitlab.maik3531.magnolienotes.daten.Sendung
@@ -46,7 +47,10 @@ class Baumwerk private constructor(
     private val kontaktSnapshotVorher: (List<io.gitlab.maik3531.magnolienotes.journal.KontaktRohstand>, String) -> Unit = { staende, id ->
         AndroidJournal.hole(zusammenhang).kontaktSnapshot("contact-import", staende, id)
     },
-    private val fernInternet: () -> Boolean = { FernAbgleich.internet(zusammenhang) }
+    private val fernInternet: () -> Boolean = { FernAbgleich.internet(zusammenhang) },
+    private val fernTransport: (String, Int, () -> Unit) -> Transport = { host, port, pruefen ->
+        WlanTransport(host, port, adresseFest = true, vorSenden = pruefen)
+    }
 ) : Server.Handlung {
 
     private val server = Server(this)
@@ -756,30 +760,62 @@ class Baumwerk private constructor(
     /** Single-entry sync only to existing grants; never expand sharing or request a full reply. */
     internal fun fernEinzelAbgleichen(kind: String, id: String, verbindungen: List<FernAbgleichVerbindung>,
                                      sofortSenden: Boolean = true): Int {
+        val sendungen = mutableSetOf<String>()
         val anzahl = synchronized(Ablage.SCHREIBSPERRE) {
             if (!fernInternet()) return 0
             val baum = ablage.baum.value
             val eigen = eigen() ?: return 0
             val note = if (kind == "note") ablage.notiz(id) else null
             val task = if (kind == "task") ablage.aufgabe(id)?.takeUnless { it.istFremd } else null
-            val freigegeben = note?.baumFreigabe?.partner.orEmpty().toSet() +
+            // The legacy note update replaces its attachment list. Without the
+            // separate existing grant even an empty list could delete attachments.
+            val freigegeben = note?.baumFreigabe?.let { it.partner.intersect(it.anhangPartner.toSet()) }.orEmpty() +
                 task?.let { it.standPartner + it.delegiertAn }.orEmpty().filter(String::isNotBlank)
             val ziele = verbindungen.filter { it.passt(baum) && it.partner.kennung in freigegeben }
                 .distinctBy { it.partner.kennung }
             if (ziele.isEmpty()) return 0
             for (ziel in ziele) {
                 val peer = ziel.partner.kennung
+                val bindung = FernSendebindung(ziel.partner.fernAdresse, ziel.partner.fernPort,
+                    ziel.eigeneKennung, ziel.eigenerSchluessel, ziel.partner.oeffentlich, id,
+                    note?.baumFreigabe?.id)
                 if (note != null) {
                     val vorbereitet = Synchronisation.notizVorbereiten(note, peer, eigen.kennung, System.currentTimeMillis())
                     if (vorbereitet.notiz != note) ablage.setzeNotiz(vorbereitet.notiz)
                     NotizQuellen.inhalte(vorbereitet.notiz, vorbereitet.art, eigen.kennung, peer)
-                        .forEach { einreihen(peer, vorbereitet.art, it) }
-                } else if (task != null) einreihen(peer, "aufgabe", Nutzlast.aufgabeInhalt(task, eigen.kennung))
+                        .forEach { einreihen(peer, vorbereitet.art, it, fern = bindung)?.let(sendungen::add) }
+                } else if (task != null) {
+                    einreihen(peer, "aufgabe", Nutzlast.aufgabeInhalt(task, eigen.kennung), fern = bindung)?.let(sendungen::add)
+                }
             }
             ziele.size
         }
-        if (anzahl > 0 && sofortSenden) postfachAbarbeiten()
+        if (sendungen.isNotEmpty() && sofortSenden) postfachAbarbeiten(64, sendungen)
         return anzahl
+    }
+
+    private fun fernSendungAktuell(sendung: Sendung, bindung: FernSendebindung): Boolean {
+        if (!fernInternet()) return false
+        return synchronized(Ablage.SCHREIBSPERRE) {
+            val baum = ablage.baum.value
+            if (!ablage.synchronisationsSchreibbar() || !baum.dienstAn ||
+                baum.syncEpoch != sendung.syncEpoch || baum.kennung != bindung.eigeneKennung ||
+                baum.oeffentlich != bindung.eigenerSchluessel || sendung.protokoll != "baum-fs1" ||
+                bindung.host.isBlank() || bindung.port !in 1..65535 ||
+                baum.partner.none { it.kennung == sendung.an && it.bestaetigt && it.vertraut &&
+                    it.oeffentlich == bindung.partnerSchluessel && it.protokoll == sendung.protokoll &&
+                    it.fernAdresse == bindung.host && it.fernPort == bindung.port }) return@synchronized false
+            if (bindung.notizFreigabe != null) {
+                val freigabe = ablage.notiz(bindung.eintrag)?.baumFreigabe
+                sendung.art in setOf("notiz", "notiz_sync") && freigabe != null &&
+                    freigabe.id == bindung.notizFreigabe && sendung.an in freigabe.partner &&
+                    sendung.an in freigabe.anhangPartner
+            } else {
+                val aufgabe = ablage.aufgabe(bindung.eintrag)
+                sendung.art == "aufgabe" && aufgabe != null && !aufgabe.istFremd &&
+                    (sendung.an in aufgabe.standPartner || sendung.an == aufgabe.delegiertAn)
+            }
+        }
     }
 
     /** Sendet den vollständigen örtlichen Bestand; eine Antwortanfrage ist optional. */
@@ -833,7 +869,8 @@ class Baumwerk private constructor(
         return true
     }
 
-    private fun einreihen(an: String, art: String, inhalt: JsonObject, v3Probe: Boolean = false) {
+    private fun einreihen(an: String, art: String, inhalt: JsonObject, v3Probe: Boolean = false,
+                         fern: FernSendebindung? = null): String? {
         if (art in setOf("kontakt_sync", "kontakt_import_manifest", "kontakt_import_karte")) {
             val peer = partner(an)
             val versions = if (art == "kontakt_sync") peer?.kontaktSyncFassungen else peer?.kontaktImportFassungen
@@ -855,7 +892,7 @@ class Baumwerk private constructor(
         }
         if (faehigkeiten != null && ablage.baum.value.postfach.any {
                 it.an == an && it.art == art && it.inhalt == encoded && !it.aufgegeben }) {
-            probeEinreihen(); return
+            probeEinreihen(); return null
         }
         val sendung = Sendung(
             id = UUID.randomUUID().toString(),
@@ -867,11 +904,13 @@ class Baumwerk private constructor(
             syncEpoch = ablage.baum.value.syncEpoch,
             protokoll = if (probe) "baum-fs1" else partner(an)?.protokoll.orEmpty(),
             kontaktV3Probe = probe && !gruppenProbe,
-            kontaktV4Probe = gruppenProbe
+            kontaktV4Probe = gruppenProbe,
+            fern = fern
         )
         // Erst ins Postfach, dann ins Netz – ein Absturz verliert nichts.
         ablage.aendereBaum { it.copy(postfach = it.postfach + sendung) }
         probeEinreihen()
+        return sendung.id
     }
 
     /** Arbeitet fällige Sendungen ab. Läuft im Aufruferfaden; nie im Hauptfaden. */
@@ -913,7 +952,9 @@ class Baumwerk private constructor(
         true
     }
 
-    fun postfachAbarbeiten(maxSendungen: Int = 64): Int {
+    fun postfachAbarbeiten(maxSendungen: Int = 64): Int = postfachAbarbeiten(maxSendungen, null)
+
+    private fun postfachAbarbeiten(maxSendungen: Int, nurSendungen: Set<String>?): Int {
         if (!versandSperre.tryLock()) return 0
         try {
         val generation = ablage.baumVersandGeneration()
@@ -925,6 +966,10 @@ class Baumwerk private constructor(
         var versucht = 0
         for (snapshot in ablage.baum.value.postfach.toList()) {
             if (Thread.currentThread().isInterrupted || System.nanoTime() >= ende || versucht >= maxSendungen) break
+            if (nurSendungen != null && snapshot.id !in nurSendungen) continue
+            val fern = snapshot.fern
+            if (fern != null && (eigen.kennung != fern.eigeneKennung || eigen.oeffentlich != fern.eigenerSchluessel ||
+                    !fernSendungAktuell(snapshot, fern))) continue
             if (snapshot.brauchtPruefung) {
                 sendungVorbereiten(snapshot.id)
                 wartendePartner += snapshot.an
@@ -944,7 +989,18 @@ class Baumwerk private constructor(
                 aufgeben(sendung)
                 continue
             }
-            val bekannteTransporte = Versand.wegeZu(partner, ablage.baum.value.bluetoothAn)
+            val bekannteTransporte = if (fern == null) Versand.wegeZu(partner, ablage.baum.value.bluetoothAn) else {
+                val pruefen = {
+                    check(ablage.baumVersandGeneration() == generation && fernSendungAktuell(sendung, fern))
+                }
+                val route = fernTransport(fern.host, fern.port, pruefen)
+                listOf(object : Transport by route {
+                    override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+                        pruefen()
+                        return route.anfrage(pfad, nutzlast, zeitgrenzeMs)
+                    }
+                })
+            }
             val transporte = bekannteTransporte.filter { it !is WlanTransport || !it.wartetAufLan() }
             if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) continue // wait, no failed-attempt/deletion
             if (transporte.isEmpty()) {
@@ -1012,7 +1068,11 @@ class Baumwerk private constructor(
             } else if (ergebnis.unsicher) {
                 wartendePartner += sendung.an
             } else {
-                if (!LanFreigabe.erlaubt()) continue // revocation must not consume retries
+                // A lost grant is waiting, rather than a failed attempt. A
+                // genuine failure on an explicit remote route still backs off
+                // even when Android has not granted local-network access.
+                if (fern == null && !LanFreigabe.erlaubt() ||
+                    fern != null && !fernSendungAktuell(sendung, fern)) continue
                 if (sendung.baum1Umschlag.isNotEmpty()) wartendePartner += sendung.an
                 fehlversuch(sendung, ergebnis.grund)
             }
@@ -1579,8 +1639,11 @@ class Baumwerk private constructor(
             receiver: (Server.Handlung) -> KontaktOriginalEmpfang): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext).also { it.originalEmpfang = receiver(it) }
 
-        internal fun fuerFernAbgleichTest(ablage: Ablage, zusammenhang: Context, internet: () -> Boolean): Baumwerk =
-            Baumwerk(ablage, zusammenhang.applicationContext, fernInternet = internet)
+        internal fun fuerFernAbgleichTest(ablage: Ablage, zusammenhang: Context,
+                                         route: (String, Int) -> Transport = { _, _ -> error("Unerwarteter Fernweg") },
+                                         internet: () -> Boolean): Baumwerk =
+            Baumwerk(ablage, zusammenhang.applicationContext, fernInternet = internet,
+                fernTransport = { host, port, _ -> route(host, port) })
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context, notizSnapshotVorher: () -> Unit): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext, notizSnapshotVorher)

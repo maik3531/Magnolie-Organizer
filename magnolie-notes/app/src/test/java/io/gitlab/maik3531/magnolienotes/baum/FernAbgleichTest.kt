@@ -82,11 +82,11 @@ class FernAbgleichTest {
         assertTrue(proof.passt(baum.copy(partner = listOf(target.copy(zuletzt = 1234, zaehlerRein = 4))), 99))
     }
 
-    private fun fixture(): Triple<Ablage, Baumwerk, FernAbgleichVerbindung> {
+    private fun fixture(remote: EigeneIdentitaet = identity("remote")): Triple<Ablage, Baumwerk, FernAbgleichVerbindung> {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.filesDir.deleteRecursively(); context.filesDir.mkdirs()
         val storage = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 37 }, "AES") }
-        val own = identity("own"); val target = peer(identity("remote"))
+        val own = identity("own"); val target = peer(remote).copy(adresse = "127.0.0.1", port = 1)
         storage.setzeBaum(Baumzustand(kennung = own.kennung, name = own.name, geheim = own.geheim,
             oeffentlich = own.oeffentlich, syncEpoch = "epoch", partner = listOf(target)))
         val work = Baumwerk.fuerFernAbgleichTest(storage, context) { true }
@@ -96,13 +96,15 @@ class FernAbgleichTest {
 
     @Test fun selectedNoteQueuesOnlyExistingRecipientsAndNeverRequestsAFullRun() {
         val (storage, work, proof) = fixture()
-        storage.setzeNotiz(Notiz("chosen", "Chosen", baumFreigabe = Freigabe("share", partner = listOf("remote"))))
+        storage.setzeNotiz(Notiz("chosen", "Chosen", baumFreigabe = Freigabe("share",
+            partner = listOf("remote"), anhangPartner = listOf("remote"))))
         storage.setzeNotiz(Notiz("private", "Private"))
         storage.setzeAufgabe(Aufgabe("unrelated", "Unrelated"))
         assertEquals(1, work.fernEinzelAbgleichen("note", "chosen", listOf(proof), false))
         val outbox = storage.baum.value.postfach
         assertTrue(outbox.isNotEmpty())
-        assertTrue(outbox.all { it.an == "remote" && it.art == "notiz_sync" && !it.inhalt.contains("Private") })
+        assertTrue(outbox.all { it.an == "remote" && it.art == "notiz_sync" && !it.inhalt.contains("Private") &&
+            it.fern?.host == proof.partner.fernAdresse && it.fern.eintrag == "chosen" })
         val before = storage.baum.value
         assertEquals(0, work.fernEinzelAbgleichen("note", "private", listOf(proof), false))
         assertEquals(before, storage.baum.value)
@@ -112,7 +114,8 @@ class FernAbgleichTest {
 
     @Test fun disconnectedAndChangedRoutesDoNothingEvenWithAnEarlierUiProof() {
         val (storage, work, proof) = fixture()
-        storage.setzeNotiz(Notiz("chosen", baumFreigabe = Freigabe("share", partner = listOf("remote"))))
+        storage.setzeNotiz(Notiz("chosen", baumFreigabe = Freigabe("share",
+            partner = listOf("remote"), anhangPartner = listOf("remote"))))
         val context = ApplicationProvider.getApplicationContext<Context>()
         val offline = Baumwerk.fuerFernAbgleichTest(storage, context) { false }
         val before = storage.bestand.value
@@ -126,7 +129,7 @@ class FernAbgleichTest {
     @Test fun anAlreadySharedForeignNoteKeepsItsTreeOriginAndNeverBecomesPersonal() {
         val (storage, work, proof) = fixture()
         storage.setzeNotiz(Notiz("from-tree", "From tree", baumQuelle = "origin",
-            baumFreigabe = Freigabe("existing-share", partner = listOf("remote"))))
+            baumFreigabe = Freigabe("existing-share", partner = listOf("remote"), anhangPartner = listOf("remote"))))
         assertFalse(PersonalSync.ownNote(storage.notiz("from-tree")!!))
         assertEquals(1, work.fernEinzelAbgleichen("note", "from-tree", listOf(proof), false))
         val after = storage.notiz("from-tree")!!
@@ -151,5 +154,122 @@ class FernAbgleichTest {
         assertEquals(0, work.fernEinzelAbgleichen("task", "foreign", listOf(proof), false))
         assertEquals(before, storage.baum.value)
         assertTrue(before.postfach.all { it.an == "remote" && it.art == "aufgabe" && !it.inhalt.contains("Private") })
+    }
+
+    @Test fun currentNoteGrantDoesNotAuthorizeAttachmentReplacement() {
+        val (storage, work, proof) = fixture()
+        val note = Notiz("chosen", "Chosen", baumFreigabe = Freigabe("share", partner = listOf("remote")))
+        storage.setzeNotiz(note)
+        assertEquals(0, work.fernEinzelAbgleichen("note", note.id, listOf(proof)))
+        assertEquals(note.baumFreigabe, storage.notiz(note.id)!!.baumFreigabe)
+        assertTrue(storage.baum.value.postfach.isEmpty())
+    }
+
+    @Test fun signedDeliveryUsesOnlyExplicitEndpointAndDoesNotDrainOrdinaryOutbox() {
+        val remote = identity("remote")
+        val (storage, _, proof) = fixture(remote)
+        val task = Aufgabe("chosen", "Chosen", standPartner = listOf("remote"))
+        storage.setzeAufgabe(task)
+        val unrelated = Sendung("ordinary", "old", "remote", "stand", "{}", syncEpoch = proof.epoch)
+        storage.aendereBaum { it.copy(postfach = listOf(unrelated)) }
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val paths = mutableListOf<String>()
+        var session: Sitzung.Offen? = null
+        val work = Baumwerk.fuerFernAbgleichTest(storage, context, { host, port ->
+            assertEquals(proof.partner.fernAdresse, host)
+            assertEquals(proof.partner.fernPort, port)
+            object : Transport {
+                override val bezeichnung = "$host:$port"
+                override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+                    paths += pfad
+                    if (pfad == "/magnolie/v2/sitzung") {
+                        val answer = Sitzung.baueAntwort(remote, proof.eigeneKennung, proof.eigenerSchluessel, nutzlast)
+                        session = answer.sitzung
+                        return answer.nachricht
+                    }
+                    val authenticated = requireNotNull(session)
+                    val (body, _) = Sitzung.oeffneUmschlag(authenticated, remote.kennung, proof.eigeneKennung, nutzlast)
+                    assertEquals("aufgabe", text(body, "art"))
+                    assertEquals("Chosen", text(body, "titel"))
+                    return Sitzung.baueQuittung(authenticated, nutzlast)
+                }
+                override fun schliessen() { session?.loeschen() }
+            }
+        }) { true }
+        assertEquals(1, work.fernEinzelAbgleichen("task", task.id, listOf(proof)))
+        assertEquals(listOf("/magnolie/v2/sitzung", "/magnolie/v2/nachricht"), paths)
+        assertEquals(work.meldungen.value.joinToString(), listOf(unrelated), storage.baum.value.postfach)
+    }
+
+    @Test fun queuedRetryReauthenticatesTheSameEndpointAndHoldsAfterAChange() {
+        val remote = identity("remote")
+        val (storage, first, proof) = fixture(remote)
+        val task = Aufgabe("chosen", "Chosen", standPartner = listOf("remote"))
+        storage.setzeAufgabe(task)
+        assertEquals(1, first.fernEinzelAbgleichen("task", task.id, listOf(proof), false))
+        val contents = Kanonisch.json.encodeToString(Baumzustand.serializer(), storage.baum.value)
+        storage.setzeBaum(Kanonisch.json.decodeFromString(Baumzustand.serializer(), contents))
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val paths = mutableListOf<String>()
+        val second = Baumwerk.fuerFernAbgleichTest(storage, context, { host, port ->
+            assertEquals(proof.partner.fernAdresse, host)
+            assertEquals(proof.partner.fernPort, port)
+            object : Transport {
+                override val bezeichnung = "$host:$port"
+                override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+                    paths += pfad
+                    assertEquals("/magnolie/v2/sitzung", pfad)
+                    val answer = Sitzung.baueAntwort(remote, proof.eigeneKennung, proof.eigenerSchluessel, nutzlast)
+                    storage.setzeAufgabe(task.copy(standPartner = emptyList()))
+                    return answer.nachricht.also { answer.sitzung.loeschen() }
+                }
+            }
+        }) { true }
+        assertEquals(0, second.postfachAbarbeiten())
+        assertEquals(listOf("/magnolie/v2/sitzung"), paths)
+        val queued = storage.baum.value.postfach.single()
+        assertEquals(proof.partner.fernAdresse, queued.fern?.host)
+        assertEquals(0, queued.versuche)
+        storage.setzeAufgabe(task)
+        storage.aendereBaum { it.copy(partner = listOf(proof.partner.copy(fernPort = proof.partner.fernPort + 1)),
+            postfach = listOf(queued.copy(naechsterVersuch = 0))) }
+        assertEquals(0, second.postfachAbarbeiten())
+        assertEquals(listOf("/magnolie/v2/sitzung"), paths)
+    }
+
+    @Test fun offlineWaitsAndAnUnreachableExplicitRouteOnlyUsesItsOwnRetryBudget() {
+        val (storage, first, proof) = fixture()
+        val task = Aufgabe("chosen", "Chosen", standPartner = listOf("remote"))
+        storage.setzeAufgabe(task)
+        assertEquals(1, first.fernEinzelAbgleichen("task", task.id, listOf(proof), false))
+        val original = storage.baum.value.postfach.single()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        var online = false
+        var calls = 0
+        val retry = Baumwerk.fuerFernAbgleichTest(storage, context, { host, port ->
+            assertEquals(proof.partner.fernAdresse, host)
+            assertEquals(proof.partner.fernPort, port)
+            object : Transport {
+                override val bezeichnung = "$host:$port"
+                override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+                    calls++
+                    assertEquals("/magnolie/v2/sitzung", pfad)
+                    throw java.net.ConnectException("unreachable fixture")
+                }
+            }
+        }) { online }
+        assertEquals(0, retry.postfachAbarbeiten())
+        assertEquals(0, calls)
+        assertEquals(original, storage.baum.value.postfach.single())
+        online = true
+        assertEquals(0, retry.postfachAbarbeiten())
+        assertEquals(1, calls)
+        val waiting = storage.baum.value.postfach.single()
+        assertEquals(original.transportId, waiting.transportId)
+        assertEquals(original.fern, waiting.fern)
+        assertEquals(1, waiting.versuche)
+        assertTrue(waiting.naechsterVersuch > waiting.angelegt)
+        assertEquals(0, retry.postfachAbarbeiten())
+        assertEquals(1, calls)
     }
 }

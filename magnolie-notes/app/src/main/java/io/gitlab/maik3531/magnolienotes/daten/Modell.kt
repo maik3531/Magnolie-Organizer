@@ -175,6 +175,18 @@ data class Partner(
 @Serializable
 data class Baum1Beleg(val zaehler: Long, val umschlagHash: String, val receipt: String = "")
 
+/** The exact explicitly selected endpoint and entry; retries never choose another route. */
+@Serializable
+data class FernSendebindung(
+    val host: String,
+    val port: Int,
+    val eigeneKennung: String,
+    val eigenerSchluessel: String,
+    val partnerSchluessel: String,
+    val eintrag: String,
+    val notizFreigabe: String? = null
+)
+
 /** Ein Eintrag im Postfach – gespeichert, bevor der erste Netzversuch läuft. */
 @Serializable
 data class Sendung(
@@ -194,7 +206,8 @@ data class Sendung(
     val receiptAttempted: Boolean = false,
     val unsicher: Boolean = false,
     val kontaktV3Probe: Boolean = false,
-    val kontaktV4Probe: Boolean = false
+    val kontaktV4Probe: Boolean = false,
+    val fern: FernSendebindung? = null
 ) {
     val brauchtPruefung: Boolean get() = unsicher || receiptAttempted ||
         (baum1Umschlag.isNotEmpty() && receiptProtocol != 1)
