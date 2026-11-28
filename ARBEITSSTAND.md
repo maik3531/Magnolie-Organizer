@@ -7,6 +7,11 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#859](https://github.com/maik3531/Magnolie-Organizer/issues/859):
+  Der aktive Notes-Verbindungstext aus #148 ist mit den vorhandenen
+  Übersetzungen im Handbuchkatalog erfasst. Alle neun Katalog- und
+  Extraktionsprüfungen einschließlich der installierten Pfadstruktur bestanden.
+
 - [#858](https://github.com/maik3531/Magnolie-Organizer/issues/858):
   Der Windows-Assistent gibt ersetzte Seiten und ihre Fensterhandles beim
   Neuaufbau frei. Die native Gegenprobe prüfte den freigegebenen
