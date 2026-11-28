@@ -2702,9 +2702,12 @@ internal sealed partial class TelefonConnection : IDisposable
                     if (!JsonNode.DeepEquals(store.TimeSettings(peer.Id)["local"], body))
                     { store.CompleteOutbox(peer.Id, item.Id); continue; }
                 }
-                else if (!TimeAllowed(body, true)) continue;
-                if (kind == TimeSyncContract.Batch && !store.TimeBatchTurn(peer.Id, item.Id)) continue;
-                if (kind == TimeSyncContract.Request && !store.TimeBatchTurn(peer.Id)) continue;
+                else
+                {
+                    var batchId = kind == TimeSyncContract.Batch ? item.Id : null;
+                    if (!store.TimeBatchTurn(peer.Id, batchId,
+                        discardEntries: !store.TimeRecordsExportAllowed(peer.Id, peer.PublicKey)) || !TimeAllowed(body, true)) continue;
+                }
                 await SendPlainAsync(item.Message);
                 if (kind == TimeSyncContract.Settings) sentTimePolicy = body.DeepClone().AsObject();
                 store.MarkAttempt(item.Id, item.Attempts, now); continue;

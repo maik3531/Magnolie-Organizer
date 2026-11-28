@@ -265,7 +265,10 @@ aufgeführt.
   verwirft bereits eingereihte Pakete mit diesen Daten. Kalenderpakete
   ohne Zeiteinträge, Importanforderung und Eingang bleiben möglich.
   121 Hosttests bestanden, einschließlich SQLite-Rollback beim Wechsel
-  der Richtung. Windows und der neue Zeit-Automatiktrigger bleiben offen.
+  der Richtung. Windows setzt dieselbe Grenze vor Einreihung und
+  Versand durch. Zwei native Zeit-Testgruppen, gemeinsamer Speicher und
+  Transport sowie der vollständige WinForms-Bau bestanden. Der neue
+  Zeit-Automatiktrigger und die installierte Abnahme bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

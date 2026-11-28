@@ -89,12 +89,47 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             if (RestoreFenced) return false;
+            if (outgoing && body["entries"] is JsonArray { Count: > 0 } &&
+                !TimeRecordsExportAllowed(peerId, TimePeer(peerId).PublicKey)) return false;
             var policy = TimeSettings(peerId); var personal = PersonalSettings(peerId);
             // This is the durable policy check only. The connection also supplies
             // fresh controls and sent/received settings before this can authorize traffic.
             return TimeSyncContract.Allowed(body, policy[outgoing ? "remote" : "local"] as JsonObject,
                 policy[outgoing ? "local" : "remote"] as JsonObject, personal.OwnDevice, personal.RemoteOwnDevice,
                 true, new[] { 7 }, new[] { 7 });
+        }
+    }
+
+    internal bool TimeRecordsExportAllowed(string peerId, byte[] expectedPublic)
+    {
+        var shared = SharedSettings(peerId, expectedPublic);
+        return shared is null || SharedSyncSettings.Effective(shared)["time_mode"]?.GetValue<string>() == "two_way";
+    }
+
+    private void DiscardTimeEntryBatches(SqliteConnection db, SqliteTransaction transaction, string peerId)
+    {
+        var discarded = new List<string>();
+        using (var select = db.CreateCommand())
+        {
+            select.Transaction = transaction;
+            select.CommandText = "SELECT message_id,payload FROM outbox WHERE peer_id=$peer AND kind='personal_sync.time_batch'";
+            select.Parameters.AddWithValue("$peer", peerId);
+            using var rows = select.ExecuteReader();
+            while (rows.Read())
+            {
+                var id = rows.GetString(0);
+                var message = JsonNode.Parse(Open("outbox", id, (byte[])rows[1]));
+                if (message?["body"]?["entries"] is JsonArray { Count: > 0 }) discarded.Add(id);
+            }
+        }
+        using var delete = db.CreateCommand(); delete.Transaction = transaction;
+        delete.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND message_id=$id";
+        delete.Parameters.AddWithValue("$peer", peerId);
+        var messageId = delete.Parameters.Add("$id", SqliteType.Text);
+        foreach (var id in discarded)
+        {
+            messageId.Value = id;
+            delete.ExecuteNonQuery();
         }
     }
 
@@ -146,12 +181,21 @@ internal sealed partial class TelefonStore
         return query.ExecuteScalar() is not null;
     }
 
-    internal bool TimeBatchTurn(string peerId, string? messageId = null)
+    internal bool TimeBatchTurn(string peerId, string? messageId = null, bool discardEntries = false)
     {
         using var db = OpenDatabase(); db.Open(); using var query = db.CreateCommand();
+        using var transaction = discardEntries ? db.BeginTransaction() : null;
+        if (transaction is not null)
+        {
+            // Older queues may contain desktop records that would otherwise
+            // prevent a permitted calendar batch or import request from leaving.
+            DiscardTimeEntryBatches(db, transaction, peerId);
+            query.Transaction = transaction;
+        }
         query.CommandText = "SELECT message_id FROM outbox WHERE peer_id=$peer AND kind='personal_sync.time_batch' AND expires_ms>$now ORDER BY created_ms,rowid LIMIT 1";
         query.Parameters.AddWithValue("$peer", peerId); query.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         var first = query.ExecuteScalar() as string;
+        transaction?.Commit();
         return messageId is null ? first is null : first == messageId;
     }
 

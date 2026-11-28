@@ -38,15 +38,21 @@ internal sealed partial class TelefonStore
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             var (key, actor) = SharedSettingsBinding(peerId, expectedPublic);
             using var db = OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
-            JsonObject previous;
+            byte[]? stored;
             using (var read = db.CreateCommand())
             {
                 read.Transaction = transaction; read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
-                previous = read.ExecuteScalar() is byte[] value ? JsonNode.Parse(Open("shared_settings", key, value))!.AsObject() : SharedSyncSettings.Create(actor, initial);
+                stored = read.ExecuteScalar() as byte[];
             }
+            var previous = stored is null ? SharedSyncSettings.Create(actor, initial)
+                : JsonNode.Parse(Open("shared_settings", key, stored))!.AsObject();
             var next = apply(previous, actor);
             SharedSyncSettings.Merge(next, next, actor, peerId);
             if (SharedSettingsBinding(peerId, expectedPublic).Key != key) throw new InvalidOperationException("shared_settings_peer_changed");
+            var oldMode = SharedSyncSettings.Effective(previous)["time_mode"]?.GetValue<string>();
+            var newMode = SharedSyncSettings.Effective(next)["time_mode"]?.GetValue<string>();
+            if ((stored is null || oldMode != newMode) && (oldMode == "phone_import" || newMode == "phone_import"))
+                DiscardTimeEntryBatches(db, transaction, peerId);
             using var save = db.CreateCommand(); save.Transaction = transaction;
             save.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
             save.Parameters.AddWithValue("$key", key); save.Parameters.AddWithValue("$value", Seal("shared_settings", key, TelefonCrypto.Canonical(next)));
