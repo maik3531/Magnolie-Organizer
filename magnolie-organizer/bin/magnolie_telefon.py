@@ -9596,6 +9596,8 @@ class PhoneService:
                     if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], inner_message):
                         raise ValueError("conflicting scoped data message identity")
                     if inner_kind == "personal_sync.request":
+                        if body["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
+                            raise ValueError("auto sync received outside wifi")
                         self.store.remember_scoped_run(peer["device_id"], peer["static_public"], body, wrapped["scope"], payload["expires_ms"])
                     elif self.store.scoped_run_reference(peer["device_id"], peer["static_public"], body["run_id"]) != wrapped["scope"]:
                         raise PermissionError("Scoped run binding missing or different.")

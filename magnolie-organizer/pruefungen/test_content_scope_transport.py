@@ -38,6 +38,37 @@ def frame(part):
     return value
 
 
+@pytest.mark.parametrize("transport, trigger, accepted", [
+    ("wifi", "auto_wifi", True),
+    ("bluetooth", "auto_wifi", False),
+    ("bluetooth", "manual", True),
+])
+def test_scoped_request_checks_transport_before_persisting(tmp_path, monkeypatch, transport, trigger, accepted):
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    peer_id = peer["device_id"]
+    service.connection_transports[peer_id] = transport
+    mode = "wifi" if trigger == "auto_wifi" else "manual"
+    agreed = service.store.change_shared_setting(peer_id, peer["static_public"], "auto_mode", mode)
+    remote = shared.merge(shared.create(peer_id), agreed, peer_id, service.store.identity["device_id"])
+    service._payload(peer, channel, message(remote))
+    assert service.shared_settings_ready(peer_id)
+    manifest = scope.create(["phone-note"], ["phone-task"])
+    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    assert channel.sent[-1]["status"] == "accepted"
+
+    run = str(uuid.uuid4())
+    request = {"format": 3, "run_id": run, "trigger": trigger, "modules": ["notes", "tasks"]}
+    packet = dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND)
+    service._payload(peer, channel, packet)
+    ack = next(item for item in reversed(channel.sent) if item.get("message_id") == packet["message_id"])
+    assert (ack["status"] == "accepted") is accepted, ack
+    assert service.store.personal_run(peer_id, run) == (request if accepted else {})
+    if not accepted:
+        assert ack["error"] == "invalid_schema"
+        assert service.store.scoped_run_reference(peer_id, peer["static_public"], run) is None
+        assert service.store.active_auto_run(peer_id) == ""
+
+
 def test_current_phone_membership_arrives_only_after_complete_bound_manifest(tmp_path, monkeypatch):
     service, peer, channel = fixture(tmp_path, monkeypatch)
     manifest = scope.create(["note-%03d" % n for n in range(100)], ["task"])

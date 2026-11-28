@@ -79,7 +79,10 @@ aufgeführt.
   danach keine anderen ausstehenden Nachrichten. 139 Release-JVM-Tests
   bestanden; nach einem SQLite-Fehler gelang der Stopp beim zweiten
   Versuch. Buch, Entwurf und gespeicherte Belege blieben erhalten.
-  Die Automatik über weitere freigegebene Transporte bleibt offen.
+  Linux prüft den bestehenden WLAN-Trigger bei sammlungsgebundenen
+  Anfragen vor dem Speichern: Ein Bluetooth-Request hinterlässt weder
+  Lauf noch Sammlungsbindung. 69 Hosttests bestanden. Die Automatik über
+  weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere
