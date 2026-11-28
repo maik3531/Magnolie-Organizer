@@ -1714,7 +1714,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 /*TZ_PORT:personal-zone-identity:BEGIN*/        timezone = MagnolieTime.zoneId(configured);/*TZ_PORT:personal-zone-identity:END*/
       } catch (error) {
         // Only "system" may choose the host zone. Never export an invalid explicit zone.
-        App.personalSyncFehler({ fehler: _("Personal synchronization failed.") + " " + _("Time zone") + ": " + organizerZeitzone() });
+        const configured = DATEN.einstellungen.regional?.timeZone ?? "system";
+        App.personalSyncFehler({ fehler: _("Personal synchronization failed.") + " " + _("Time zone") + ": " + configured });
         throw error;
       }
       const leadMinutes = DATEN.einstellungen.erinnerung.vorlauf;
