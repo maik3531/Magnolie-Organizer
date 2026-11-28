@@ -1389,6 +1389,12 @@ let declaredContracts;
         await saving; assert.equal(native, undefined, "Native reminder setup must follow the durable preferences ACK");
         assert.equal(completed, false); b.ack(); await dispatched;
         assert.equal(native.an, true); assert.equal(native.vorlauf, 60); assert.equal(native.wecken, true);
+        if (web === path.resolve(__dirname, "../app/web")) {
+          assert.equal(native.termine, undefined, "Windows uses the appointments from its saved book");
+        } else {
+          const appointments = b.t.daten().termine;
+          assert.deepEqual(native.termine.slice(0, appointments.length), JSON.parse(JSON.stringify(appointments)));
+        }
         b.w.App.erinnerungStand({ requestId: "wrong-reminder-request", ok: true, native_state: nativeState(true) });
         await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
         b.w.App.erinnerungStand({ requestId: native.requestId, ok: true, native_state: nativeState(true, "windows-scheduler"), weckruf: { ok: false } });
@@ -1416,6 +1422,8 @@ let declaredContracts;
         const lateDispatch = new Promise(resolve => { onReminder = message => { native = message; resolve(); }; });
         const cancelled = call(request(869, "tools/call", { name: "organizer_notification_settings_update", arguments: { expected_revision: (await read(870)).revision, enabled: false } }));
         await cancelSave; b.ack(); await lateDispatch;
+        assert.equal(native.an, false);
+        assert.equal(native.termine?.length ?? 0, 0, "Disabled reminders must not copy the appointments to the native service");
         await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 869 } });
         assert.equal((await cancelled).result.structuredContent.code, "cancelled");
         const toast = b.w.document.querySelector("#zettel").textContent;

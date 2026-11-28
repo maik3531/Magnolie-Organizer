@@ -32287,8 +32287,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (neuEinrichten && Bruecke.vorhanden) {
         stand.textContent = _("Setting up reminders …");
         Bruecke.sende({ cmd: "erinnerung_einrichten", an: e.an,
-          vorlauf: e.vorlauf, wecken: e.wecken,
-          termine: DATEN.termine.concat(customTermineFuerErinnerung()) });
+          vorlauf: e.vorlauf, wecken: e.wecken });
       }
       pruefeErinnerungen(true);
     };
@@ -35275,8 +35274,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (Bruecke.vorhanden && DATEN.einstellungen.erinnerung.an) {
         setTimeout(() => Bruecke.sende({ cmd: "erinnerung_einrichten", an: true,
           vorlauf: DATEN.einstellungen.erinnerung.vorlauf,
-          wecken: DATEN.einstellungen.erinnerung.wecken,
-          termine: DATEN.termine.concat(customTermineFuerErinnerung()) }), 2500);
+          wecken: DATEN.einstellungen.erinnerung.wecken }), 2500);
       }
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "baum_stand" });
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
@@ -41482,7 +41480,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             let native = null, wake = null;
             if (reconfigure) {
               mcpEditorPruefen(); if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.erinnerung) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences were saved; reminder state changed before native setup");
-              const value = await mcpNativeAufruf("erinnerung_einrichten", { an: wanted.an, vorlauf: wanted.vorlauf, wecken: wanted.wecken, termine: DATEN.termine.concat(customTermineFuerErinnerung()) }, "erinnerungStand", signal);
+              const value = await mcpNativeAufruf("erinnerung_einrichten", { an: wanted.an, vorlauf: wanted.vorlauf, wecken: wanted.wecken }, "erinnerungStand", signal);
               native = value.native_state;
               if (value.ok !== true || !native || native.foreground_enabled !== wanted.an || native.autostart_registered !== wanted.an || typeof native.worker_running !== "boolean" || !["session-worker", "windows-scheduler"].includes(native.backend) || (native.backend === "session-worker" && wanted.an && !native.worker_running)) throw new MagnolieMcp.ToolError("native_operation_failed", "Preferences were saved; native reminder setup could not be confirmed");
               if (wanted.an && wanted.wecken) wake = value.weckruf?.ok === true;

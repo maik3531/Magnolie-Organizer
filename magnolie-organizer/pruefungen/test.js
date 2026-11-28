@@ -2734,8 +2734,23 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(enErinnerungAn.checked, true,
     "Erinnerungen sind in einer neuen englischen Installation nicht aktiv");
   const enVorlauf = enSD.querySelector("#erinnerung-vorlauf");
+  const enWecken = enSD.querySelector("#erinnerung-wecken");
+  const reminderAppointment = { id: "owned-wake-bridge", datum: "2026-11-28", titel: "Wake fixture" };
+  enST.daten().termine.push(reminderAppointment);
   enVorlauf.value = "60";
   enVorlauf.dispatchEvent(new enSW.Event("change", { bubbles: true }));
+  const letzterErinnerungsbefehl = () => enSyncNachrichten.filter(
+    (nachricht) => nachricht.cmd === "erinnerung_einrichten").at(-1);
+  assert.deepStrictEqual(letzterErinnerungsbefehl().termine, [],
+    "Ohne aktiven Weckruf dürfen keine Termine über die Brücke gehen");
+  const urspruenglichesWecken = enWecken.checked;
+  enWecken.checked = true;
+  enWecken.dispatchEvent(new enSW.Event("change", { bubbles: true }));
+  assert.ok(letzterErinnerungsbefehl().termine.some((termin) => termin.id === reminderAppointment.id),
+    "Für den aktiven Weckruf muss der Termin über die Brücke gehen");
+  enST.daten().termine.pop();
+  enWecken.checked = urspruenglichesWecken;
+  enWecken.dispatchEvent(new enSW.Event("change", { bubbles: true }));
   const enStil = enSD.querySelector("#erinnerung-stil");
   enStil.value = "magnolie";
   enStil.dispatchEvent(new enSW.Event("change", { bubbles: true }));

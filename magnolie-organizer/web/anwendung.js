@@ -33542,9 +33542,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zeigen();
       if (neuEinrichten && Bruecke.vorhanden) {
         stand.textContent = _("Setting up reminders …");
-        Bruecke.sende({ cmd: "erinnerung_einrichten", an: e.an,
-          vorlauf: e.vorlauf, wecken: e.wecken,
-          termine: DATEN.termine.concat(customTermineFuerErinnerung()) });
+        Bruecke.sende({ cmd: "erinnerung_einrichten", ...erinnerungsdienstOptionen(e) });
       }
       pruefeErinnerungen(true);
     };
@@ -33567,6 +33565,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           "version.")));
     }
     wurzel.append(ab);
+  }
+
+  function erinnerungsdienstOptionen({ an, vorlauf, wecken }) {
+    return { an, vorlauf, wecken,
+      termine: an && wecken ? DATEN.termine.concat(customTermineFuerErinnerung()) : [] };
   }
 
   /* Meldet eine Erinnerung im gewählten Gewand: entweder als Meldung des
@@ -36460,10 +36463,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
          ältere Einrichtung die verbesserten Angaben. */
       if (Bruecke.vorhanden) {
         setTimeout(() => Bruecke.sende({ cmd: "erinnerung_einrichten",
-          an: DATEN.einstellungen.erinnerung.an,
-          vorlauf: DATEN.einstellungen.erinnerung.vorlauf,
-          wecken: DATEN.einstellungen.erinnerung.wecken,
-          termine: DATEN.termine.concat(customTermineFuerErinnerung()) }), 2500);
+          ...erinnerungsdienstOptionen(DATEN.einstellungen.erinnerung) }), 2500);
       }
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "baum_stand" });
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
@@ -42662,7 +42662,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             let native = null, wake = null;
             if (reconfigure) {
               mcpEditorPruefen(); if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.erinnerung) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences were saved; reminder state changed before native setup");
-              const value = await mcpNativeAufruf("erinnerung_einrichten", { an: wanted.an, vorlauf: wanted.vorlauf, wecken: wanted.wecken, termine: DATEN.termine.concat(customTermineFuerErinnerung()) }, "erinnerungStand", signal);
+              const value = await mcpNativeAufruf("erinnerung_einrichten", erinnerungsdienstOptionen(wanted), "erinnerungStand", signal);
               native = value.native_state;
               if (value.ok !== true || !native || native.foreground_enabled !== wanted.an || native.autostart_registered !== wanted.an || typeof native.worker_running !== "boolean" || !["session-worker", "windows-scheduler"].includes(native.backend) || (native.backend === "session-worker" && wanted.an && !native.worker_running)) throw new MagnolieMcp.ToolError("native_operation_failed", "Preferences were saved; native reminder setup could not be confirmed");
               if (wanted.an && wanted.wecken) wake = value.weckruf?.ok === true;
