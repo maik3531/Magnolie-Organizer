@@ -1,0 +1,100 @@
+  Determining projects to restore...
+  Restored /workspace/scratch/6344df626283/windows854/run-final-before/HolidayCoverage.csproj (in 92 ms).
+  HolidayCoverage -> /workspace/scratch/6344df626283/windows854/run-final-before/bin/Release/net10.0/HolidayCoverage.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.21
+FAIL BE: captured 2026 country HTTP JSON preserves every school period and group: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31
+FAIL BE-DE: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE-DE: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL BE-FR: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=BE|BE-FR|public-holiday|2026-01-01|2026-12-31;BE|BE-FR|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-FR|school-holiday|2026-01-01|2026-12-31
+FAIL BE-FR: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL BE-NL: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=BE|BE-NL|public-holiday|2026-01-01|2026-12-31;BE|BE-NL|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-NL|school-holiday|2026-01-01|2026-12-31
+FAIL BE-NL: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL BE: all groups request public holidays once and aggregate explicit names: Duplicated public request
+FAIL BE: country request preserves and certifies all explicit groups: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31
+FAIL BE: partial country response keeps rows without replacement authority: Partial country rows lost
+FAIL BE: missing group identities cannot be inferred from selected group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: empty school response cannot authorize replacement: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: national-only school rows do not prove group coverage: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: nationwide row with every explicit group may certify school: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE: nationwide all-group row allows derived subdivision enumeration: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE: nationwide plus partial group claim is contradictory: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: another known group cannot be attributed to requested group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: multi-group response preserves every explicit group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups null neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups string neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups number neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups object neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups scalar element neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups missing code neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups non-string code neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups unknown neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups foreign neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups prefixless neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups lowercase neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups known plus foreign neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed groups empty neither relabel nor authorize: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: accompanying subdivision enumeration preserves explicit group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE: country request uses explicit group identities over enumerated subdivisions: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: subdivision-only country rows stay local without group coverage: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: explicitly Local records cannot authorize a whole school group: Scopes differ: actual=BE||public-holiday|2026-01-01|2026-12-31;BE||school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: Exception tag alone does not erase an explicit regional group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed or future regional scope cannot authorize replacement: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: malformed subdivision metadata cannot be hidden by valid group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: foreign and prefixless municipal scopes are not assigned to country: Foreign or ambiguous municipality relabeled
+FAIL BE: group and subdivision selections are rejected before HTTP: Mixed query reached provider
+FAIL BE: school opt-out retains one nationwide public request: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-FR|public-holiday|2026-01-01|2026-12-31;BE|BE-NL|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: school HTTP failure cannot certify group: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL BE: cross-year group periods retain both boundaries: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2027-01-01|2027-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2026-01-01|2026-12-31;BE|BE-DE|school-holiday|2027-01-01|2027-12-31
+FAIL BE: unrelated public group metadata cannot invent public group scope: Scopes differ: actual=BE|BE-DE|public-holiday|2026-01-01|2026-12-31 expected=BE||public-holiday|2026-01-01|2026-12-31
+FAIL NL: captured 2026 country HTTP JSON preserves every school period and group: Captured boundaries, title or group identities changed
+FAIL NL-NO: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL-NO: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL NL-MI: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=NL|NL-MI|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-MI|school-holiday|2026-01-01|2026-12-31
+FAIL NL-MI: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL NL-ZU: captured groupCode HTTP JSON preserves every school period: Scopes differ: actual=NL|NL-ZU|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-ZU|school-holiday|2026-01-01|2026-12-31
+FAIL NL-ZU: group endpoint, country public scope and explicit row identity: School group sent as subdivision
+FAIL NL: all groups request public holidays once and aggregate explicit names: Duplicated public request
+FAIL NL: country request preserves and certifies all explicit groups: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31
+FAIL NL: partial country response keeps rows without replacement authority: Partial country rows lost
+FAIL NL: missing group identities cannot be inferred from selected group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: empty school response cannot authorize replacement: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: national-only school rows do not prove group coverage: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: nationwide row with every explicit group may certify school: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL: nationwide all-group row allows derived subdivision enumeration: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL: nationwide plus partial group claim is contradictory: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: another known group cannot be attributed to requested group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: multi-group response preserves every explicit group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups null neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups string neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups number neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups object neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups scalar element neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups missing code neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups non-string code neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups unknown neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups foreign neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups prefixless neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups lowercase neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups known plus foreign neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed groups empty neither relabel nor authorize: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: accompanying subdivision enumeration preserves explicit group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL: country request uses explicit group identities over enumerated subdivisions: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: subdivision-only country rows stay local without group coverage: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: explicitly Local records cannot authorize a whole school group: Scopes differ: actual=NL||public-holiday|2026-01-01|2026-12-31;NL||school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: Exception tag alone does not erase an explicit regional group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed or future regional scope cannot authorize replacement: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: malformed subdivision metadata cannot be hidden by valid group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: foreign and prefixless municipal scopes are not assigned to country: Foreign or ambiguous municipality relabeled
+FAIL NL: group and subdivision selections are rejected before HTTP: Mixed query reached provider
+FAIL NL: school opt-out retains one nationwide public request: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-MI|public-holiday|2026-01-01|2026-12-31;NL|NL-ZU|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: school HTTP failure cannot certify group: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+FAIL NL: cross-year group periods retain both boundaries: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2027-01-01|2027-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2026-01-01|2026-12-31;NL|NL-NO|school-holiday|2027-01-01|2027-12-31
+FAIL NL: unrelated public group metadata cannot invent public group scope: Scopes differ: actual=NL|NL-NO|public-holiday|2026-01-01|2026-12-31 expected=NL||public-holiday|2026-01-01|2026-12-31
+PASS Austrian aliases retain provider encoding and ISO identities
+PASS German and Swiss subdivision behavior remains compatible
+{"total":90,"passed":2,"failed":88,"runtime":"10.0.15","scope":"actual C# methods and full parser / offline HTTP / host runtime"}

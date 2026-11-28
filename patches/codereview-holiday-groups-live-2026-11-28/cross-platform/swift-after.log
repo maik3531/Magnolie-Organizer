@@ -1,0 +1,99 @@
+PASS BE-DE group param
+PASS BE-DE public scope
+PASS BE-DE school scope + end
+PASS BE-FR group param
+PASS BE-FR public scope
+PASS BE-FR school scope + end
+PASS BE-NL group param
+PASS BE-NL public scope
+PASS BE-NL school scope + end
+PASS BE multi groups
+PASS BE one public per year
+PASS BE national groups
+PASS BE partial national no coverage
+PASS BE missing no school data or coverage
+PASS BE foreign no school data or coverage
+PASS BE unknown no school data or coverage
+PASS BE wrong group no school data or coverage
+PASS BE explicit local no school data or coverage
+PASS BE contradictory nationwide no school data or coverage
+PASS BE empty no coverage
+PASS BE nationwide only no coverage
+PASS BE country explicit local keeps subdivision only
+PASS BE mixed request rejected
+PASS BE failed response
+PASS NL-NO group param
+PASS NL-NO public scope
+PASS NL-NO school scope + end
+PASS NL-MI group param
+PASS NL-MI public scope
+PASS NL-MI school scope + end
+PASS NL-ZU group param
+PASS NL-ZU public scope
+PASS NL-ZU school scope + end
+PASS NL multi groups
+PASS NL one public per year
+PASS NL national groups
+PASS NL partial national no coverage
+PASS NL missing no school data or coverage
+PASS NL foreign no school data or coverage
+PASS NL unknown no school data or coverage
+PASS NL wrong group no school data or coverage
+PASS NL explicit local no school data or coverage
+PASS NL contradictory nationwide no school data or coverage
+PASS NL empty no coverage
+PASS NL nationwide only no coverage
+PASS NL country explicit local keeps subdivision only
+PASS NL mixed request rejected
+PASS NL failed response
+PASS Austria subdivision mapping
+PASS Germany subdivision unchanged
+PASS BE captured groups and dates exact
+PASS BE captured group coverage
+PASS BE captured public scope
+PASS BE-DE captured groups and dates exact
+PASS BE-DE captured group coverage
+PASS BE-DE captured public scope
+PASS BE-FR captured groups and dates exact
+PASS BE-FR captured group coverage
+PASS BE-FR captured public scope
+PASS BE-NL captured groups and dates exact
+PASS BE-NL captured group coverage
+PASS BE-NL captured public scope
+PASS BE expanded groups keep only group identity
+PASS BE Exception tag alone preserves group
+PASS BE all groups nationwide expansion consistent
+PASS BE Local country retains only local scope
+PASS BE subdivision-only country retains local scope
+PASS BE invalid regionalScope Unknown grants no coverage
+PASS BE invalid regionalScope 42 grants no coverage
+PASS BE invalid regionalScope <null> grants no coverage
+PASS BE foreign subdivision rejected
+PASS BE prefixless subdivision rejected
+PASS BE malformed subdivisions rejected
+PASS BE local without local identity rejected
+PASS NL captured groups and dates exact
+PASS NL captured group coverage
+PASS NL captured public scope
+PASS NL-NO captured groups and dates exact
+PASS NL-NO captured group coverage
+PASS NL-NO captured public scope
+PASS NL-MI captured groups and dates exact
+PASS NL-MI captured group coverage
+PASS NL-MI captured public scope
+PASS NL-ZU captured groups and dates exact
+PASS NL-ZU captured group coverage
+PASS NL-ZU captured public scope
+PASS NL expanded groups keep only group identity
+PASS NL Exception tag alone preserves group
+PASS NL all groups nationwide expansion consistent
+PASS NL Local country retains only local scope
+PASS NL subdivision-only country retains local scope
+PASS NL invalid regionalScope Unknown grants no coverage
+PASS NL invalid regionalScope 42 grants no coverage
+PASS NL invalid regionalScope <null> grants no coverage
+PASS NL foreign subdivision rejected
+PASS NL prefixless subdivision rejected
+PASS NL malformed subdivisions rejected
+PASS NL local without local identity rejected
+RESULT 98/98

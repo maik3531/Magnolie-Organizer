@@ -1,0 +1,8 @@
+{"country":"BE","region":"","input":16,"parsed":16,"complete":true,"coverage":true}
+{"country":"BE","region":"BE-DE","input":4,"parsed":4,"complete":true,"coverage":true}
+{"country":"BE","region":"BE-FR","input":6,"parsed":6,"complete":true,"coverage":true}
+{"country":"BE","region":"BE-NL","input":6,"parsed":6,"complete":true,"coverage":true}
+{"country":"NL","region":"","input":10,"parsed":10,"complete":false,"coverage":false}
+{"country":"NL","region":"NL-MI","input":6,"parsed":0,"complete":false,"coverage":false}
+{"country":"NL","region":"NL-NO","input":6,"parsed":0,"complete":false,"coverage":false}
+{"country":"NL","region":"NL-ZU","input":6,"parsed":0,"complete":false,"coverage":false}

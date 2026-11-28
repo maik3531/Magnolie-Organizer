@@ -1,0 +1,54 @@
+{
+  "scope": "isolated participating source blobs, not a full product checkout",
+  "forward_all_files_byte_identical": true,
+  "reverse_all_original_bytes_restored_and_new_files_removed": true,
+  "commands": [
+    {
+      "arguments": [
+        "apply",
+        "--check",
+        "PATCH"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "apply",
+        "--index",
+        "PATCH"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "/workspace/scratch/6344df626283/windows854/deliverable/be-nl-windows-854-857-after-855-856.patch:786: trailing whitespace.\nrecord or in some other way that clarifies what rights apply. \n/workspace/scratch/6344df626283/windows854/deliverable/be-nl-windows-854-857-after-855-856.patch:797: trailing whitespace.\nThe Licensor (as defined below) \n/workspace/scratch/6344df626283/windows854/deliverable/be-nl-windows-854-857-after-855-856.patch:799: trailing whitespace.\nand \n/workspace/scratch/6344df626283/windows854/deliverable/be-nl-windows-854-857-after-855-856.patch:801: trailing whitespace.\nYou (as defined below) \n/workspace/scratch/6344df626283/windows854/deliverable/be-nl-windows-854-857-after-855-856.patch:803: trailing whitespace.\nagree as follows: \nwarning: squelched 32 whitespace errors\nwarning: 37 lines add whitespace errors.\n"
+    },
+    {
+      "arguments": [
+        "apply",
+        "--reverse",
+        "--check",
+        "PATCH"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "apply",
+        "--reverse",
+        "--index",
+        "PATCH"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "patch": {
+    "bytes": 262289,
+    "sha256": "76ffbfffcb50c111b9f0331b99167cae2ba10d058c38eec5ca459905d524af33",
+    "git_blob": "7b2c83e742b93743b304de9ded82660ab8c4fbb7"
+  }
+}

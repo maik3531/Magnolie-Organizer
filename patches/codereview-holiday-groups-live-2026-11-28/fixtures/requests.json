@@ -1,0 +1,202 @@
+{
+  "country_requests": [
+    {
+      "country": "BE",
+      "endpoint": "Groups",
+      "url": "https://openholidaysapi.org/Groups?countryIsoCode=BE&languageIsoCode=EN",
+      "status": 200,
+      "file": "BE-Groups.json",
+      "sha256": "b3901720df3275fab7c15614d9d350fe4770b3878ed7695aa8eb38492e9f4380",
+      "rows": 3,
+      "retrieved_at": "2026-11-28T12:23:22.261338+00:00",
+      "groups": [
+        {
+          "code": "BE-DE",
+          "name": [
+            {
+              "language": "EN",
+              "text": "German-speaking community"
+            }
+          ],
+          "children": null
+        },
+        {
+          "code": "BE-FR",
+          "name": [
+            {
+              "language": "EN",
+              "text": "French community"
+            }
+          ],
+          "children": null
+        },
+        {
+          "code": "BE-NL",
+          "name": [
+            {
+              "language": "EN",
+              "text": "Flemish community"
+            }
+          ],
+          "children": null
+        }
+      ]
+    },
+    {
+      "country": "BE",
+      "endpoint": "SchoolHolidays",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=BE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31",
+      "status": 200,
+      "file": "BE-SchoolHolidays.json",
+      "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+      "rows": 16,
+      "retrieved_at": "2026-11-28T12:23:22.296079+00:00"
+    },
+    {
+      "country": "BE",
+      "endpoint": "PublicHolidays",
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=BE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31",
+      "status": 200,
+      "file": "BE-PublicHolidays.json",
+      "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+      "rows": 12,
+      "retrieved_at": "2026-11-28T12:23:22.423688+00:00"
+    },
+    {
+      "country": "NL",
+      "endpoint": "Groups",
+      "url": "https://openholidaysapi.org/Groups?countryIsoCode=NL&languageIsoCode=EN",
+      "status": 200,
+      "file": "NL-Groups.json",
+      "sha256": "862c26e1c2fba547ab71b5a6cb3b6209feb7967f52986c2ba93f0fd0da6f3188",
+      "rows": 3,
+      "retrieved_at": "2026-11-28T12:23:27.871175+00:00",
+      "groups": [
+        {
+          "code": "NL-MI",
+          "name": [
+            {
+              "language": "EN",
+              "text": "Central Region"
+            }
+          ],
+          "children": null
+        },
+        {
+          "code": "NL-NO",
+          "name": [
+            {
+              "language": "EN",
+              "text": "North Region"
+            }
+          ],
+          "children": null
+        },
+        {
+          "code": "NL-ZU",
+          "name": [
+            {
+              "language": "EN",
+              "text": "South Region"
+            }
+          ],
+          "children": null
+        }
+      ]
+    },
+    {
+      "country": "NL",
+      "endpoint": "SchoolHolidays",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=NL&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31",
+      "status": 200,
+      "file": "NL-SchoolHolidays.json",
+      "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+      "rows": 10,
+      "retrieved_at": "2026-11-28T12:23:27.827440+00:00"
+    },
+    {
+      "country": "NL",
+      "endpoint": "PublicHolidays",
+      "url": "https://openholidaysapi.org/PublicHolidays?countryIsoCode=NL&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31",
+      "status": 200,
+      "file": "NL-PublicHolidays.json",
+      "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+      "rows": 11,
+      "retrieved_at": "2026-11-28T12:23:27.500516+00:00"
+    }
+  ],
+  "group_requests": [
+    {
+      "group": "BE-DE",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=BE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=BE-DE",
+      "retrieved_utc": "2026-11-28T12:29:05.126967+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:05 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+      "bytes": 1119,
+      "row_count": 4,
+      "file": "BE-DE-SchoolHolidays.json"
+    },
+    {
+      "group": "BE-FR",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=BE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=BE-FR",
+      "retrieved_utc": "2026-11-28T12:29:05.060498+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:05 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+      "bytes": 1681,
+      "row_count": 6,
+      "file": "BE-FR-SchoolHolidays.json"
+    },
+    {
+      "group": "BE-NL",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=BE&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=BE-NL",
+      "retrieved_utc": "2026-11-28T12:29:05.094076+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:05 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+      "bytes": 1681,
+      "row_count": 6,
+      "file": "BE-NL-SchoolHolidays.json"
+    },
+    {
+      "group": "NL-MI",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=NL&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=NL-MI",
+      "retrieved_utc": "2026-11-28T12:29:07.706232+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:07 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+      "bytes": 30360,
+      "row_count": 6,
+      "file": "NL-MI-SchoolHolidays.json"
+    },
+    {
+      "group": "NL-NO",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=NL&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=NL-NO",
+      "retrieved_utc": "2026-11-28T12:29:07.854152+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:07 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+      "bytes": 31900,
+      "row_count": 6,
+      "file": "NL-NO-SchoolHolidays.json"
+    },
+    {
+      "group": "NL-ZU",
+      "url": "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=NL&languageIsoCode=EN&validFrom=2026-01-01&validTo=2026-12-31&groupCode=NL-ZU",
+      "retrieved_utc": "2026-11-28T12:29:07.680306+00:00",
+      "status": 200,
+      "date": "Sat, 28 Nov 2026 12:29:07 GMT",
+      "content_type": "application/json; charset=utf-8",
+      "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+      "bytes": 30960,
+      "row_count": 6,
+      "file": "NL-ZU-SchoolHolidays.json"
+    }
+  ]
+}

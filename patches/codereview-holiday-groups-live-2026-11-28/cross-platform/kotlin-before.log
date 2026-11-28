@@ -1,0 +1,113 @@
+PASS BE-DE group URL
+PASS BE-DE national public URL
+PASS BE-DE group coverage
+PASS BE-DE cross-year inclusive interval
+PASS BE-FR group URL
+PASS BE-FR national public URL
+PASS BE-FR group coverage
+PASS BE-FR cross-year inclusive interval
+PASS BE-NL group URL
+PASS BE-NL national public URL
+PASS BE-NL group coverage
+PASS BE-NL cross-year inclusive interval
+PASS BE one public request
+PASS BE union and label
+PASS BE all group coverage
+PASS BE missing no school coverage
+PASS BE missing no invented school entry
+PASS BE foreign no school coverage
+PASS BE foreign no invented school entry
+PASS BE wrong no school coverage
+PASS BE wrong no invented school entry
+PASS BE explicit local no school coverage
+PASS BE explicit local no invented school entry
+PASS BE malformed no school coverage
+PASS BE malformed no invented school entry
+PASS BE empty no school coverage
+PASS BE empty no invented school entry
+PASS BE partial national no coverage
+PASS BE opt-out single public
+PASS BE mixed query rejected
+PASS NL-NO group URL
+PASS NL-NO national public URL
+PASS NL-NO group coverage
+PASS NL-NO cross-year inclusive interval
+PASS NL-MI group URL
+PASS NL-MI national public URL
+PASS NL-MI group coverage
+PASS NL-MI cross-year inclusive interval
+PASS NL-ZU group URL
+PASS NL-ZU national public URL
+PASS NL-ZU group coverage
+PASS NL-ZU cross-year inclusive interval
+PASS NL one public request
+PASS NL union and label
+PASS NL all group coverage
+PASS NL missing no school coverage
+PASS NL missing no invented school entry
+PASS NL foreign no school coverage
+PASS NL foreign no invented school entry
+PASS NL wrong no school coverage
+PASS NL wrong no invented school entry
+PASS NL explicit local no school coverage
+PASS NL explicit local no invented school entry
+PASS NL malformed no school coverage
+PASS NL malformed no invented school entry
+PASS NL empty no school coverage
+PASS NL empty no invented school entry
+PASS NL partial national no coverage
+PASS NL opt-out single public
+PASS NL mixed query rejected
+PASS AT existing subdivision URL
+PASS AT existing coverage and ISO
+PASS DE existing subdivision URL
+PASS DE existing coverage and ISO
+PASS BE captured groups and dates exact
+PASS BE captured group coverage
+PASS BE captured public scope
+PASS BE-DE captured groups and dates exact
+PASS BE-DE captured group coverage
+PASS BE-DE captured public scope
+PASS BE-FR captured groups and dates exact
+PASS BE-FR captured group coverage
+PASS BE-FR captured public scope
+PASS BE-NL captured groups and dates exact
+PASS BE-NL captured group coverage
+PASS BE-NL captured public scope
+FAIL NL captured groups and dates exact
+FAIL NL captured group coverage
+PASS NL captured public scope
+FAIL NL-NO captured groups and dates exact
+FAIL NL-NO captured group coverage
+PASS NL-NO captured public scope
+FAIL NL-MI captured groups and dates exact
+FAIL NL-MI captured group coverage
+PASS NL-MI captured public scope
+FAIL NL-ZU captured groups and dates exact
+FAIL NL-ZU captured group coverage
+PASS NL-ZU captured public scope
+FAIL BE expanded groups keep only group identity: Collection contains no element matching the predicate.
+FAIL BE Exception tag alone preserves group: Collection contains no element matching the predicate.
+FAIL BE all groups nationwide expansion consistent: Collection contains no element matching the predicate.
+PASS BE explicit Local country retained locally
+PASS BE subdivision-only country retained locally
+FAIL BE invalid regionalScope Unknown grants no coverage
+FAIL BE invalid regionalScope 42 grants no coverage
+FAIL BE invalid regionalScope null grants no coverage
+PASS BE foreign subdivision rejected
+PASS BE prefixless subdivision rejected
+PASS BE malformed subdivisions rejected
+FAIL BE local without local identity rejected
+FAIL NL expanded groups keep only group identity: Collection contains no element matching the predicate.
+FAIL NL Exception tag alone preserves group: Collection contains no element matching the predicate.
+FAIL NL all groups nationwide expansion consistent: Collection contains no element matching the predicate.
+PASS NL explicit Local country retained locally
+PASS NL subdivision-only country retained locally
+FAIL NL invalid regionalScope Unknown grants no coverage
+FAIL NL invalid regionalScope 42 grants no coverage
+FAIL NL invalid regionalScope null grants no coverage
+PASS NL foreign subdivision rejected
+PASS NL prefixless subdivision rejected
+PASS NL malformed subdivisions rejected
+FAIL NL local without local identity rejected
+90/112

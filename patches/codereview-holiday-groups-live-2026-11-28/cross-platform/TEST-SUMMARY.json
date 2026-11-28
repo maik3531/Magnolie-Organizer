@@ -1,0 +1,169 @@
+{
+  "sources": {
+    "before": {
+      "magnolie-organizer/bin/magnolie-organizer": {
+        "bytes": 1619668,
+        "sha256": "c04a4dbc8d8f7ef35b0140012ecf05787e83896547567dd66272d2b4e8d97eff",
+        "git_blob": "7f175d485d88740bdb4b1e428e600fdcad6ceab7"
+      },
+      "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift": {
+        "bytes": 19004,
+        "sha256": "71713312d14f78d62afd8923aadc19ea68fa18ff7a14cf736d89bc7bee783a90",
+        "git_blob": "6e0c3cc336317d3cf128d4a4c40560b6195415c8"
+      },
+      "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt": {
+        "bytes": 23751,
+        "sha256": "62f983a9c60e54d048a2ed45b4cf1230c45fe17ab4559d3eb2028cf64a82e760",
+        "git_blob": "1a1fe775409adeff64ac448b578753a89044d2cd"
+      }
+    },
+    "after": {
+      "magnolie-organizer/bin/magnolie-organizer": {
+        "bytes": 1620253,
+        "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f",
+        "git_blob": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift": {
+        "bytes": 19561,
+        "sha256": "d777b964ff7b5e67e579c62c4883ec1de8d7c01137fc731c8efb935f11ee927a",
+        "git_blob": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt": {
+        "bytes": 24314,
+        "sha256": "f2d3d7204ca0311ad1b7826a5ce57271fb8d3f4f858c8c8a1722bb8db9402dc9",
+        "git_blob": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      }
+    }
+  },
+  "tests": {
+    "magnolie-organizer/pruefungen/holiday_groups_854_probe.py": {
+      "bytes": 11575,
+      "sha256": "53fc430c92234529fec818376232ad4f60c4208e00eff40275ba9419ca8584e7",
+      "git_blob": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+    },
+    "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift": {
+      "bytes": 662,
+      "sha256": "973254fb69df7946fdb4ab88cf297028fd39970dd8a30e23d1f3d5d9908a199e",
+      "git_blob": "37f94f384f306884d05322273acddd59bbcb4135"
+    },
+    "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift": {
+      "bytes": 11516,
+      "sha256": "f54e3f0fb719beffb2e92c13d66c0db20fbf2044d96347e9da9996490f0551fe",
+      "git_blob": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+    },
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt": {
+      "bytes": 794,
+      "sha256": "7d20de40202dba68c770e9007be7bd13f9d349c7e6c7db9dcfae7e5bff147235",
+      "git_blob": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+    },
+    "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt": {
+      "bytes": 10647,
+      "sha256": "341e99d501cd2bc76779208ba8e10691ffd59be3af318a1e4aade6814b0dd40a",
+      "git_blob": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+    }
+  },
+  "fixtures": {
+    "BE-DE-SchoolHolidays.json": {
+      "bytes": 1119,
+      "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+      "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+    },
+    "BE-FR-SchoolHolidays.json": {
+      "bytes": 1681,
+      "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+      "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+    },
+    "BE-NL-SchoolHolidays.json": {
+      "bytes": 1681,
+      "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+      "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+    },
+    "BE-PublicHolidays.json": {
+      "bytes": 2764,
+      "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+      "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+    },
+    "BE-SchoolHolidays.json": {
+      "bytes": 4479,
+      "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+      "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+    },
+    "NL-MI-SchoolHolidays.json": {
+      "bytes": 30360,
+      "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+      "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+    },
+    "NL-NO-SchoolHolidays.json": {
+      "bytes": 31900,
+      "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+      "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+    },
+    "NL-PublicHolidays.json": {
+      "bytes": 2536,
+      "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+      "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+    },
+    "NL-SchoolHolidays.json": {
+      "bytes": 51552,
+      "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+      "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+    },
+    "NL-ZU-SchoolHolidays.json": {
+      "bytes": 30960,
+      "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+      "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+    }
+  },
+  "dependencies": {
+    "python": "Python 3.12.14",
+    "java": "openjdk version \"21.0.13.1\" 2026-11-17\nOpenJDK Runtime Environment (build 21.0.13.1+2-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.13.1+2-1-deb13u1-Debian, mixed mode, sharing)",
+    "swift": "Swift version 6.4.3 (swift-6.4.3-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "kotlin": "info: kotlinc-jvm 2.4.21 (JRE 21.0.13.1+2-1-deb13u1-Debian)",
+    "threetenbp-1.7.5.jar": {
+      "bytes": 515351,
+      "sha256": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72",
+      "git_blob": "ff120094296a453b3e8b4967b7b0f4fe107d4d6a"
+    },
+    "json-20240303.jar": {
+      "bytes": 78332,
+      "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed",
+      "git_blob": "3de65235382da564dc138eafa20899101d250f9e"
+    }
+  },
+  "runs": {
+    "before": {
+      "linux": {
+        "exit": 1,
+        "passed": 68,
+        "total": 90
+      },
+      "swift": {
+        "exit": 1,
+        "passed": 76,
+        "total": 98
+      },
+      "kotlin": {
+        "exit": 1,
+        "passed": 90,
+        "total": 112
+      }
+    },
+    "after": {
+      "linux": {
+        "exit": 0,
+        "passed": 90,
+        "total": 90
+      },
+      "swift": {
+        "exit": 0,
+        "passed": 98,
+        "total": 98
+      },
+      "kotlin": {
+        "exit": 0,
+        "passed": 112,
+        "total": 112
+      }
+    }
+  }
+}

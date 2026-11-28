@@ -1,0 +1,1368 @@
+{
+  "review": "Independent source, recorded-test and final delivery consistency; no repeated functional test runs",
+  "decision": "APPROVE_PROVIDER_PATCH_HANDOFF",
+  "main_merge_or_release_approval": false,
+  "base_main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "prerequisite": "main plus complete #855/#856; before any BE/NL #854 provider patch",
+  "combined_patch": {
+    "path": "be-nl-providers-854-857-after-855-856.patch",
+    "bytes": 326714,
+    "sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+    "git_blob": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7"
+  },
+  "check_counts": {
+    "cross_run_fixture_binding": 10,
+    "cross_run_source_binding": 3,
+    "cross_run_test_binding": 5,
+    "manifest_after_file": 27,
+    "manifest_before_file": 5,
+    "patch_file_metadata": 1,
+    "patch_index_binding": 27,
+    "patch_paths": 1,
+    "published_evidence_copy": 2,
+    "windows_extracted_members": 1,
+    "windows_run_binding": 14,
+    "windows_unchanged_normalizer": 1,
+    "windows_unchanged_normalizer_baseline": 1
+  },
+  "checks_count": 98,
+  "mismatches": 0,
+  "checks": [
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "expected": {
+        "bytes": 24314,
+        "sha256": "f2d3d7204ca0311ad1b7826a5ce57271fb8d3f4f858c8c8a1722bb8db9402dc9",
+        "git_blob": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "actual": {
+        "bytes": 24314,
+        "sha256": "f2d3d7204ca0311ad1b7826a5ce57271fb8d3f4f858c8c8a1722bb8db9402dc9",
+        "git_blob": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_before_file",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "expected": {
+        "bytes": 21047,
+        "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50",
+        "git_blob": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321"
+      },
+      "actual": {
+        "bytes": 21047,
+        "sha256": "b18709ae7fed614515008d4ff7e16a07826d81a2e39c324985d891cc5299bf50",
+        "git_blob": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+      "expected": {
+        "bytes": 794,
+        "sha256": "7d20de40202dba68c770e9007be7bd13f9d349c7e6c7db9dcfae7e5bff147235",
+        "git_blob": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "actual": {
+        "bytes": 794,
+        "sha256": "7d20de40202dba68c770e9007be7bd13f9d349c7e6c7db9dcfae7e5bff147235",
+        "git_blob": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+      "expected": {
+        "bytes": 10647,
+        "sha256": "341e99d501cd2bc76779208ba8e10691ffd59be3af318a1e4aade6814b0dd40a",
+        "git_blob": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "actual": {
+        "bytes": 10647,
+        "sha256": "341e99d501cd2bc76779208ba8e10691ffd59be3af318a1e4aade6814b0dd40a",
+        "git_blob": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "expected": {
+        "bytes": 19561,
+        "sha256": "d777b964ff7b5e67e579c62c4883ec1de8d7c01137fc731c8efb935f11ee927a",
+        "git_blob": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "actual": {
+        "bytes": 19561,
+        "sha256": "d777b964ff7b5e67e579c62c4883ec1de8d7c01137fc731c8efb935f11ee927a",
+        "git_blob": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_before_file",
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "expected": {
+        "bytes": 15819,
+        "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f",
+        "git_blob": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624"
+      },
+      "actual": {
+        "bytes": 15819,
+        "sha256": "cba42c2c9f134f7bc4569b6c9db1248ff911146008c53987474a948e3f15cc8f",
+        "git_blob": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+      "expected": {
+        "bytes": 662,
+        "sha256": "973254fb69df7946fdb4ab88cf297028fd39970dd8a30e23d1f3d5d9908a199e",
+        "git_blob": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "actual": {
+        "bytes": 662,
+        "sha256": "973254fb69df7946fdb4ab88cf297028fd39970dd8a30e23d1f3d5d9908a199e",
+        "git_blob": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+      "expected": {
+        "bytes": 11516,
+        "sha256": "f54e3f0fb719beffb2e92c13d66c0db20fbf2044d96347e9da9996490f0551fe",
+        "git_blob": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "actual": {
+        "bytes": 11516,
+        "sha256": "f54e3f0fb719beffb2e92c13d66c0db20fbf2044d96347e9da9996490f0551fe",
+        "git_blob": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md",
+      "expected": {
+        "bytes": 1652,
+        "sha256": "bc62d4387844d3b80d093035129556ba2fb1188023fb419bb2990f7d04519021",
+        "git_blob": "a6df8267b0e1b12946e42589d8251cf37a290a2b"
+      },
+      "actual": {
+        "bytes": 1652,
+        "sha256": "bc62d4387844d3b80d093035129556ba2fb1188023fb419bb2990f7d04519021",
+        "git_blob": "a6df8267b0e1b12946e42589d8251cf37a290a2b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1119,
+        "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+        "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "actual": {
+        "bytes": 1119,
+        "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+        "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1681,
+        "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+        "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "actual": {
+        "bytes": 1681,
+        "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+        "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json",
+      "expected": {
+        "bytes": 422,
+        "sha256": "b3901720df3275fab7c15614d9d350fe4770b3878ed7695aa8eb38492e9f4380",
+        "git_blob": "e846f3d5066dc0e98a59b058a25ac86aa997a6b1"
+      },
+      "actual": {
+        "bytes": 422,
+        "sha256": "b3901720df3275fab7c15614d9d350fe4770b3878ed7695aa8eb38492e9f4380",
+        "git_blob": "e846f3d5066dc0e98a59b058a25ac86aa997a6b1"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1681,
+        "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+        "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "actual": {
+        "bytes": 1681,
+        "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+        "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+      "expected": {
+        "bytes": 2764,
+        "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+        "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "actual": {
+        "bytes": 2764,
+        "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+        "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+      "expected": {
+        "bytes": 4479,
+        "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+        "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "actual": {
+        "bytes": 4479,
+        "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+        "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json",
+      "expected": {
+        "bytes": 14930,
+        "sha256": "862c26e1c2fba547ab71b5a6cb3b6209feb7967f52986c2ba93f0fd0da6f3188",
+        "git_blob": "ed6e4ed20b29bb26c138cca0026f9e3b21fdecc0"
+      },
+      "actual": {
+        "bytes": 14930,
+        "sha256": "862c26e1c2fba547ab71b5a6cb3b6209feb7967f52986c2ba93f0fd0da6f3188",
+        "git_blob": "ed6e4ed20b29bb26c138cca0026f9e3b21fdecc0"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+      "expected": {
+        "bytes": 30360,
+        "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+        "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "actual": {
+        "bytes": 30360,
+        "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+        "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+      "expected": {
+        "bytes": 31900,
+        "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+        "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "actual": {
+        "bytes": 31900,
+        "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+        "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+      "expected": {
+        "bytes": 2536,
+        "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+        "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "actual": {
+        "bytes": 2536,
+        "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+        "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+      "expected": {
+        "bytes": 51552,
+        "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+        "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "actual": {
+        "bytes": 51552,
+        "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+        "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+      "expected": {
+        "bytes": 30960,
+        "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+        "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "actual": {
+        "bytes": 30960,
+        "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+        "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt",
+      "expected": {
+        "bytes": 25279,
+        "sha256": "1d553feead201a7619788171b43cca12675e82d70b197aa45795986bb8603e72",
+        "git_blob": "c19565c1f23da21ad45acf2146834ec0908f758c"
+      },
+      "actual": {
+        "bytes": 25279,
+        "sha256": "1d553feead201a7619788171b43cca12675e82d70b197aa45795986bb8603e72",
+        "git_blob": "c19565c1f23da21ad45acf2146834ec0908f758c"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+      "expected": {
+        "bytes": 7056,
+        "sha256": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+        "git_blob": "433e48bf577377782a69c1779cb397c160954550"
+      },
+      "actual": {
+        "bytes": 7056,
+        "sha256": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+        "git_blob": "433e48bf577377782a69c1779cb397c160954550"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "expected": {
+        "bytes": 177818,
+        "sha256": "573facaeb82dcffb36c7b61ff6c8ae65f5750f14ce0d8e7f18795c19617d6033",
+        "git_blob": "b40cf75a30c9c05ff897423a2adca7fc055e58aa"
+      },
+      "actual": {
+        "bytes": 177818,
+        "sha256": "573facaeb82dcffb36c7b61ff6c8ae65f5750f14ce0d8e7f18795c19617d6033",
+        "git_blob": "b40cf75a30c9c05ff897423a2adca7fc055e58aa"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_before_file",
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "expected": {
+        "bytes": 176672,
+        "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+        "git_blob": "f61ccaa3c0e4b0fe517a448bd829d82b35223820"
+      },
+      "actual": {
+        "bytes": 176672,
+        "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+        "git_blob": "f61ccaa3c0e4b0fe517a448bd829d82b35223820"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "expected": {
+        "bytes": 12616,
+        "sha256": "41a0320a219ffbcab7cbaa8a2ad98149789bd7e58e15962b9a401a1f9374e254",
+        "git_blob": "bbd566cc67663fb3dfa6a43e773de69ad1ba36aa"
+      },
+      "actual": {
+        "bytes": 12616,
+        "sha256": "41a0320a219ffbcab7cbaa8a2ad98149789bd7e58e15962b9a401a1f9374e254",
+        "git_blob": "bbd566cc67663fb3dfa6a43e773de69ad1ba36aa"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_before_file",
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "expected": {
+        "bytes": 7800,
+        "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+        "git_blob": "217476e0b67c8d37897e08fda696fd7d88640b6d"
+      },
+      "actual": {
+        "bytes": 7800,
+        "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+        "git_blob": "217476e0b67c8d37897e08fda696fd7d88640b6d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+      "expected": {
+        "bytes": 28971,
+        "sha256": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+        "git_blob": "5f9479cd214353f883276f5106df1cd5c5c12c26"
+      },
+      "actual": {
+        "bytes": 28971,
+        "sha256": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+        "git_blob": "5f9479cd214353f883276f5106df1cd5c5c12c26"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.py",
+      "expected": {
+        "bytes": 5514,
+        "sha256": "66ed1c842c0c22cfbd664f213e636534472d2c7401fa27201eea440e1f19c40f",
+        "git_blob": "2a7b6a42d9919c4e8a74c24cdec2a4d8db9fc85d"
+      },
+      "actual": {
+        "bytes": 5514,
+        "sha256": "66ed1c842c0c22cfbd664f213e636534472d2c7401fa27201eea440e1f19c40f",
+        "git_blob": "2a7b6a42d9919c4e8a74c24cdec2a4d8db9fc85d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "expected": {
+        "bytes": 1620253,
+        "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f",
+        "git_blob": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "actual": {
+        "bytes": 1620253,
+        "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f",
+        "git_blob": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_before_file",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "expected": {
+        "bytes": 1616309,
+        "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+        "git_blob": "5314124d5bbe4444edf783b136b1ad3ac218cde5"
+      },
+      "actual": {
+        "bytes": 1616309,
+        "sha256": "5d4beae86270874cb3a4e9286b2bd8ad77203cecda45c065ba63ff29c0b96d63",
+        "git_blob": "5314124d5bbe4444edf783b136b1ad3ac218cde5"
+      },
+      "matched": true
+    },
+    {
+      "kind": "manifest_after_file",
+      "path": "magnolie-organizer/pruefungen/holiday_groups_854_probe.py",
+      "expected": {
+        "bytes": 11575,
+        "sha256": "53fc430c92234529fec818376232ad4f60c4208e00eff40275ba9419ca8584e7",
+        "git_blob": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "actual": {
+        "bytes": 11575,
+        "sha256": "53fc430c92234529fec818376232ad4f60c4208e00eff40275ba9419ca8584e7",
+        "git_blob": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_source_binding",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "expected": {
+        "bytes": 1620253,
+        "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f",
+        "git_blob": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "actual": {
+        "bytes": 1620253,
+        "sha256": "9f230d1e38db027793756da21bb22eaf839671926758f66ddd6bdbba1185b32f",
+        "git_blob": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_source_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "expected": {
+        "bytes": 19561,
+        "sha256": "d777b964ff7b5e67e579c62c4883ec1de8d7c01137fc731c8efb935f11ee927a",
+        "git_blob": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "actual": {
+        "bytes": 19561,
+        "sha256": "d777b964ff7b5e67e579c62c4883ec1de8d7c01137fc731c8efb935f11ee927a",
+        "git_blob": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_source_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "expected": {
+        "bytes": 24314,
+        "sha256": "f2d3d7204ca0311ad1b7826a5ce57271fb8d3f4f858c8c8a1722bb8db9402dc9",
+        "git_blob": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "actual": {
+        "bytes": 24314,
+        "sha256": "f2d3d7204ca0311ad1b7826a5ce57271fb8d3f4f858c8c8a1722bb8db9402dc9",
+        "git_blob": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_test_binding",
+      "path": "magnolie-organizer/pruefungen/holiday_groups_854_probe.py",
+      "expected": {
+        "bytes": 11575,
+        "sha256": "53fc430c92234529fec818376232ad4f60c4208e00eff40275ba9419ca8584e7",
+        "git_blob": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "actual": {
+        "bytes": 11575,
+        "sha256": "53fc430c92234529fec818376232ad4f60c4208e00eff40275ba9419ca8584e7",
+        "git_blob": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_test_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+      "expected": {
+        "bytes": 662,
+        "sha256": "973254fb69df7946fdb4ab88cf297028fd39970dd8a30e23d1f3d5d9908a199e",
+        "git_blob": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "actual": {
+        "bytes": 662,
+        "sha256": "973254fb69df7946fdb4ab88cf297028fd39970dd8a30e23d1f3d5d9908a199e",
+        "git_blob": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_test_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+      "expected": {
+        "bytes": 11516,
+        "sha256": "f54e3f0fb719beffb2e92c13d66c0db20fbf2044d96347e9da9996490f0551fe",
+        "git_blob": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "actual": {
+        "bytes": 11516,
+        "sha256": "f54e3f0fb719beffb2e92c13d66c0db20fbf2044d96347e9da9996490f0551fe",
+        "git_blob": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_test_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+      "expected": {
+        "bytes": 794,
+        "sha256": "7d20de40202dba68c770e9007be7bd13f9d349c7e6c7db9dcfae7e5bff147235",
+        "git_blob": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "actual": {
+        "bytes": 794,
+        "sha256": "7d20de40202dba68c770e9007be7bd13f9d349c7e6c7db9dcfae7e5bff147235",
+        "git_blob": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_test_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+      "expected": {
+        "bytes": 10647,
+        "sha256": "341e99d501cd2bc76779208ba8e10691ffd59be3af318a1e4aade6814b0dd40a",
+        "git_blob": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "actual": {
+        "bytes": 10647,
+        "sha256": "341e99d501cd2bc76779208ba8e10691ffd59be3af318a1e4aade6814b0dd40a",
+        "git_blob": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "BE-DE-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1119,
+        "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+        "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "actual": {
+        "bytes": 1119,
+        "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+        "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "BE-FR-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1681,
+        "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+        "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "actual": {
+        "bytes": 1681,
+        "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+        "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "BE-NL-SchoolHolidays.json",
+      "expected": {
+        "bytes": 1681,
+        "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+        "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "actual": {
+        "bytes": 1681,
+        "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+        "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "BE-PublicHolidays.json",
+      "expected": {
+        "bytes": 2764,
+        "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+        "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "actual": {
+        "bytes": 2764,
+        "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+        "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "BE-SchoolHolidays.json",
+      "expected": {
+        "bytes": 4479,
+        "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+        "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "actual": {
+        "bytes": 4479,
+        "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+        "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "NL-MI-SchoolHolidays.json",
+      "expected": {
+        "bytes": 30360,
+        "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+        "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "actual": {
+        "bytes": 30360,
+        "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+        "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "NL-NO-SchoolHolidays.json",
+      "expected": {
+        "bytes": 31900,
+        "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+        "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "actual": {
+        "bytes": 31900,
+        "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+        "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "NL-PublicHolidays.json",
+      "expected": {
+        "bytes": 2536,
+        "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+        "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "actual": {
+        "bytes": 2536,
+        "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+        "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "NL-SchoolHolidays.json",
+      "expected": {
+        "bytes": 51552,
+        "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+        "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "actual": {
+        "bytes": 51552,
+        "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+        "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "matched": true
+    },
+    {
+      "kind": "cross_run_fixture_binding",
+      "path": "NL-ZU-SchoolHolidays.json",
+      "expected": {
+        "bytes": 30960,
+        "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+        "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "actual": {
+        "bytes": 30960,
+        "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+        "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "expected": "573facaeb82dcffb36c7b61ff6c8ae65f5750f14ce0d8e7f18795c19617d6033",
+      "actual": "573facaeb82dcffb36c7b61ff6c8ae65f5750f14ce0d8e7f18795c19617d6033",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "expected": "41a0320a219ffbcab7cbaa8a2ad98149789bd7e58e15962b9a401a1f9374e254",
+      "actual": "41a0320a219ffbcab7cbaa8a2ad98149789bd7e58e15962b9a401a1f9374e254",
+      "matched": true
+    },
+    {
+      "kind": "windows_unchanged_normalizer",
+      "path": "magnolie-organizer-windows/FirstRunSetupState.cs",
+      "expected": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+      "actual": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+      "matched": true
+    },
+    {
+      "kind": "windows_unchanged_normalizer_baseline",
+      "path": "magnolie-organizer-windows/FirstRunSetupState.cs",
+      "expected": {
+        "bytes": 17283,
+        "sha256": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+        "git_blob": "992f7362177a1296fa4f60bef5ed1509396ab419"
+      },
+      "actual": {
+        "bytes": 17283,
+        "sha256": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+        "git_blob": "992f7362177a1296fa4f60bef5ed1509396ab419"
+      },
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+      "expected": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+      "actual": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+      "expected": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+      "actual": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+      "expected": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+      "actual": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+      "expected": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+      "actual": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+      "expected": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+      "actual": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+      "expected": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+      "actual": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+      "expected": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+      "actual": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+      "expected": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+      "actual": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+      "expected": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+      "actual": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+      "expected": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+      "actual": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+      "expected": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+      "actual": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+      "matched": true
+    },
+    {
+      "kind": "windows_run_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+      "expected": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+      "actual": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+      "matched": true
+    },
+    {
+      "kind": "windows_extracted_members",
+      "path": "extracted_members_sha256",
+      "expected": "a20b316d4efa06cf4f7f4729d7fffee84d898c3e48cd6f7bb8798c66544a01e5",
+      "actual": "a20b316d4efa06cf4f7f4729d7fffee84d898c3e48cd6f7bb8798c66544a01e5",
+      "matched": true
+    },
+    {
+      "kind": "patch_file_metadata",
+      "path": "be-nl-providers-854-857-after-855-856.patch",
+      "expected": {
+        "bytes": 326714,
+        "sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+        "git_blob": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7"
+      },
+      "actual": {
+        "bytes": 326714,
+        "sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+        "git_blob": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_paths",
+      "path": "be-nl-providers-854-857-after-855-856.patch",
+      "expected": [
+        "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+        "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+        "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+        "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt",
+        "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+        "magnolie-organizer-windows/BridgeDispatcher.cs",
+        "magnolie-organizer-windows/OpenHolidayData.cs",
+        "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+        "magnolie-organizer-windows/tests/holiday-school-groups.py",
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer/pruefungen/holiday_groups_854_probe.py"
+      ],
+      "actual": [
+        "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+        "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+        "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+        "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+        "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+        "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+        "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt",
+        "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+        "magnolie-organizer-windows/BridgeDispatcher.cs",
+        "magnolie-organizer-windows/OpenHolidayData.cs",
+        "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+        "magnolie-organizer-windows/tests/holiday-school-groups.py",
+        "magnolie-organizer/bin/magnolie-organizer",
+        "magnolie-organizer/pruefungen/holiday_groups_854_probe.py"
+      ],
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/HolidayService.kt",
+      "expected": {
+        "before": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321",
+        "after": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "actual": {
+        "before": "093ccc9423c8f47f5b9c09ccd661e8d8ae56d321",
+        "after": "70f0940a0bee0486b410c6ab856e26210218b1cc"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Doubles.kt",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "68e28a4425ea8df90213a8ed471ddc0cfaba05fb"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-Android-Tablet-Beta/tests/holiday-groups-live/Probe.kt",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "ada5eab15ec922810dfee491fe9fc61906d1a5f2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/Sources/BetaCore/HolidayService.swift",
+      "expected": {
+        "before": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624",
+        "after": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "actual": {
+        "before": "a3ae8d4e038571d4dd0448e03a3002e5b85f9624",
+        "after": "511d66cbf22fd64c4aeaa3bd0a723f7045fd16c2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Doubles.swift",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "37f94f384f306884d05322273acddd59bbcb4135"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "Magnolie-Organizer-macOS-Beta/tests/holiday-groups-live/Probe.swift",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "1af59cdef310c33be679aee7a2cb9d6ef445e4ef"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "a6df8267b0e1b12946e42589d8251cf37a290a2b"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "a6df8267b0e1b12946e42589d8251cf37a290a2b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "e846f3d5066dc0e98a59b058a25ac86aa997a6b1"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "e846f3d5066dc0e98a59b058a25ac86aa997a6b1"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "ed6e4ed20b29bb26c138cca0026f9e3b21fdecc0"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "ed6e4ed20b29bb26c138cca0026f9e3b21fdecc0"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "c19565c1f23da21ad45acf2146834ec0908f758c"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "c19565c1f23da21ad45acf2146834ec0908f758c"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "contracts/fixtures/holiday-groups-2026-11-28/requests.json",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "433e48bf577377782a69c1779cb397c160954550"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "433e48bf577377782a69c1779cb397c160954550"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer-windows/BridgeDispatcher.cs",
+      "expected": {
+        "before": "f61ccaa3c0e4b0fe517a448bd829d82b35223820",
+        "after": "b40cf75a30c9c05ff897423a2adca7fc055e58aa"
+      },
+      "actual": {
+        "before": "f61ccaa3c0e4b0fe517a448bd829d82b35223820",
+        "after": "b40cf75a30c9c05ff897423a2adca7fc055e58aa"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer-windows/OpenHolidayData.cs",
+      "expected": {
+        "before": "217476e0b67c8d37897e08fda696fd7d88640b6d",
+        "after": "bbd566cc67663fb3dfa6a43e773de69ad1ba36aa"
+      },
+      "actual": {
+        "before": "217476e0b67c8d37897e08fda696fd7d88640b6d",
+        "after": "bbd566cc67663fb3dfa6a43e773de69ad1ba36aa"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "5f9479cd214353f883276f5106df1cd5c5c12c26"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "5f9479cd214353f883276f5106df1cd5c5c12c26"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer-windows/tests/holiday-school-groups.py",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "2a7b6a42d9919c4e8a74c24cdec2a4d8db9fc85d"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "2a7b6a42d9919c4e8a74c24cdec2a4d8db9fc85d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer/bin/magnolie-organizer",
+      "expected": {
+        "before": "5314124d5bbe4444edf783b136b1ad3ac218cde5",
+        "after": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "actual": {
+        "before": "5314124d5bbe4444edf783b136b1ad3ac218cde5",
+        "after": "0eae6137790054c60d3f41bc230486eee2f93624"
+      },
+      "matched": true
+    },
+    {
+      "kind": "patch_index_binding",
+      "path": "magnolie-organizer/pruefungen/holiday_groups_854_probe.py",
+      "expected": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "actual": {
+        "before": "0000000000000000000000000000000000000000",
+        "after": "9080b0b782b70cdb222f9c62b60b009c2af9f80d"
+      },
+      "matched": true
+    },
+    {
+      "kind": "published_evidence_copy",
+      "path": "cross-platform/TEST-SUMMARY.json",
+      "expected": {
+        "bytes": 6462,
+        "sha256": "83026570c95509ac2a1ae2bd715a25a739b945c5cd77564ab683585bc89785ec",
+        "git_blob": "038ca71ee3eda607cd5b26d907ead1e8f39e9f8b"
+      },
+      "actual": {
+        "bytes": 6462,
+        "sha256": "83026570c95509ac2a1ae2bd715a25a739b945c5cd77564ab683585bc89785ec",
+        "git_blob": "038ca71ee3eda607cd5b26d907ead1e8f39e9f8b"
+      },
+      "matched": true
+    },
+    {
+      "kind": "published_evidence_copy",
+      "path": "windows/run-final-after-source-bindings.json",
+      "expected": {
+        "bytes": 1705,
+        "sha256": "952692a7141e199044c78941b77ceb3671f9c7517ea64dbd1c6a302edc83e1d3",
+        "git_blob": "0babdecfddfbcc210906fd5e36d1f4c3065b6f3b"
+      },
+      "actual": {
+        "bytes": 1705,
+        "sha256": "952692a7141e199044c78941b77ceb3671f9c7517ea64dbd1c6a302edc83e1d3",
+        "git_blob": "0babdecfddfbcc210906fd5e36d1f4c3065b6f3b"
+      },
+      "matched": true
+    }
+  ]
+}

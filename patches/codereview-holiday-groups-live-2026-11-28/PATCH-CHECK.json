@@ -1,0 +1,13 @@
+{
+  "patch": "be-nl-providers-854-857-after-855-856.patch",
+  "bytes": 326714,
+  "sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+  "git_blob": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7",
+  "changed_or_new_files": 27,
+  "isolated_before_tree": "59cddfb4e03d3d80725c6f3389e807e05ee3844d",
+  "isolated_after_tree": "1aa1db94984b1d78966aacd87f6efdf0dde4c651",
+  "git_apply_check": true,
+  "forward_exact": true,
+  "reverse_exact": true,
+  "scope": "isolated trees containing all participating exact source blobs and new fixtures"
+}

@@ -1,0 +1,133 @@
+{
+  "issues": [
+    854,
+    857
+  ],
+  "main_merged": false,
+  "native_apps_accepted": false,
+  "windows": {
+    "issues": [
+      854,
+      857
+    ],
+    "base_main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+    "prerequisite": "main + #855 + #856",
+    "sdk": "10.0.404",
+    "runtime": "10.0.15",
+    "host": "Linux",
+    "test_target": "net10.0",
+    "product_target_modified": false,
+    "build_warnings": 0,
+    "build_errors": 0,
+    "new_cases_before": {
+      "total": 90,
+      "passed": 2,
+      "failed": 88,
+      "runtime": "10.0.15",
+      "scope": "actual C# methods and full parser / offline HTTP / host runtime"
+    },
+    "new_cases_after": {
+      "total": 90,
+      "passed": 90,
+      "failed": 0,
+      "runtime": "10.0.15",
+      "scope": "actual C# methods and full parser / offline HTTP / host runtime"
+    },
+    "legacy_coverage_cases": {
+      "total": 43,
+      "passed": 43,
+      "failed": 0,
+      "runtime": "10.0.15",
+      "scope": "actual C# methods / offline HTTP / Linux source host"
+    },
+    "captured_replay_cases": 8,
+    "source_scope": "exact production bridge methods, complete OpenHolidayData.cs, real setup normalizer",
+    "controlled_doubles": [
+      "HTTP transport",
+      "form callback",
+      "gettext"
+    ],
+    "not_checked": [
+      "full WinForms build",
+      "native Windows GUI",
+      "installed package",
+      "shared GUI/MCP acceptance",
+      "provider calendar completeness"
+    ],
+    "discarded_initial_policy": {
+      "synthetic_passed": 72,
+      "synthetic_total": 72,
+      "live_country_json_selected_group_observation": {
+        "NL-MI": {
+          "input": 6,
+          "parsed": 0
+        },
+        "NL-NO": {
+          "input": 6,
+          "parsed": 0
+        },
+        "NL-ZU": {
+          "input": 6,
+          "parsed": 0
+        }
+      },
+      "reason": "Provider normally derives accompanying subdivisions from group membership; synthetic municipal restriction assumption was wrong"
+    }
+  },
+  "cross_platform": {
+    "before": {
+      "linux": {
+        "exit": 1,
+        "passed": 68,
+        "total": 90
+      },
+      "swift": {
+        "exit": 1,
+        "passed": 76,
+        "total": 98
+      },
+      "kotlin": {
+        "exit": 1,
+        "passed": 90,
+        "total": 112
+      }
+    },
+    "after": {
+      "linux": {
+        "exit": 0,
+        "passed": 90,
+        "total": 90
+      },
+      "swift": {
+        "exit": 0,
+        "passed": 98,
+        "total": 98
+      },
+      "kotlin": {
+        "exit": 0,
+        "passed": 112,
+        "total": 112
+      }
+    }
+  },
+  "real_http_requests": 12,
+  "real_http_group_requests": 6,
+  "remarks": [
+    "The country/group responses are real captures; automated host tests replay these bytes.",
+    "Windows baseline lacks the original #854 group feature; other baselines are the already published #854 platform patches.",
+    "Case assertions are not independent defect counts."
+  ],
+  "combined_patch": {
+    "patch": "be-nl-providers-854-857-after-855-856.patch",
+    "bytes": 326714,
+    "sha256": "bad577950aa8f78fd9d306b72440b5aa10176e15c5ce3f033302e54b28d44b75",
+    "git_blob": "93fdb8e6a2771e467e2f79d69d52d80539c0c6f7",
+    "changed_or_new_files": 27,
+    "isolated_before_tree": "59cddfb4e03d3d80725c6f3389e807e05ee3844d",
+    "isolated_after_tree": "1aa1db94984b1d78966aacd87f6efdf0dde4c651",
+    "git_apply_check": true,
+    "forward_exact": true,
+    "reverse_exact": true,
+    "scope": "isolated trees containing all participating exact source blobs and new fixtures"
+  }
+}

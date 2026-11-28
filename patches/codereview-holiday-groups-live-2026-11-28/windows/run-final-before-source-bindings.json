@@ -1,0 +1,18 @@
+{
+  "magnolie-organizer-windows/BridgeDispatcher.cs": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+  "magnolie-organizer-windows/OpenHolidayData.cs": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+  "magnolie-organizer-windows/FirstRunSetupState.cs": "4054a02c59c5a8c0a4d7cf254e930229b492a198320290b069e44306551fcc7c",
+  "case_file_sha256": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+  "fixture/BE-DE-SchoolHolidays.json": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+  "fixture/BE-FR-SchoolHolidays.json": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+  "fixture/BE-NL-SchoolHolidays.json": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+  "fixture/BE-PublicHolidays.json": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+  "fixture/BE-SchoolHolidays.json": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+  "fixture/NL-MI-SchoolHolidays.json": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+  "fixture/NL-NO-SchoolHolidays.json": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+  "fixture/NL-PublicHolidays.json": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+  "fixture/NL-SchoolHolidays.json": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+  "fixture/NL-ZU-SchoolHolidays.json": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+  "fixture/requests.json": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+  "extracted_members_sha256": "26ced61e99dbe4fe649a888d7d7f52bc50970e5cc31e36532c8c4582fe663caa"
+}

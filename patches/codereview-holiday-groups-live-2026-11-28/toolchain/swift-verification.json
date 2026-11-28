@@ -1,0 +1,7 @@
+{
+  "version": "6.4.3",
+  "url": "https://download.swift.org/swift-6.4.3-release/debian13/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE-debian13.tar.gz",
+  "sha256": "a0b8191b1e2b9ba4b4a610094f7b62624b1e67f2b85d2e55f2de2e801201fdd1",
+  "signature_verified": true,
+  "method": "gpg public-key verification, no agent used"
+}

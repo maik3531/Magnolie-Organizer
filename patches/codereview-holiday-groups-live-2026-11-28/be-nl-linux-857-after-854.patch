@@ -1,0 +1,107 @@
+diff --git a/magnolie-organizer/bin/magnolie-organizer b/magnolie-organizer/bin/magnolie-organizer
+index 7f175d485d88740bdb4b1e428e600fdcad6ceab7..0eae6137790054c60d3f41bc230486eee2f93624 100755
+--- a/magnolie-organizer/bin/magnolie-organizer
++++ b/magnolie-organizer/bin/magnolie-organizer
+@@ -18596,6 +18596,8 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False,
+         if schulgruppen and art == "school-holiday":
+             # Only the six verified provider group identities can represent
+             # whole school regions. Never infer a group from the request.
++            if "regionalScope" in satz and satz["regionalScope"] not in ("National", "Regional", "Local"):
++                vollstaendig = False
+             gruppen = satz.get("groups", [])
+             codes = [wert["code"] if isinstance(wert, dict) and
+                      isinstance(wert.get("code"), str) else None
+@@ -18603,12 +18605,19 @@ def _openholidays_auswerten(rohtext, art, mit_vollstaendigkeit=False,
+             if not isinstance(gruppen, list) or any(code not in schulgruppen for code in codes):
+                 vollstaendig = False
+                 continue
+-            # A municipal subdivision plus a group does not prove coverage of
+-            # that entire group. Preserve the existing subdivision-only path
+-            # for the country query; do not widen it on a group query.
+-            if unterregionen or not regionenform:
++            # Refs #857: the provider expands explicit groups into their
++            # administrative subdivisions. Validate both arrays, but retain
++            # only the explicit school-group identities in that case.
++            gruppenland = next(iter(schulgruppen)).split("-", 1)[0]
++            if (not regionenform or any(not code.startswith(gruppenland + "-")
++                    for code in regionen)):
++                vollstaendig = False
++                continue
++            # Explicitly local and subdivision-only records cannot establish
++            # group-wide coverage. A country query may retain their local scope.
++            if satz.get("regionalScope") == "Local" or (not codes and unterregionen):
+                 vollstaendig = False
+-                if schulgruppe or not regionenform or satz.get("nationwide") is True:
++                if schulgruppe or not unterregionen or satz.get("nationwide") is True:
+                     continue
+             else:
+                 if satz.get("nationwide") is True:
+diff --git a/magnolie-organizer/pruefungen/holiday_groups_854_probe.py b/magnolie-organizer/pruefungen/holiday_groups_854_probe.py
+index 1fa12af0945bd8b7e7483703dffb85574350b7c6..9080b0b782b70cdb222f9c62b60b009c2af9f80d 100644
+--- a/magnolie-organizer/pruefungen/holiday_groups_854_probe.py
++++ b/magnolie-organizer/pruefungen/holiday_groups_854_probe.py
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env python3
+-"""Refs #854. Execute the exact Linux holiday functions with a controlled HTTP host.
+-Usage: python3 probe.py <checkout or source-file>. No live provider calls.
++"""Refs #854 #857. Exact Linux holiday functions with a controlled HTTP host.
++Usage: python3 probe.py <checkout or source-file> [captured-fixture-directory].
++Captured provider bytes are replayed without making live network requests.
+ """
+ import ast
+ import datetime
+@@ -84,7 +85,7 @@ a,c=run('NL','', [north,centre,south,shared]);
+ check('country query keeps all four group identities',lambda:len(schools(a))==4 and {tuple(r['regions']) for r in schools(a)}=={('NL-NO',),('NL-MI',),('NL-ZU',),('NL-MI','NL-NO','NL-ZU')} and scope(a)==[''])
+ check('country query preserves cross-year interval',lambda:next(r for r in schools(a) if r['name']=='Shared winter')['bis']=='2027-01-03')
+ a,c=run('NL','NL-NO',[shared]);check('multi-group source identity retained',lambda:schools(a)[0]['regions']==['NL-MI','NL-NO','NL-ZU'] and scope(a)==['NL-NO'])
+-for name,bad in [('wrong group',centre),('unknown code',row(groups=['NL-XX'])),('foreign code',row(groups=['BE-DE'])),('prefixless code',row(groups=['NO'])),('missing identity',row()),('wrong type',{**north,'groups':'NL-NO'}),('mixed valid/invalid',row(groups=['NL-NO','NL-XX'])),('municipal restriction',row(groups=['NL-NO'],subdivisions=['NL-GM001'])),('contradictory nationwide',row(groups=['NL-NO'],nationwide=True))]:
++for name,bad in [('wrong group',centre),('unknown code',row(groups=['NL-XX'])),('foreign code',row(groups=['BE-DE'])),('prefixless code',row(groups=['NO'])),('missing identity',row()),('wrong type',{**north,'groups':'NL-NO'}),('mixed valid/invalid',row(groups=['NL-NO','NL-XX'])),('explicit local restriction',{**row(groups=['NL-NO'],subdivisions=['NL-GM001']), 'regionalScope':'Local'}),('contradictory nationwide',row(groups=['NL-NO'],nationwide=True))]:
+     a,c=run('NL','NL-NO',[north,bad]);check(name+' not broadened and no coverage',lambda:len(schools(a))==1 and schools(a)[0]['regions']==['NL-NO'] and not scope(a))
+ a,c=run('NL','NL-NO',[]);check('empty group no delete authority',lambda:not scope(a) and not schools(a))
+ a,c=run('NL','',[]);check('empty country school no delete authority',lambda:not scope(a) and not schools(a))
+@@ -93,7 +94,7 @@ a,c=run('NL','NL-NO',RuntimeError('offline'));check('offline school preserves pu
+ a,c=run('NL','NL-NO',[row('National',nationwide=True)]);check('nationwide accepted without proving group coverage',lambda:schools(a)[0]['nationwide'] and not scope(a))
+ a,c=run('NL','NL-NO',[north,row('National',nationwide=True)]);check('nationwide plus explicit group proves structural scope',lambda:len(schools(a))==2 and scope(a)==['NL-NO'])
+ a,c=run('NL','',[north]);check('country response missing other groups no delete authority',lambda:len(schools(a))==1 and schools(a)[0]['regions']==['NL-NO'] and not scope(a))
+-a,c=run('NL','', [row(groups=['NL-NO'],subdivisions=['NL-GM001'])]);check('country municipality not widened',lambda:schools(a)[0]['regions']==['NL-GM001'] and not scope(a))
++a,c=run('NL','', [{**row(groups=['NL-NO'],subdivisions=['NL-GM001']), 'regionalScope':'Local'}]);check('country explicit local scope not widened',lambda:schools(a)[0]['regions']==['NL-GM001'] and not scope(a))
+ a,c=run('NL','NL-NO',[],ferien=False);check('school opt-out only public',lambda:len(c)==1 and scope(a,'public-holiday')==[''] and not scope(a))
+ a,c=run('NL',school=lambda q:[{'NL-NO':north,'NL-MI':centre,'NL-ZU':south}[q.get('groupCode',q.get('subdivisionCode'))]],regions=[('NL-NO','Noord'),('NL-MI','Midden'),('NL-ZU','Zuid')]);check('three group fanout and one public',lambda:len(params(c,'PublicHolidays'))==1 and {q.get('groupCode') for q in params(c,'SchoolHolidays')}=={'NL-NO','NL-MI','NL-ZU'} and set(scope(a))=={'NL-NO','NL-MI','NL-ZU'})
+ def mixed_rejected():
+@@ -104,5 +105,36 @@ check('group plus subdivision selection rejected',mixed_rejected)
+ a,c=run('AT','AT-9',[row(subdivisions=['AT-WI'])]);check('AT ISO mapping unchanged',lambda:params(c,'SchoolHolidays')[0].get('subdivisionCode')=='AT-WI' and schools(a)[0]['regions']==['AT-9'] and scope(a)==['AT-9'])
+ a,c=run('DE','DE-BY',[row(subdivisions=['DE-BY'])]);check('DE subdivision unchanged',lambda:params(c,'SchoolHolidays')[0].get('subdivisionCode')=='DE-BY' and scope(a)==['DE-BY'])
+ a,c=run('NL','NL-GM001',[row(subdivisions=['NL-GM001'])]);check('legacy municipality selection unchanged',lambda:params(c,'SchoolHolidays')[0].get('subdivisionCode')=='NL-GM001' and schools(a)[0]['regions']==['NL-GM001'])
++fixtures = Path(sys.argv[2]) if len(sys.argv) > 2 else path.parents[2] / 'contracts/fixtures/holiday-groups-2026-11-28'
++def captured(land, group=''):
++    calls=[]
++    def http(url):
++        u=urlsplit(url);q={k:v[0] for k,v in parse_qs(u.query).items()};calls.append((u.path,q))
++        prefix = q.get('groupCode',land) if u.path.endswith('SchoolHolidays') else land
++        return (fixtures / (prefix + '-' + u.path.rsplit('/',1)[1] + '.json')).read_text()
++    return fetch(land,group,[2026],holer=http),calls
++def expected_scopes(rows):
++    result={}
++    for item in rows:
++        key=(item['startDate'],item['endDate'],item['name'][0]['text'])
++        result.setdefault(key,set()).update(g['code'] for g in item.get('groups',[]))
++    return {key:sorted(value) for key,value in result.items()}
++for land,codes in [('BE',['BE-DE','BE-FR','BE-NL']),('NL',['NL-NO','NL-MI','NL-ZU'])]:
++    for group in ['',*codes]:
++        data=json.loads((fixtures / ((group or land)+'-SchoolHolidays.json')).read_text())
++        expected=expected_scopes(data)
++        a,c=captured(land,group)
++        check((group or land)+' raw captured rows retain exact group identities and dates',lambda: {(r['von'],r['bis'],r['name']):r['regions'] for r in schools(a)}==expected)
++        check((group or land)+' captured school scope authorized',lambda:scope(a)==[group])
++        check((group or land)+' captured public remains nationwide',lambda:scope(a,'public-holiday')==[''] and all('groupCode' not in q and 'subdivisionCode' not in q for q in params(c,'PublicHolidays')))
++    code=codes[0]; expanded=row(groups=[code],subdivisions=[land+'-MUNICIPAL'])
++    a,c=run(land,code,[expanded]);check(land+' synthetic expanded group has only group identity',lambda:schools(a)[0]['regions']==[code] and scope(a)==[code])
++    a,c=run(land,code,[{**expanded,'tags':['Exception']}]);check(land+' Exception tag alone does not remove explicit group identity',lambda:schools(a)[0]['regions']==[code] and scope(a)==[code])
++    a,c=run(land,code,[row(groups=codes,subdivisions=[land+'-MUNICIPAL'],nationwide=True)]);check(land+' all groups nationwide with expansion remains consistent',lambda:schools(a)[0]['regions']==sorted(codes) and scope(a)==[code])
++    a,c=run(land,'',[row(subdivisions=[land+'-MUNICIPAL'])]);check(land+' subdivision-only country row retained without group coverage',lambda:schools(a)[0]['regions']==[land+'-MUNICIPAL'] and not scope(a))
++    for invalid in ['Unknown',42,None]:
++        a,c=run(land,code,[{**row(groups=[code]),'regionalScope':invalid}]);check(land+' invalid regionalScope '+repr(invalid)+' grants no coverage',lambda:len(schools(a))==1 and schools(a)[0]['regions']==[code] and not scope(a))
++    for label,bad in [('foreign subdivision',{**expanded,'subdivisions':[{'code':'XX-FOREIGN'}]}),('prefixless subdivision',{**expanded,'subdivisions':[{'code':'MUNICIPAL'}]}),('malformed subdivisions',{**expanded,'subdivisions':'invalid'}),('local without local identity',{**row(groups=[code]),'regionalScope':'Local'})]:
++        a,c=run(land,code,[bad]);check(land+' '+label+' not widened',lambda:not schools(a) and not scope(a))
+ result={'passed':sum(x['passed'] for x in checks),'total':len(checks),'checks':checks}
+ print(json.dumps(result,ensure_ascii=False,indent=2));sys.exit(result['passed']!=result['total'])

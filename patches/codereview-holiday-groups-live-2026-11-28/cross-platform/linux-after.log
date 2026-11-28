@@ -1,0 +1,456 @@
+{
+  "passed": 90,
+  "total": 90,
+  "checks": [
+    {
+      "name": "NL-NO uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-NO public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-NO canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL uses groupCode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL public unfiltered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL canonical positive scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "country query keeps all four group identities",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "country query preserves cross-year interval",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "multi-group source identity retained",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "wrong group not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "unknown code not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "foreign code not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "prefixless code not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "missing identity not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "wrong type not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "mixed valid/invalid not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "explicit local restriction not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "contradictory nationwide not broadened and no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "empty group no delete authority",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "empty country school no delete authority",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "contradictory nationwide municipal data rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "offline school preserves public scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nationwide accepted without proving group coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nationwide plus explicit group proves structural scope",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "country response missing other groups no delete authority",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "country explicit local scope not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "school opt-out only public",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "three group fanout and one public",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "group plus subdivision selection rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "AT ISO mapping unchanged",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "DE subdivision unchanged",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "legacy municipality selection unchanged",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-DE captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-FR captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE-NL captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE synthetic expanded group has only group identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE Exception tag alone does not remove explicit group identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE all groups nationwide with expansion remains consistent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE subdivision-only country row retained without group coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE invalid regionalScope 'Unknown' grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE invalid regionalScope 42 grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE invalid regionalScope None grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE foreign subdivision not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE prefixless subdivision not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE malformed subdivisions not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "BE local without local identity not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-NO raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-NO captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-NO captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-MI captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU raw captured rows retain exact group identities and dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU captured school scope authorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL-ZU captured public remains nationwide",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL synthetic expanded group has only group identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL Exception tag alone does not remove explicit group identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL all groups nationwide with expansion remains consistent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL subdivision-only country row retained without group coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL invalid regionalScope 'Unknown' grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL invalid regionalScope 42 grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL invalid regionalScope None grants no coverage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL foreign subdivision not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL prefixless subdivision not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL malformed subdivisions not widened",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "NL local without local identity not widened",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

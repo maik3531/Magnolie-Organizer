@@ -1,0 +1,176 @@
+{
+  "base_main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "prerequisite_artifact": "a473d769d590cf2a2771f2e890727025230a0f80",
+  "prerequisite_patch": {
+    "bytes": 173824,
+    "sha256": "ee7179924bbdb0072259eb9b2f5e1bd14e10df943f458148af2b17ca4e8c5e1e",
+    "git_blob": "dbe5de4e4c8a30df7f8726e29e68686037b48467"
+  },
+  "patch": {
+    "bytes": 262289,
+    "sha256": "76ffbfffcb50c111b9f0331b99167cae2ba10d058c38eec5ca459905d524af33",
+    "git_blob": "7b2c83e742b93743b304de9ded82660ab8c4fbb7"
+  },
+  "files": {
+    "magnolie-organizer-windows/BridgeDispatcher.cs": {
+      "before": {
+        "bytes": 176672,
+        "sha256": "8a75edee08db9746fb37e08c858005928aae965ead6e12be64465fe7cb4f194d",
+        "git_blob": "f61ccaa3c0e4b0fe517a448bd829d82b35223820"
+      },
+      "after": {
+        "bytes": 177818,
+        "sha256": "573facaeb82dcffb36c7b61ff6c8ae65f5750f14ce0d8e7f18795c19617d6033",
+        "git_blob": "b40cf75a30c9c05ff897423a2adca7fc055e58aa"
+      }
+    },
+    "magnolie-organizer-windows/OpenHolidayData.cs": {
+      "before": {
+        "bytes": 7800,
+        "sha256": "aca796e5dd860e7561bba4a766561f8bf9c40a28095deeac3899a9dd4e675633",
+        "git_blob": "217476e0b67c8d37897e08fda696fd7d88640b6d"
+      },
+      "after": {
+        "bytes": 12616,
+        "sha256": "41a0320a219ffbcab7cbaa8a2ad98149789bd7e58e15962b9a401a1f9374e254",
+        "git_blob": "bbd566cc67663fb3dfa6a43e773de69ad1ba36aa"
+      }
+    },
+    "magnolie-organizer-windows/tests/holiday-school-groups.py": {
+      "before": null,
+      "after": {
+        "bytes": 5514,
+        "sha256": "66ed1c842c0c22cfbd664f213e636534472d2c7401fa27201eea440e1f19c40f",
+        "git_blob": "2a7b6a42d9919c4e8a74c24cdec2a4d8db9fc85d"
+      }
+    },
+    "magnolie-organizer-windows/tests/holiday-school-groups.cs.txt": {
+      "before": null,
+      "after": {
+        "bytes": 28971,
+        "sha256": "cf3ab02855713d81ab00977404b5a7d655ccfc13b9dee6b3de59a69d956ee725",
+        "git_blob": "5f9479cd214353f883276f5106df1cd5c5c12c26"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/ATTRIBUTION.md": {
+      "before": null,
+      "after": {
+        "bytes": 1652,
+        "sha256": "bc62d4387844d3b80d093035129556ba2fb1188023fb419bb2990f7d04519021",
+        "git_blob": "a6df8267b0e1b12946e42589d8251cf37a290a2b"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-DE-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 1119,
+        "sha256": "09402282e8e26e6c84ceda5239dc73d4af57df333abc3ec169a301a0dbf607c5",
+        "git_blob": "0cfe4703d698436fa209bbd6483f8d4b3c6fe0f4"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-FR-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 1681,
+        "sha256": "f5df683318eeec81fb48e904f3719bf1739e2d03d06f77ab4ef47abf5df81634",
+        "git_blob": "d7c0b4da3903744cff92f2c873b4a528524552a0"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-Groups.json": {
+      "before": null,
+      "after": {
+        "bytes": 422,
+        "sha256": "b3901720df3275fab7c15614d9d350fe4770b3878ed7695aa8eb38492e9f4380",
+        "git_blob": "e846f3d5066dc0e98a59b058a25ac86aa997a6b1"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-NL-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 1681,
+        "sha256": "a7d09040b5a6352243b0a0bbb483c6bdf2b96d8e049eb3e99171ff613ff0d550",
+        "git_blob": "d975e36b169ff4c5a121ad4dc0b37c582f5cc9d4"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-PublicHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 2764,
+        "sha256": "ae05e5a9660b46896ff63c1e149d82e91af2b3d2d8305b1b7ae203b86a0d9b18",
+        "git_blob": "4bce08e743a2dd0eb2608d4ad3985a7c52c21180"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/BE-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 4479,
+        "sha256": "c4f13dec2677986f9578e9ffc7d52a6c19a304f29b3f5b21703863b4831456f1",
+        "git_blob": "7db56ec03088efc436062598febfdfebd67b2a3b"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-Groups.json": {
+      "before": null,
+      "after": {
+        "bytes": 14930,
+        "sha256": "862c26e1c2fba547ab71b5a6cb3b6209feb7967f52986c2ba93f0fd0da6f3188",
+        "git_blob": "ed6e4ed20b29bb26c138cca0026f9e3b21fdecc0"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-MI-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 30360,
+        "sha256": "bf1ed653bdf4be06dd52dd74c7eefe7ffca5c2e8a8f07382320db9eb34b16870",
+        "git_blob": "57cf3f7887b3ca9fd6084452b10f9f80319bfca7"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-NO-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 31900,
+        "sha256": "d48d94ddda0c2cbe6ab8f27508dc8414cb027f830c97ff07ae669feadf76aba9",
+        "git_blob": "74dbb0d132454974592a225a180bea4c9c1f5816"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-PublicHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 2536,
+        "sha256": "7e8fc510fac64cdd8665c99cc7a1f35b47aba68d719f59e08cc8375a826149ed",
+        "git_blob": "579f91d804129feb3a8c8dfd6dd847c03f6fc6d2"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 51552,
+        "sha256": "83b2b067dbb9556148f2ab60e2e91105bf83c6d3a7fce294443f45e0c6df1edd",
+        "git_blob": "39f4409a35aad1472552763fb82c8ee38ef6e657"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/NL-ZU-SchoolHolidays.json": {
+      "before": null,
+      "after": {
+        "bytes": 30960,
+        "sha256": "ea4e335d45c17ef1704b92032623315b0791ba5f7ca80c697c77d3fdc3d44cb3",
+        "git_blob": "99f66ecea1a4bcdd68007933153ca5c40bb98293"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/OPENHOLIDAYS-DATA-LICENSE.txt": {
+      "before": null,
+      "after": {
+        "bytes": 25279,
+        "sha256": "1d553feead201a7619788171b43cca12675e82d70b197aa45795986bb8603e72",
+        "git_blob": "c19565c1f23da21ad45acf2146834ec0908f758c"
+      }
+    },
+    "contracts/fixtures/holiday-groups-2026-11-28/requests.json": {
+      "before": null,
+      "after": {
+        "bytes": 7056,
+        "sha256": "f9d2899c0e8835ba9622158a648b52c7613542cf235cf669a88c21809fe462ec",
+        "git_blob": "433e48bf577377782a69c1779cb397c160954550"
+      }
+    }
+  }
+}

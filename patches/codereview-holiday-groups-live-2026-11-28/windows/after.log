@@ -1,0 +1,100 @@
+  Determining projects to restore...
+  Restored /workspace/scratch/6344df626283/windows854/run-final-after/HolidayCoverage.csproj (in 89 ms).
+  HolidayCoverage -> /workspace/scratch/6344df626283/windows854/run-final-after/bin/Release/net10.0/HolidayCoverage.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.30
+PASS BE: captured 2026 country HTTP JSON preserves every school period and group
+PASS BE-DE: captured groupCode HTTP JSON preserves every school period
+PASS BE-DE: group endpoint, country public scope and explicit row identity
+PASS BE-FR: captured groupCode HTTP JSON preserves every school period
+PASS BE-FR: group endpoint, country public scope and explicit row identity
+PASS BE-NL: captured groupCode HTTP JSON preserves every school period
+PASS BE-NL: group endpoint, country public scope and explicit row identity
+PASS BE: all groups request public holidays once and aggregate explicit names
+PASS BE: country request preserves and certifies all explicit groups
+PASS BE: partial country response keeps rows without replacement authority
+PASS BE: missing group identities cannot be inferred from selected group
+PASS BE: empty school response cannot authorize replacement
+PASS BE: national-only school rows do not prove group coverage
+PASS BE: nationwide row with every explicit group may certify school
+PASS BE: nationwide all-group row allows derived subdivision enumeration
+PASS BE: nationwide plus partial group claim is contradictory
+PASS BE: another known group cannot be attributed to requested group
+PASS BE: multi-group response preserves every explicit group
+PASS BE: malformed groups null neither relabel nor authorize
+PASS BE: malformed groups string neither relabel nor authorize
+PASS BE: malformed groups number neither relabel nor authorize
+PASS BE: malformed groups object neither relabel nor authorize
+PASS BE: malformed groups scalar element neither relabel nor authorize
+PASS BE: malformed groups missing code neither relabel nor authorize
+PASS BE: malformed groups non-string code neither relabel nor authorize
+PASS BE: malformed groups unknown neither relabel nor authorize
+PASS BE: malformed groups foreign neither relabel nor authorize
+PASS BE: malformed groups prefixless neither relabel nor authorize
+PASS BE: malformed groups lowercase neither relabel nor authorize
+PASS BE: malformed groups known plus foreign neither relabel nor authorize
+PASS BE: malformed groups empty neither relabel nor authorize
+PASS BE: accompanying subdivision enumeration preserves explicit group
+PASS BE: country request uses explicit group identities over enumerated subdivisions
+PASS BE: subdivision-only country rows stay local without group coverage
+PASS BE: explicitly Local records cannot authorize a whole school group
+PASS BE: Exception tag alone does not erase an explicit regional group
+PASS BE: malformed or future regional scope cannot authorize replacement
+PASS BE: malformed subdivision metadata cannot be hidden by valid group
+PASS BE: foreign and prefixless municipal scopes are not assigned to country
+PASS BE: group and subdivision selections are rejected before HTTP
+PASS BE: school opt-out retains one nationwide public request
+PASS BE: school HTTP failure cannot certify group
+PASS BE: cross-year group periods retain both boundaries
+PASS BE: unrelated public group metadata cannot invent public group scope
+PASS NL: captured 2026 country HTTP JSON preserves every school period and group
+PASS NL-NO: captured groupCode HTTP JSON preserves every school period
+PASS NL-NO: group endpoint, country public scope and explicit row identity
+PASS NL-MI: captured groupCode HTTP JSON preserves every school period
+PASS NL-MI: group endpoint, country public scope and explicit row identity
+PASS NL-ZU: captured groupCode HTTP JSON preserves every school period
+PASS NL-ZU: group endpoint, country public scope and explicit row identity
+PASS NL: all groups request public holidays once and aggregate explicit names
+PASS NL: country request preserves and certifies all explicit groups
+PASS NL: partial country response keeps rows without replacement authority
+PASS NL: missing group identities cannot be inferred from selected group
+PASS NL: empty school response cannot authorize replacement
+PASS NL: national-only school rows do not prove group coverage
+PASS NL: nationwide row with every explicit group may certify school
+PASS NL: nationwide all-group row allows derived subdivision enumeration
+PASS NL: nationwide plus partial group claim is contradictory
+PASS NL: another known group cannot be attributed to requested group
+PASS NL: multi-group response preserves every explicit group
+PASS NL: malformed groups null neither relabel nor authorize
+PASS NL: malformed groups string neither relabel nor authorize
+PASS NL: malformed groups number neither relabel nor authorize
+PASS NL: malformed groups object neither relabel nor authorize
+PASS NL: malformed groups scalar element neither relabel nor authorize
+PASS NL: malformed groups missing code neither relabel nor authorize
+PASS NL: malformed groups non-string code neither relabel nor authorize
+PASS NL: malformed groups unknown neither relabel nor authorize
+PASS NL: malformed groups foreign neither relabel nor authorize
+PASS NL: malformed groups prefixless neither relabel nor authorize
+PASS NL: malformed groups lowercase neither relabel nor authorize
+PASS NL: malformed groups known plus foreign neither relabel nor authorize
+PASS NL: malformed groups empty neither relabel nor authorize
+PASS NL: accompanying subdivision enumeration preserves explicit group
+PASS NL: country request uses explicit group identities over enumerated subdivisions
+PASS NL: subdivision-only country rows stay local without group coverage
+PASS NL: explicitly Local records cannot authorize a whole school group
+PASS NL: Exception tag alone does not erase an explicit regional group
+PASS NL: malformed or future regional scope cannot authorize replacement
+PASS NL: malformed subdivision metadata cannot be hidden by valid group
+PASS NL: foreign and prefixless municipal scopes are not assigned to country
+PASS NL: group and subdivision selections are rejected before HTTP
+PASS NL: school opt-out retains one nationwide public request
+PASS NL: school HTTP failure cannot certify group
+PASS NL: cross-year group periods retain both boundaries
+PASS NL: unrelated public group metadata cannot invent public group scope
+PASS Austrian aliases retain provider encoding and ISO identities
+PASS German and Swiss subdivision behavior remains compatible
+{"total":90,"passed":90,"failed":0,"runtime":"10.0.15","scope":"actual C# methods and full parser / offline HTTP / host runtime"}

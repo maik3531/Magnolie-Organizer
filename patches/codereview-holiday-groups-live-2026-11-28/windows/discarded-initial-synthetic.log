@@ -1,0 +1,73 @@
+PASS BE-DE: group endpoint, country public scope and explicit row identity
+PASS BE-FR: group endpoint, country public scope and explicit row identity
+PASS BE-NL: group endpoint, country public scope and explicit row identity
+PASS BE: all groups request public holidays once and aggregate explicit names
+PASS BE: country request preserves and certifies all explicit groups
+PASS BE: partial country response keeps rows without replacement authority
+PASS BE: missing group identities cannot be inferred from selected group
+PASS BE: empty school response cannot authorize replacement
+PASS BE: national-only school rows do not prove group coverage
+PASS BE: nationwide row with every explicit group may certify school
+PASS BE: nationwide plus partial group claim is contradictory
+PASS BE: another known group cannot be attributed to requested group
+PASS BE: multi-group response preserves every explicit group
+PASS BE: malformed groups null neither relabel nor authorize
+PASS BE: malformed groups string neither relabel nor authorize
+PASS BE: malformed groups number neither relabel nor authorize
+PASS BE: malformed groups object neither relabel nor authorize
+PASS BE: malformed groups scalar element neither relabel nor authorize
+PASS BE: malformed groups missing code neither relabel nor authorize
+PASS BE: malformed groups non-string code neither relabel nor authorize
+PASS BE: malformed groups unknown neither relabel nor authorize
+PASS BE: malformed groups foreign neither relabel nor authorize
+PASS BE: malformed groups prefixless neither relabel nor authorize
+PASS BE: malformed groups lowercase neither relabel nor authorize
+PASS BE: malformed groups known plus foreign neither relabel nor authorize
+PASS BE: malformed groups empty neither relabel nor authorize
+PASS BE: mixed municipal row cannot expand to selected school group
+PASS BE: country request preserves municipal scope without authority
+PASS BE: malformed subdivision metadata cannot be hidden by valid group
+PASS BE: foreign and prefixless municipal scopes are not assigned to country
+PASS BE: group and subdivision selections are rejected before HTTP
+PASS BE: school opt-out retains one nationwide public request
+PASS BE: school HTTP failure cannot certify group
+PASS BE: cross-year group periods retain both boundaries
+PASS BE: unrelated public group metadata cannot invent public group scope
+PASS NL-NO: group endpoint, country public scope and explicit row identity
+PASS NL-MI: group endpoint, country public scope and explicit row identity
+PASS NL-ZU: group endpoint, country public scope and explicit row identity
+PASS NL: all groups request public holidays once and aggregate explicit names
+PASS NL: country request preserves and certifies all explicit groups
+PASS NL: partial country response keeps rows without replacement authority
+PASS NL: missing group identities cannot be inferred from selected group
+PASS NL: empty school response cannot authorize replacement
+PASS NL: national-only school rows do not prove group coverage
+PASS NL: nationwide row with every explicit group may certify school
+PASS NL: nationwide plus partial group claim is contradictory
+PASS NL: another known group cannot be attributed to requested group
+PASS NL: multi-group response preserves every explicit group
+PASS NL: malformed groups null neither relabel nor authorize
+PASS NL: malformed groups string neither relabel nor authorize
+PASS NL: malformed groups number neither relabel nor authorize
+PASS NL: malformed groups object neither relabel nor authorize
+PASS NL: malformed groups scalar element neither relabel nor authorize
+PASS NL: malformed groups missing code neither relabel nor authorize
+PASS NL: malformed groups non-string code neither relabel nor authorize
+PASS NL: malformed groups unknown neither relabel nor authorize
+PASS NL: malformed groups foreign neither relabel nor authorize
+PASS NL: malformed groups prefixless neither relabel nor authorize
+PASS NL: malformed groups lowercase neither relabel nor authorize
+PASS NL: malformed groups known plus foreign neither relabel nor authorize
+PASS NL: malformed groups empty neither relabel nor authorize
+PASS NL: mixed municipal row cannot expand to selected school group
+PASS NL: country request preserves municipal scope without authority
+PASS NL: malformed subdivision metadata cannot be hidden by valid group
+PASS NL: foreign and prefixless municipal scopes are not assigned to country
+PASS NL: group and subdivision selections are rejected before HTTP
+PASS NL: school opt-out retains one nationwide public request
+PASS NL: school HTTP failure cannot certify group
+PASS NL: cross-year group periods retain both boundaries
+PASS NL: unrelated public group metadata cannot invent public group scope
+PASS Austrian aliases retain provider encoding and ISO identities
+PASS German and Swiss subdivision behavior remains compatible
+{"total":72,"passed":72,"failed":0,"runtime":"10.0.15","scope":"actual C# methods and full parser / offline HTTP / host runtime"}
