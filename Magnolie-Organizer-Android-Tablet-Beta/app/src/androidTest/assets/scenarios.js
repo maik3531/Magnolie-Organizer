@@ -13,13 +13,29 @@ window.NativeScenario = (() => {
     $('#aufgabe-erinnern').checked=due; click('#inhalt-rechts button','Add'); await tick(); T.speichereJetzt();
     const record=T.daten().aufgaben.find(x=>!existing.has(x.id)&&x.titel===title); if(!record) throw Error('Task editor did not save a new record'); return record;
   }
-  async function calendar(date='2030-05-10') {
+  async function calendar(date='2030-05-10',title='Synthetic native calendar') {
     const existing=new Set(T.daten().termine.map(x=>x.id));
     await T.wechsel('kalender'); T.oeffneTerminBlatt(null,date); await tick();
-    set('#tb-titel','Synthetic native calendar'); set('#tb-ort','Tablet test room');
+    set('#tb-titel',title); set('#tb-ort','Tablet test room');
     if($('#tb-ganztaegig').checked) $('#tb-ganztaegig').click();
     set('#tb-zeit','10:00'); set('#tb-endzeit','11:00'); $('#tb-fertig').click(); await tick(); T.speichereJetzt();
-    const record=T.daten().termine.find(x=>!existing.has(x.id)&&x.titel==='Synthetic native calendar'); if(!record) throw Error('Calendar editor did not save a new record'); return record;
+    const record=T.daten().termine.find(x=>!existing.has(x.id)&&x.titel===title); if(!record) throw Error('Calendar editor did not save a new record'); return record;
+  }
+  async function anniversary() {
+    const title='Synthetic native anniversary';
+    const existing=new Set(T.daten().jahrestage.map(x=>x.id));
+    await T.wechsel('jahrestage');
+    click('#kopf-links button','New anniversary');
+    await tick();
+    set('#jt-name',title);
+    T.setzeDatumswert($('#jt-datum'),T.isoHeute());
+    set('#jt-typ','Native test occasion');
+    click('#inhalt-rechts .form-knoepfe button','Enter');
+    await tick();
+    T.speichereJetzt();
+    const record=T.daten().jahrestage.find(x=>!existing.has(x.id)&&x.name===title);
+    if(!record) throw Error('Anniversary editor did not save a new record');
+    return record;
   }
   async function contact() {
     const existing=new Set(T.daten().kontakte.map(x=>x.id));
@@ -98,5 +114,5 @@ window.NativeScenario = (() => {
       active:series.length===17 && metadata===17 && rows.length===17 && projected.length===17 &&
         new Set(rows.map(x=>x.id)).size===17 && (!workerAvailable || !!state?.worker && readySeries.size===17)};
   }
-  return {task,calendar,contact,note,custom,navigationFixture,recurrenceProof,set,click};
+  return {task,calendar,anniversary,contact,note,custom,navigationFixture,recurrenceProof,set,click};
 })();

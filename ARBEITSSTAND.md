@@ -38,6 +38,9 @@ aufgeführt.
   bestanden unter API 35 ebenfalls vom App-Editor über die Android-
   Vorschau bis zur gespeicherten PDF. Der extrahierte Text enthielt
   die Kontaktkarte mit Notiz, die Aufgabe sowie den Termin samt Raum.
+  Für Jahrestage und das Monatslayout des Jahresplaners wurde die
+  Android-PDF-Kette ebenfalls bestätigt. Im PDF waren Datum und Anlass
+  des Jahrestags sowie Uhrzeit und Titel des Planertermins lesbar.
   Weitere Druckbereiche bleiben Teil von #121.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt

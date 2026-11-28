@@ -36,6 +36,7 @@ PROGRESS = 30
 GRACE = 5
 STAGES = ('basics', 'restart', 'layout', 'time', 'navigation', 'saf', 'fault', 'print', 'services', 'calendar-files', 'domains', 'timezone-interop', 'system-records',
           'permissions', 'permissions-revoked', 'print-contacts', 'print-tasks', 'print-calendar',
+          'print-anniversaries', 'print-planner-month',
           'notifications', 'absolute-notifications', 'seed-reboot', 'verify-reboot')
 
 
@@ -546,7 +547,8 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
 BETA_PACKAGE = 'io.gitlab.maik3531.magnolieorganizer.tablet.beta'
 COLD_START_STAGES = frozenset(('basics', 'restart', 'layout', 'time', 'navigation', 'calendar-files', 'domains',
                               'timezone-interop', 'permissions', 'permissions-revoked',
-                              'print-contacts', 'print-tasks', 'print-calendar'))
+                              'print-contacts', 'print-tasks', 'print-calendar',
+                              'print-anniversaries', 'print-planner-month'))
 
 
 def target_processes(owner, state, timeout):

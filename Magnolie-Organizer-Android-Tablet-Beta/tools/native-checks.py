@@ -25,6 +25,7 @@ SUITES = {
     'storage': ['basics', 'saf', 'fault', 'print'],
     'print': ['basics', 'print'],
     'print-domains': ['print-contacts', 'print-tasks', 'print-calendar'],
+    'print-planner': ['print-anniversaries', 'print-planner-month'],
     'notifications': ['notifications'],
     'absolute-notifications': ['absolute-notifications'],
 }
@@ -225,7 +226,8 @@ def main(argv=None):
                         failed = True
                 return int(failed)
 
-            native_suite = {'permissions': permissions, 'print-domains': print_domains}.get(opts.suite)
+            native_suite = {'permissions': permissions, 'print-domains': print_domains,
+                            'print-planner': print_domains}.get(opts.suite)
             code = session.run_session(owner, config, after_boot=install,
                                        run_tests=native_suite)
         except session.Stopped as exc:

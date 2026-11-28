@@ -90,6 +90,12 @@ class NativeTabletInstrumentation : Instrumentation() {
                     "NativeScenario.task('Synthetic PDF task', OrganizerTest.isoHeute(), '11:00')")
                 "print-calendar" -> printAreaPdf("kalender", "calendar", "Synthetic native calendar",
                     "NativeScenario.calendar(OrganizerTest.isoHeute())")
+                "print-anniversaries" -> printAreaPdf("jahrestage", "anniversaries",
+                    "Synthetic native anniversary", "NativeScenario.anniversary()")
+                "print-planner-month" -> printAreaPdf("planer", "planner-month", "Planner fixture",
+                    "NativeScenario.calendar(OrganizerTest.isoHeute(), 'Planner fixture')",
+                    selection = "NativeScenario.set('#planer-druck-art', 'month'); " +
+                        "NativeScenario.set('#planer-druck-monat', String(Number(OrganizerTest.isoHeute().slice(5,7)) - 1))")
                 "notifications" -> notifications(false)
                 "absolute-notifications" -> absoluteNotifications()
                 "seed-reboot" -> notifications(true)
@@ -1090,14 +1096,15 @@ class NativeTabletInstrumentation : Instrumentation() {
         savePrintedPdf("tablet-print.pdf")
     }
 
-    private fun printAreaPdf(section: String, name: String, expected: String, seed: String) {
+    private fun printAreaPdf(section: String, name: String, expected: String, seed: String,
+        selection: String = "NativeScenario.click('#druck-schleier button', 'All')") {
         launch()
         scenario(seed)
         saved()
         val filename = "tablet-$name.pdf"
         documentControl(filename, delete = true)
         raw("OrganizerTest.oeffneDruckvorschau(null, '$section')")
-        raw("NativeScenario.click('#druck-schleier button', 'All')")
+        raw(selection)
         waitFor("print preview contains the saved $name fixture", 12) {
             value("document.querySelector('#druck-schleier .druck-vorschau')?.textContent.includes(${JSONObject.quote(expected)})") == "true"
         }
