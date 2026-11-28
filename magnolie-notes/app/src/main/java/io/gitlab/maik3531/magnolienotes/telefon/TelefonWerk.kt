@@ -4067,9 +4067,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (queue.duplicateResult(peer.device_id, message.string("message_id")) != null)
                         require(queue.receivedMatches(peer.device_id, decoded))
                     val reference = wrapped.getValue("scope") as JsonObject
-                    if (innerKind == "personal_sync.request") queue.rememberScopedRun(sharedBinding(peer), sharedPreferences,
-                        body, reference, message.long("expires_ms"))
-                    else check(queue.scopedRunReference(sharedBinding(peer), sharedPreferences, body.string("run_id")) == reference)
+                    if (innerKind == "personal_sync.request") {
+                        if (body.string("trigger") == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI)
+                            throw TelefonProtokollFehler("Auto-Sync-Request außerhalb des WLANs.")
+                        queue.rememberScopedRun(sharedBinding(peer), sharedPreferences, body, reference, message.long("expires_ms"))
+                    } else check(queue.scopedRunReference(sharedBinding(peer), sharedPreferences, body.string("run_id")) == reference)
                     decoded
                 }
                 receiveMessageBound(peer, inner, send, noteSession, wrapped["scope"] as JsonObject)

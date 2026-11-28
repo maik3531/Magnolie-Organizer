@@ -81,8 +81,10 @@ aufgeführt.
   Versuch. Buch, Entwurf und gespeicherte Belege blieben erhalten.
   Linux prüft den bestehenden WLAN-Trigger bei sammlungsgebundenen
   Anfragen vor dem Speichern: Ein Bluetooth-Request hinterlässt weder
-  Lauf noch Sammlungsbindung. 69 Hosttests bestanden. Die Automatik über
-  weitere freigegebene Transporte bleibt offen.
+  Lauf noch Sammlungsbindung. 69 Hosttests bestanden. Notes prüft den
+  WLAN-Trigger ebenfalls vor dem Speichern und nimmt dieselbe Anfrage
+  anschließend über WLAN an. 129 Release-JVM-Tests bestanden.
+  Die Automatik über weitere freigegebene Transporte bleibt offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

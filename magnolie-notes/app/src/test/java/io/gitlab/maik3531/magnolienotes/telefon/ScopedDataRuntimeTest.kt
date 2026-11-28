@@ -128,6 +128,7 @@ class ScopedDataRuntimeTest {
 
     @Test fun provenanceFormatUsesScopedTransportAndRetainsOriginalAppOnReceive() = exercise("receive", 14)
     @Test fun provenanceFormatProducesACompleteMatchingScopedReply() = exercise("receive-request", 14)
+    @Test fun scopedWifiRequestOnBluetoothLeavesNoRunOrScope() = exercise("receive-auto-wifi-bluetooth", 14)
     @Test fun provenanceFormatSurvivesManualScopeAndReceiptGates() = exercise("manual", 14)
     @Test fun provenanceFormatUsesTheNativeActorCommitAndCompletionReport() = exercise("actor-commit", 14)
     @Test fun provenanceFormatCanAdmitOneSelectedOrganizerNote() = exercise("single", 14)
@@ -1730,11 +1731,30 @@ class ScopedDataRuntimeTest {
                 val value = JsonObject(old.value + mapOf("text" to JsonPrimitive("Organizer addition"), "modified_ms" to JsonPrimitive(old.modifiedMs + 1)))
                 val updated = old.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = old.modifiedMs + 1,
                     clock = (old.clock + PersonalSyncClock(peerId, 1)).sortedWith { a, b -> PersonalSync.compareUtf8(a.actor_id, b.actor_id) })
-                val run = UUID.randomUUID().toString()
-                val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", "manual")
-                    put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
-                val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000)
-                work.receiveMessage(peer, requestMessage, channel, 0)
+                 val run = UUID.randomUUID().toString()
+                 val wifiOverBluetooth = mode == "receive-auto-wifi-bluetooth"
+                 val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", if (wifiOverBluetooth) "auto_wifi" else "manual")
+                     put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
+                 val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000)
+                 if (wifiOverBluetooth) {
+                     sent()
+                     field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.BLUETOOTH to pipe)
+                     work.receiveMessage(peer, requestMessage, channel, 0)
+                     val ack = sent().single { it["message_id"] == requestMessage["message_id"] }
+                     assertEquals("rejected", ack.string("status"))
+                     assertNull(queue.personalRun(peerId, run))
+                     assertFalse(queue.containsScopedRun(peerId, run))
+                     assertFalse(queue.hasActiveAutoRun(peerId))
+                     field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+                     val retry = TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                         PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000)
+                     work.receiveMessage(peer, retry, channel, 0)
+                     assertEquals("accepted", sent().single { it["message_id"] == retry["message_id"] }.string("status"))
+                     assertEquals(request, queue.personalRun(peerId, run))
+                     assertEquals("wifi_only", queue.personalRunPolicy(peerId, run))
+                     return@use
+                 }
+                 work.receiveMessage(peer, requestMessage, channel, 0)
                 // duplicateResult reports the ACK for a subsequent replay of a durable acceptance.
                 assertEquals("duplicate" to "none", queue.duplicateResult(peerId, requestMessage.string("message_id")))
                 val batch = PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, mode != "receive-request", format, PersonalSync.recordsHash(listOf(updated)))
