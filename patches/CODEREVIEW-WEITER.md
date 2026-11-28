@@ -1,3 +1,9 @@
+## 28.11.2026 – #853 CZ/ES, letzte zwei der zwölf bestehenden Länder
+
+Main vor Veröffentlichung `a2db1de57564ebc9d632e654f810f88900460379`, Produktbasis `86c6bbf9cd3f8788ce60a6ba17e4dd3e642b63d4`. LI bereits in main; #691 Codex aktiv (7244204389), #128 Windows-Originalreader 74f7a57b, Marker 8 unbeworben, Desktop-Pumpfix nicht als übernommen bestätigt. #860 PL gesperrt bis korrigierte API. [CZ/ES-Einzelpatch samt Probe und Nachweis](codereview-national-cz-es-2026-11-28/README.md): 123/144 → 144/144; 123/144 → 144/144 kontrollierter V8-DOM-Double-Host, exakter Hunk-Rundlauf. 28. Oktober CZ ab 1993 und 12. Oktober ES ab 1982 (konservative historische Grenzen), eigene SVG-Proklamation und Festbanner. Kein Produktmerge, kein Git-apply/Raster/Druck/native. Eigener CZ/ES-Umfang fertig; Handbuch, kulturelle/regionale Identitäten und Mac/Tablet-Projektion offen. Nächster freier Schritt Portierung oder unabhängige #860-Quellen nach Koordinationsabgleich; Sync-Aufsetzpunkt erhalten.
+
+---
+
 ## 28.11.2026 – #853 Liechtenstein, unabhängiger Teilpatch
 
 Main `ffe6c2f172a3bc005716e9867a3531651a73b164`, Basis `f9e2567760f43d479e2a6aef501b91b6395ed256`. #865 PL-Ferien 2026/27 ausgesetzt; #864 Anbieterfix offen, #860 PL erst nach korrigierter API. #128 Codex aktiv (Notes Originalreader, 7243941483); #691 LAN-Wartezweig ohne Budgeterstattung frisch im Produktblob bestätigt, neue Fernwegänderungen erhalten; Desktop-Pumpfix nicht als übernommen bestätigt. [LI-Teilpatch, Probe, Ergebnisse](codereview-national-li-2026-11-28/README.md): 86/96 → 96/96 je Desktop kontrollierter V8-Host, exakter Hunk-Rundlauf, kein Git-/Raster-/Druck-/native Lauf. 15. August ab 1940, Höhenfeuer/Krone, Vorschau standardmäßig aus. Eigener LI-Umfang fertig; Handbuch/Portierung offen. Nächster freier Schritt CZ/ES, Portierung oder unabhängige #860-Quellen nach Koordinationsabgleich. Sync-Aufsetzpunkt erhalten. Kein Produktmerge.
