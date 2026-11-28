@@ -515,6 +515,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows complete image batch Saved readback and END", DeviceFileCollectionSourceTests.WindowsWholeImageSenderAsync);
     runner.Add("Collection producer / Windows incomplete batch readback holds original END", DeviceFileCollectionSourceTests.WindowsWholeImageSenderSubsetAsync);
+    runner.Add("Collection producer / Windows interruption after planned image END retains evidence", DeviceFileCollectionSourceTests.WindowsPlannedImageEndInterruptedAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);
     runner.Add("Collection producer / Windows late edits and additions after genuine individual END hold whole pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerLateInventoryAsync);

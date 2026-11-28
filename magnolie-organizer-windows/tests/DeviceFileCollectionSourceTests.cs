@@ -203,8 +203,10 @@ internal static class DeviceFileCollectionSourceTests
 
     internal static Task WindowsWholeImageSenderAsync() => WindowsWholeImageSenderAsync(omitReadbackMember: false);
     internal static Task WindowsWholeImageSenderSubsetAsync() => WindowsWholeImageSenderAsync(omitReadbackMember: true);
+    internal static Task WindowsPlannedImageEndInterruptedAsync() =>
+        WindowsWholeImageSenderAsync(omitReadbackMember: false, interruptAfterPlan: true);
 
-    private static async Task WindowsWholeImageSenderAsync(bool omitReadbackMember)
+    private static async Task WindowsWholeImageSenderAsync(bool omitReadbackMember, bool interruptAfterPlan = false)
     {
         if (!OperatingSystem.IsWindows()) return;
         using var f = await Fixture();
@@ -232,7 +234,13 @@ internal static class DeviceFileCollectionSourceTests
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(65));
         DeviceFileConnectionRunsTests.Clear(f);
         var send = connection.SendConnectedMediaBatchToSourceEndAsync(prepared, output, backups, () => true, () => true,
-            deadline.Token, name => { boundaries.Add(name); Console.WriteLine($"Batch END {name}: {backupClock.ElapsedMilliseconds} ms."); });
+            deadline.Token, name =>
+            {
+                boundaries.Add(name);
+                Console.WriteLine($"Batch END {name}: {backupClock.ElapsedMilliseconds} ms.");
+                if (interruptAfterPlan && name == "source_batch_end_planned")
+                    throw new IOException("Synthetic interruption after durable retirement intent.");
+            });
         try
         {
             var offerFrame = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
@@ -294,6 +302,29 @@ internal static class DeviceFileCollectionSourceTests
             }
             await connection.HandlePlainAsync(readback);
             Console.WriteLine("Original batch complete readback processed.");
+            if (interruptAfterPlan)
+            {
+                await DeviceFileConnectionSourcesTests.FailsAsync<IOException>(send.WaitAsync(deadline.Token),
+                    "The interrupted source plan returned a successful END.");
+                var history = DeviceFileSourceSendTests.Exchange(f, prepared.JobId);
+                TestAssert.That(history["phase"]?.GetValue<string>() == "end_planned" &&
+                    history["source_end"] is null && JsonNode.DeepEquals(history["peer_readback"], readback) &&
+                    history["peer_saved"]!["body"]!["receipts"]!.AsArray().Count == 2 &&
+                    history["source_retirement"]!["backups"]!.AsObject().Count == 2 &&
+                    boundaries.SequenceEqual(new[] { "source_batch_end_planned" }),
+                    "Interrupted END lost durable Saved/readback/backup evidence or manufactured a completion.");
+                TestAssert.That(File.ReadAllBytes(Path.Combine(selected.NativePath, "new-pc.png")).SequenceEqual(first) &&
+                    File.ReadAllBytes(Path.Combine(selected.NativePath, "second.png")).SequenceEqual(second),
+                    "Interrupting END rewrote an original.");
+                var streamLength = f.Native.Stream.Length;
+                using var retry = connection.OpenNativeCollectionMediaBatch("images", selected.Id, selected.Version, files, token, book);
+                TestAssert.Throws<InvalidDataException>(() => retry.RecoverSavedCache(),
+                    "The before-readback recovery path accepted a completed readback.");
+                TestAssert.That(f.Native.Stream.Length == streamLength &&
+                    JsonNode.DeepEquals(history, DeviceFileSourceSendTests.Exchange(f, prepared.JobId)),
+                    "Routing to the wrong recovery path emitted a frame or changed the preserved intent.");
+                return;
+            }
             var result = await send.WaitAsync(deadline.Token);
             prepared.RequireIoEnded();
             TestAssert.That(result.Saved.Members.Count == 2 && boundaries.SequenceEqual(new[] {

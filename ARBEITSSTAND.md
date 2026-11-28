@@ -7,6 +7,14 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#330](https://github.com/maik3531/Magnolie-Organizer/issues/330#issuecomment-7242988889):
+  Der native Windows-Abbruchtest nach geplantem Fotoabschluss hält
+  beide Originale, Saved, bestätigtes Rücklesen und Sicherungsreferenzen.
+  Der bisherige Wiederanlauf für die Phase vor dem Rücklesen schreibt
+  hier weder einen Abschluss noch sendet er erneut. Der lokale Abschluss
+  nach Prozessneustart benötigt noch einen dauerhaften Buchzeugen, der
+  Wiederherstellung und fremde Buchersetzung sicher unterscheidet.
+
 - [#859](https://github.com/maik3531/Magnolie-Organizer/issues/859):
   Der aktive Notes-Verbindungstext aus #148 ist mit den vorhandenen
   Übersetzungen im Handbuchkatalog erfasst. Alle neun Katalog- und
