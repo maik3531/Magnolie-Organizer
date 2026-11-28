@@ -156,6 +156,12 @@ aufgeführt.
   bestanden. Nach STOP während des Wartens fragt auch das Einstellungsfenster
   den aktuellen Status ab. 38 Ordner-/STOP-, sechs Warte- und fünf
   Wiederherstellungsprüfungen sowie die allgemeine Maske bestanden.
+  Dieselbe bewusst eingerichtete WLAN-Automatik funktioniert auch für
+  Fotos aus einem ausdrücklich gewählten Quellordner. Der native Test
+  bestätigte zwei bytegleiche PNGs, Saved, vollständiges v2-Rücklesen,
+  geschützten Quellenabschluss und einen stillen Folgedurchlauf bei
+  unverändertem PC-Empfangsrecht. Vier native Gruppen und der Windows-
+  Produktbuild bestanden.
   Mischversand bleibt offen.
   Die Prüfung mit installierten Paketen bleibt offen.
 - [#823](https://github.com/maik3531/Magnolie-Organizer/issues/823):

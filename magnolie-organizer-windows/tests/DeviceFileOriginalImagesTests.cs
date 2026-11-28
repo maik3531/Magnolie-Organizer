@@ -67,6 +67,7 @@ internal static class DeviceFileOriginalImagesTests
                     {
                         frame["type"] = "pong";
                         await send(frame);
+                        Console.WriteLine("Original WLAN heartbeat answered during transfer preparation or exchange.");
                         continue;
                     }
                     TestAssert.That(frame["kind"]?.GetValue<string>() == expectedKind,
@@ -166,14 +167,11 @@ internal static class DeviceFileOriginalImagesTests
                 !fixture.Store.ReadNativeMediaReceiveConsent(peer).Granted &&
                 originals.All(pair => File.ReadAllBytes(Path.Combine(root, pair.Key)).SequenceEqual(pair.Value)),
                 "The completed export changed an original or acquired PC RECEIVE.");
-            if (video)
-            {
-                var exchange = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, offer.Manifest.SourceId);
-                TestAssert.That(exchange["phase"]?.GetValue<string>() == "source_ended" &&
-                    JsonNode.DeepEquals(exchange["source_end"]?["readback_sha256"], exchange["peer_readback"]?["readback_sha256"]) &&
-                    exchange["peer_readback"]?["readback_sha256"] is not null,
-                    "The original video did not reach durable local END for its own readback.");
-            }
+            var exchange = DeviceFileSourceSendTests.Exchange(fixture.Store, peer, offer.Manifest.SourceId);
+            var proof = video ? exchange["peer_readback"] : exchange["peer_readback"]?["body"];
+            TestAssert.That(exchange["phase"]?.GetValue<string>() == "source_ended" && proof?["readback_sha256"] is not null &&
+                JsonNode.DeepEquals(exchange["source_end"]?["readback_sha256"], proof["readback_sha256"]),
+                $"The original {kind} transfer did not reach durable local END for its own readback.");
         }
         finally
         {

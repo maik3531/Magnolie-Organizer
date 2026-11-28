@@ -56,12 +56,12 @@ internal sealed partial class TelefonConnection
         return CapturePrivateMediaAgreement(intent);
     }
 
-    internal Func<bool>? CapturePrivatePcImageExport(JsonObject intent)
+    internal Func<bool>? CapturePrivatePcImageExport(JsonObject intent, bool automatic = false)
     {
         var values = MediaSyncSettings.Effective(intent);
         if (Transport != "wifi" || !OriginalMediaReceiveSelected || !NativeMediaUiMetadataAvailable() ||
             values["collection_mode"]?.GetValue<string>() != "entire_collection" ||
-            values["auto_mode"]?.GetValue<string>() != "manual" ||
+            values["auto_mode"]?.GetValue<string>() != (automatic ? "wifi" : "manual") ||
             values["direction"]?.GetValue<string>() != "pc_to_phone" ||
             !MediaSyncSettings.TransferRequestedFor(intent, "images", toPhone: true) ||
             MediaSyncSettings.TransferRequestedFor(intent, "video", toPhone: true)) return null;
