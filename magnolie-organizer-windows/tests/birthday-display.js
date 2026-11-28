@@ -111,6 +111,24 @@ function check(web) {
     assert.equal(T.daten().kontakte[0].email, "first@example.test");
     assert.equal(T.daten().kontakte[0].email, T.daten().kontakte[1].email);
     shown(1);
+
+    load([birthday("moving", { kontaktId: "first", datum: "--12-25" }),
+      birthday("second-original", { kontaktId: "first", datum: "--12-26" })], [
+      { id: "first", vorname: "Mia", nachname: "Muster", geburtstag: "1990-12-24" },
+      { id: "second", vorname: "Mia", nachname: "Muster", geburtstag: "--12-25" },
+      { id: "third", vorname: "Mia", nachname: "Muster", geburtstag: "--12-25" },
+      { id: "fourth", vorname: "Mia", nachname: "Muster", geburtstag: "--12-26" }
+    ]);
+    const reconciled = Array.from(T.daten().jahrestage, item => [item.kontaktId, item.datum]);
+    assert.deepEqual(reconciled, [["first", "1990-12-24"], ["first", "--12-26"], ["second", "--12-25"]]);
+
+    load([birthday("moving", { kontaktId: "first", datum: "--12-25" }),
+      birthday("unlinked", { datum: "--12-25" })], [
+      { id: "first", vorname: "Mia", nachname: "Muster", geburtstag: "1990-12-24" },
+      { id: "second", vorname: "Mia", nachname: "Muster", geburtstag: "--12-25" }
+    ]);
+    assert.deepEqual(Array.from(T.daten().jahrestage, item => [item.kontaktId, item.datum]),
+      [["first", "1990-12-24"], ["", "--12-25"]]);
     console.log("BIRTHDAY DISPLAY PASSED: " + web);
   } finally { w.close(); }
 }

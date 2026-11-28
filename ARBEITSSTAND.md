@@ -282,6 +282,12 @@ aufgeführt.
   Organisatorwerte bleiben erhalten. Zehn gezielte Fälle mit beiden
   Desktop-Oberflächen bestanden. Der Host-Lasttest besteht mit
   50.000 Einträgen insgesamt.
+  Beim Öffnen großer Bücher suchen Linux und Windows Geburtstage über
+  einen Index statt pro Kontakt in der gesamten Jahrestagsliste. Im
+  Linux-Quelllauf mit GTK/WebKit und 250.000 synthetischen Einträgen
+  war die Anwendung nach 8,26 Sekunden bereit; vorher lief die
+  Initialisierung in den Timeout. Die lange Jahrestagsansicht und der
+  Speicherbedarf beim Speichern bleiben offen.
   Die native N100- und 30-Tage-Prüfung bleibt offen.
 - [#847](https://github.com/maik3531/Magnolie-Organizer/issues/847):
   Linux und Windows überspringen beim Kontaktdateiimport überflüssige

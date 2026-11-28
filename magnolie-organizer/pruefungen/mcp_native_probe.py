@@ -3,6 +3,7 @@
 import importlib.machinery
 import importlib.util
 import base64
+from datetime import date, timedelta
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
@@ -28,7 +29,11 @@ import xml.etree.ElementTree as ET
 BACKGROUND_PROBE = os.environ.get("MAGNOLIE_MCP_PROBE_BACKGROUND") == "1"
 TRAY_SOAK_SECONDS = int(os.environ.get("MAGNOLIE_MCP_PROBE_TRAY_SOAK_SECONDS", "0"))
 assert TRAY_SOAK_SECONDS == 0 or 30 <= TRAY_SOAK_SECONDS <= 1800
-PROBE_TIMEOUT = TRAY_SOAK_SECONDS + 90 if TRAY_SOAK_SECONDS else 90
+LARGE_BOOK_ROWS = int(os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_ROWS", "0"))
+LARGE_BOOK_STARTUP_ONLY = os.environ.get("MAGNOLIE_MCP_PROBE_LARGE_BOOK_STARTUP_ONLY") == "1"
+assert LARGE_BOOK_ROWS in (0, 10_000, 50_000) and not (LARGE_BOOK_ROWS and TRAY_SOAK_SECONDS)
+assert not LARGE_BOOK_STARTUP_ONLY or LARGE_BOOK_ROWS
+PROBE_TIMEOUT = 240 if LARGE_BOOK_ROWS else TRAY_SOAK_SECONDS + 90
 if BACKGROUND_PROBE:
     current_network = os.readlink("/proc/self/ns/net")
     outer_network = os.environ.get("MAGNOLIE_MCP_PROBE_OUTER_NETNS")
@@ -45,7 +50,7 @@ ROOT = Path(__file__).resolve().parents[1]
 temporary = tempfile.TemporaryDirectory(prefix="magnolie-mcp-native-", dir="/tmp/opencode")
 for variable, directory in (("HOME", "home"), ("XDG_CONFIG_HOME", "config"),
                             ("XDG_DATA_HOME", "data"), ("XDG_CACHE_HOME", "cache"),
-                            ("XDG_RUNTIME_DIR", "runtime")):
+                            ("XDG_RUNTIME_DIR", "runtime"), ("XDG_STATE_HOME", "state")):
     target = Path(temporary.name) / directory
     target.mkdir(mode=0o700)
     os.environ[variable] = str(target)
@@ -197,7 +202,7 @@ data_file.write_text(json.dumps({"version": 6,
         "kontaktProviderKonflikte": {"generic-dav-addressbook:owned-review": {"transport": "dav", "entfernt": False,
             "kontakt": {"uid": "owned-review-local-uid", "vorname": "Remote", "nachname": "Review", "telefone": [{"wert": "+49305550124", "typen": ["CELL"]}]},
             "mapping": {"id": "/owned-person.vcf", "etag": '"v2"', "inhaltFormat": "linux-1", "inhaltSha256": "owned-review-hash"}}}}]}
-        if os.environ.get("MAGNOLIE_MCP_PROBE_PROVIDER_REVIEW") == "1" else {}),
+       if os.environ.get("MAGNOLIE_MCP_PROBE_PROVIDER_REVIEW") == "1" else {}),
     "notizen": [{"id": "owned-native-fixture", "titel": "Owned fixture",
     "text": "No user data", "html": "No user data"},
         *([{"id": "owned-native-unselected", "titel": "Unselected owned fixture", "text": "UNSELECTED MUST NOT BE SENT", "html": "UNSELECTED MUST NOT BE SENT"}]
@@ -228,6 +233,41 @@ data_file.write_text(json.dumps({"version": 6,
         **({"kalenderUid": "owned-offline-sync", "kalenderUids": ["owned-offline-sync"]} if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1" else {})},
     "ort": {"land": "DE", "region": "DE-BE", "ferien": False, "alleRegionen": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
+if LARGE_BOOK_ROWS:
+    book = json.loads(data_file.read_text())
+    book["einstellungen"]["allgemein"]["handbuchHinweisGezeigt"] = True
+    book["kontakte"] = []
+    book["jahrestage"] = []
+    days = [(date(2026, 1, 1) + timedelta(days=i)).isoformat() for i in range(365)]
+    for i in range(LARGE_BOOK_ROWS):
+        day = days[i % len(days)]
+        suffix = f"{i:05d}"
+        appointment = {"id": "scale-event-" + suffix, "titel": "Fixture event " + suffix,
+                       "datum": day, "zeit": "10:00", "endZeit": "10:30"}
+        if i % 500 == 0:
+            appointment.update(uid=appointment["id"], icsRoundtrip=[
+                "BEGIN:VEVENT", "UID:" + appointment["id"], "DTSTART:" + day.replace("-", "") + "T100000",
+                "DTEND:" + day.replace("-", "") + "T103000", "RRULE:FREQ=WEEKLY;COUNT=3", "END:VEVENT"])
+        book["termine"].append(appointment)
+        book["aufgaben"].append({"id": "scale-task-" + suffix, "titel": "Fixture task " + suffix, "faellig": day})
+        book["kontakte"].append({"id": "scale-contact-" + suffix, "vorname": "Fixture", "nachname": "Contact " + suffix,
+                                "emails": [f"contact-{suffix}@example.test"]})
+        book["notizen"].append({"id": "scale-note-" + suffix, "titel": "Fixture note " + suffix,
+                               "text": "Synthetic book data.", "html": "<p>Synthetic book data.</p>"})
+        book["jahrestage"].append({"id": "scale-anniversary-" + suffix, "name": "Fixture anniversary " + suffix,
+                                  "datum": "1990" + day[4:], "typ": "other"})
+    domains = ("termine", "aufgaben", "kontakte", "notizen", "jahrestage")
+    for key in domains:
+        del book[key][LARGE_BOOK_ROWS:]
+    data_file.write_text(json.dumps(book, separators=(",", ":")), encoding="utf-8")
+    with data_file.open("rb") as source:
+        fixture_sha = hashlib.file_digest(source, "sha256").hexdigest()
+    state_fixture = {"bytes": data_file.stat().st_size, "sha256": fixture_sha,
+                     "counts": {key: len(book[key]) for key in domains},
+                     "generated_appointment_series": sum(
+                         any(line.startswith("RRULE:") for line in item.get("icsRoundtrip", ()))
+                         for item in book["termine"])}
+    del book
 loader = importlib.machinery.SourceFileLoader("magnolie_mcp_native_product", str(ROOT / "bin/magnolie-organizer"))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 product = importlib.util.module_from_spec(spec)
@@ -278,6 +318,9 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
         "inhalt": {"art": "kontakt_sync", "fassung": 2, "freigabeId": "owned-native-contact-share", "quelle": tree_peer["kennung"], "version": 1,
             "kontakt": {"vorname": "OwnedTree", "nachname": "Contact", "notiz": "Owned contact body", "telefone": [], "emailEintraege": [], "anschriften": []}}}
     product.baum_eingang_schreiben([tree_fixture, tree_contact_fixture])
+window_started = time.monotonic()
+if LARGE_BOOK_ROWS:
+    product.debug_einrichten()
 window = product.Fenster(str(ROOT / "web"))
 # This fixture proves the book/MCP/save path, not handset or tree transport.
 # Keep unrelated startup transports inactive instead of binding another host listener.
@@ -457,57 +500,66 @@ def private_tray_host():
     return fixture
 
 
+def gui(action):
+    # Worker-side waits leave GTK/WebKit and native callbacks running normally.
+    done, result = threading.Event(), {}
+    def run():
+        try: result["value"] = action()
+        except BaseException: result["error"] = traceback.format_exc(limit=4)
+        finally: done.set()
+        return False
+    GLib.idle_add(run)
+    assert done.wait(10) and "error" not in result, result
+    return result.get("value")
+
+
+def javascript(script):
+    done, result = threading.Event(), {}
+    def finished(view, task, *_args):
+        try: result["value"] = json.loads(view.evaluate_javascript_finish(task).to_string())
+        except BaseException: result["error"] = traceback.format_exc(limit=4)
+        finally: done.set()
+    gui(lambda: window.ansicht.evaluate_javascript(script, -1, None, None, None, finished, None))
+    assert done.wait(20 if LARGE_BOOK_ROWS else 10) and "error" not in result, result
+    return result["value"]
+
+
+def resource_processes():
+    # Walk only this probe's process tree, including its WebKit renderer.
+    pending, processes, seen = [os.getpid()], [], set()
+    ticks = os.sysconf("SC_CLK_TCK")
+    while pending:
+        pid = pending.pop()
+        if pid in seen: continue
+        seen.add(pid)
+        try:
+            base = Path("/proc") / str(pid)
+            status = dict(line.split(":", 1) for line in (base / "status").read_text().splitlines() if ":" in line)
+            stat = (base / "stat").read_text().rsplit(")", 1)[1].split()
+            try: fds = len(list((base / "fd").iterdir()))
+            except PermissionError: fds = None
+            try:
+                rollup = dict(line.split(":", 1) for line in (base / "smaps_rollup").read_text().splitlines() if ":" in line)
+                pss = int(rollup["Pss"].split()[0]) * 1024
+            except PermissionError: pss = None
+            processes.append({"pid": pid, "name": status["Name"].strip(),
+                "rss_bytes": int(status.get("VmRSS", "0 kB").split()[0]) * 1024,
+                "rss_peak_bytes": int(status.get("VmHWM", "0 kB").split()[0]) * 1024,
+                "pss_bytes": pss, "cpu_ms": (int(stat[11]) + int(stat[12])) * 1000 / ticks,
+                "threads": int(status["Threads"]), "fds": fds})
+            for task in (base / "task").iterdir():
+                pending.extend(int(child) for child in (task / "children").read_text().split())
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    return processes
+
+
 def tray_soak():
-    # Worker-side waits leave GTK/WebKit and native tray callbacks running normally.
-    def gui(action):
-        done, result = threading.Event(), {}
-        def run():
-            try: result["value"] = action()
-            except BaseException: result["error"] = traceback.format_exc(limit=4)
-            finally: done.set()
-            return False
-        GLib.idle_add(run)
-        assert done.wait(10) and "error" not in result, result
-        return result.get("value")
-    def javascript(script):
-        done, result = threading.Event(), {}
-        def finished(view, task, *_args):
-            try: result["value"] = json.loads(view.evaluate_javascript_finish(task).to_string())
-            except BaseException: result["error"] = traceback.format_exc(limit=4)
-            finally: done.set()
-        gui(lambda: window.ansicht.evaluate_javascript(script, -1, None, None, None, finished, None))
-        assert done.wait(10) and "error" not in result, result
-        return result["value"]
     fixture = private_tray_host()
     samples = []
     started = time.monotonic()
-    ticks = os.sysconf("SC_CLK_TCK")
     def resources(phase, response=None):
-        # Walk this process's children only, never unrelated user applications.
-        pending, processes, seen = [os.getpid()], [], set()
-        while pending:
-            pid = pending.pop()
-            if pid in seen: continue
-            seen.add(pid)
-            try:
-                base = Path("/proc") / str(pid)
-                status = dict(line.split(":", 1) for line in (base / "status").read_text().splitlines() if ":" in line)
-                stat = (base / "stat").read_text().rsplit(")", 1)[1].split()
-                try: fds = len(list((base / "fd").iterdir()))
-                except PermissionError: fds = None
-                try:
-                    rollup = dict(line.split(":", 1) for line in (base / "smaps_rollup").read_text().splitlines() if ":" in line)
-                    pss = int(rollup["Pss"].split()[0]) * 1024
-                except PermissionError: pss = None
-                processes.append({"pid": pid, "name": status["Name"].strip(),
-                    "rss_bytes": int(status.get("VmRSS", "0 kB").split()[0]) * 1024,
-                    "pss_bytes": pss,
-                    "cpu_ms": (int(stat[11]) + int(stat[12])) * 1000 / ticks,
-                    "threads": int(status["Threads"]), "fds": fds})
-                for task in (base / "task").iterdir():
-                    pending.extend(int(child) for child in (task / "children").read_text().split())
-            except (FileNotFoundError, ProcessLookupError):
-                continue
+        processes = resource_processes()
         sample = {"elapsed_s": round(time.monotonic() - started, 3), "phase": phase,
             "response_ms": response, "processes": processes,
             "rss_bytes": sum(p["rss_bytes"] for p in processes),
@@ -595,7 +647,20 @@ def client():
             if params is not None:
                 request["params"] = params
             send(request)
-            assert selector.select(20), "Native MCP response timed out"
+            if not selector.select(20):
+                if not LARGE_BOOK_ROWS or method != "initialize":
+                    raise AssertionError("Native MCP response timed out")
+                # Preserve the first timeout as a measurement, then observe the
+                # slow startup separately without raising the normal MCP gate.
+                startup = state["large_book"]["startup"]
+                startup["mcp_initialize_exceeded_20s"] = True
+                until = time.monotonic() + 85
+                while True:
+                    startup["slow_start_samples"].append({"elapsed_ms": round((time.monotonic() - window_started) * 1000),
+                        "processes": resource_processes()})
+                    if selector.select(5):
+                        break
+                    assert time.monotonic() < until, "Large-book startup observation ended without MCP initialize"
             # Read a bounded record without buffered read-ahead across responses.
             frame = bytearray()
             while not frame.endswith(b"\n"):
@@ -632,6 +697,9 @@ def client():
             finally:
                 if print_probe["timer_active"]:
                     product.GLib.source_remove(print_timer)
+        if LARGE_BOOK_ROWS:
+            state["large_book"] = {"fixture": state_fixture, "actions": [],
+                                  "startup": {"mcp_initialize_exceeded_20s": False, "slow_start_samples": []}}
         result = call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
             "clientInfo": {"name": "owned-native-fixture", "version": "1"}})
         assert result["serverInfo"]["name"] == "magnolie-organizer"
@@ -649,6 +717,103 @@ def client():
         assert any(tool["name"] == "organizer_note_create" for tool in tools)
         status = call("tools/call", {"name": "organizer_status"})
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
+        if LARGE_BOOK_ROWS:
+            startup_ms = round((time.monotonic() - window_started) * 1000, 2)
+            counts = javascript("JSON.stringify(Object.fromEntries(" + json.dumps(list(state_fixture["counts"])) +
+                                ".map(key => [key, OrganizerTest.daten()[key].length])))")
+            assert counts == state_fixture["counts"], counts
+            state["large_book"]["source_gtk_ready_ms"] = startup_ms
+            print("LARGE_BOOK_READY " + json.dumps({"fixture": state_fixture, "source_gtk_ready_ms": startup_ms,
+                  "mcp_initialize_exceeded_20s": state["large_book"]["startup"]["mcp_initialize_exceeded_20s"]}), flush=True)
+            if LARGE_BOOK_STARTUP_ONLY:
+                process.stdin.close()
+                assert process.wait(timeout=5) == 0
+                selector.close()
+                state["passed"] = not state["large_book"]["startup"]["mcp_initialize_exceeded_20s"]
+                return
+            cgroup = next(line.split(":", 2)[2] for line in Path("/proc/self/cgroup").read_text().splitlines()
+                          if line.startswith("0::"))
+            memory_peak = Path("/sys/fs/cgroup") / cgroup.lstrip("/") / "memory.peak"
+            javascript("""(() => {
+              let last = performance.now();
+              const meter = window.magnolieScaleMeter = { gap: 0, frames: 0, result: null };
+              function frame(now) {
+                meter.gap = Math.max(meter.gap, now - last);
+                meter.frames++;
+                last = now;
+                requestAnimationFrame(frame);
+              }
+              requestAnimationFrame(frame);
+              meter.reset = () => { last = performance.now(); meter.gap = meter.frames = 0; meter.result = null; };
+              return JSON.stringify(true);
+            })()""")
+
+            def sample(name, started, frame, result=None):
+                record = {"action": name, "elapsed_ms": round((time.monotonic() - started) * 1000, 2),
+                          "longest_frame_gap_ms": frame["gap"], "animation_frames": frame["frames"],
+                          "processes": resource_processes()}
+                if memory_peak.is_file():
+                    record["cgroup_memory_peak_bytes"] = int(memory_peak.read_text())
+                if result is not None:
+                    record["observed"] = result
+                state["large_book"]["actions"].append(record)
+                print("LARGE_BOOK_SAMPLE " + json.dumps(record), flush=True)
+
+            def measure(name, action):
+                started = time.monotonic()
+                javascript("""(() => {
+                  const meter = window.magnolieScaleMeter;
+                  meter.reset();
+                  const start = performance.now();
+                  Promise.resolve().then(async () => { """ + action + """ }).then(value => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                      meter.result = { value, gap: meter.gap, frames: meter.frames,
+                        browser_ms: performance.now() - start };
+                    }));
+                  }).catch(error => { meter.result = { error: String(error) }; });
+                  return JSON.stringify(true);
+                })()""")
+                until = time.monotonic() + 20
+                while True:
+                    frame = javascript("JSON.stringify(window.magnolieScaleMeter.result)")
+                    if frame is not None:
+                        break
+                    assert time.monotonic() < until, name
+                    time.sleep(0.02)
+                assert "error" not in frame and frame["frames"] >= 2, (name, frame)
+                sample(name, started, frame, {"browser_ms": frame["browser_ms"], "value": frame["value"]})
+                return frame["value"]
+
+            assert measure("open-cover", """document.querySelector('#deckel').click();
+                return document.querySelector('#buch').classList.contains('offen');""")
+            for section in ("kalender", "aufgaben", "adressen", "planer", "jahrestage", "notizen"):
+                selector_text = json.dumps(f'[data-fokus="register:{section}"]')
+                assert measure("navigate-" + section, f"document.querySelector({selector_text}).click(); "
+                               "return OrganizerTest.zustand().sektion;") == section
+            assert measure("scroll-notes", """const list = document.querySelector('.notiz-uebersicht');
+                list.scrollTop = list.scrollHeight;
+                return list.scrollTop;""") > 0
+            title = "Fixture note " + f"{LARGE_BOOK_ROWS // 2:05d}"
+            assert measure("search-notes", f"""const search = document.querySelector('#notiz-suche');
+                search.value = {json.dumps(title)};
+                search.dispatchEvent(new Event('input', {{bubbles:true}}));
+                return document.querySelector('.notiz-uebersicht').textContent.includes({json.dumps(title)});""")
+
+            note_id = "owned-native-fixture"
+            note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id}})
+            javascript("window.magnolieScaleMeter.reset(); JSON.stringify(true)")
+            started = time.monotonic()
+            new_title = "Owned native fixture updated at scale"
+            save = call("tools/call", {"name": "organizer_note_update", "arguments": {
+                "id": note_id, "expected_revision": note["structuredContent"]["revision"], "title": new_title}})
+            assert not save["isError"] and save["structuredContent"]["persisted"], save
+            frame = javascript("JSON.stringify({ gap: window.magnolieScaleMeter.gap, frames: window.magnolieScaleMeter.frames })")
+            sample("save-one-note", started, frame)
+            durable = json.loads(data_file.read_text())
+            assert {key: len(durable[key]) for key in counts} == counts
+            assert next(note for note in durable["notizen"] if note["id"] == note_id)["titel"] == new_title
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
@@ -3128,6 +3293,12 @@ finally:
                 process.wait(timeout=3)
     try:
         stop_private_secret_service()
+        if LARGE_BOOK_ROWS:
+            debug = Path(product.debug_pfad())
+            if debug.is_file():
+                for line in debug.read_text().splitlines():
+                    if "startup." in line or "webview.load-finished" in line:
+                        print("LARGE_BOOK_STARTUP " + line, flush=True)
         temporary.cleanup()
         state["cleanup_verified"] = True
     except BaseException:
@@ -3138,6 +3309,10 @@ finally:
 assert state["passed"] and state.get("cleanup_verified"), state
 if TRAY_SOAK_SECONDS:
     print("Native TRAY SOAK PASS: registered product indicator and real Gtk tray menu hide/restore, synthetic navigation, window resizing and bounded resource samples; not a physical tray click/display/DPI or all-day endurance acceptance")
+elif LARGE_BOOK_STARTUP_ONLY:
+    print("Native large-book GTK/WebKit startup and complete book counts PASS:", LARGE_BOOK_ROWS, "records per area")
+elif LARGE_BOOK_ROWS:
+    print("Native large-book GTK/WebKit UI, frame observations and single-entry save PASS:", LARGE_BOOK_ROWS, "records per area")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_SMS_PREFERENCES_ONLY") == "1":
     print("Native MCP SMS PREFERENCES PASS: GTK/stdio, durable duration readback and stale revision rejection, all other book data unchanged")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":

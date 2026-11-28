@@ -8662,14 +8662,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(j.datum);
       }
     }
+    const ersterGeburtstagProKontakt = new Map(), geburtstageNachNameUndTag = new Map();
+    const namensSchluessel = (name, datum) => monatTag(datum) + "\0" + kanonischerText(name);
+    const zaehleGeburtstag = (schluessel, delta) => {
+      const anzahl = (geburtstageNachNameUndTag.get(schluessel) || 0) + delta;
+      if (anzahl) geburtstageNachNameUndTag.set(schluessel, anzahl);
+      else geburtstageNachNameUndTag.delete(schluessel);
+    };
+    for (const j of d.jahrestage) {
+      if (!istGeburtstagTyp(j.typ)) continue;
+      if (!ersterGeburtstagProKontakt.has(j.kontaktId)) ersterGeburtstagProKontakt.set(j.kontaktId, j);
+      zaehleGeburtstag(namensSchluessel(j.name, j.datum), 1);
+    }
     for (const k of d.kontakte) {
       if (kontaktGeburtstagNurAmKontakt(k)) continue;
-      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&
-        istGeburtstagTyp(j.typ));
-      const namensgleich = k.geburtstag ? d.jahrestage.find((j) =>
-        istGeburtstagTyp(j.typ) && monatTag(j.datum) === monatTag(k.geburtstag) &&
-        kanonischerText(j.name) === kanonischerText(
-          [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma)) : null;
+      const verknuepft = ersterGeburtstagProKontakt.get(k.id);
       if (!k.geburtstag && verknuepft) {
         k.geburtstag = verknuepft.datum;
         k.geburtstagJahrUnbekannt = gueltigesTeildatum(verknuepft.datum);
@@ -8679,14 +8686,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           k.geburtstag = verknuepft.datum;
           k.geburtstagJahrUnbekannt = true;
         } else {
+          if (monatTag(verknuepft.datum) !== monatTag(k.geburtstag)) {
+            zaehleGeburtstag(namensSchluessel(verknuepft.name, verknuepft.datum), -1);
+            zaehleGeburtstag(namensSchluessel(verknuepft.name, k.geburtstag), 1);
+          }
           verknuepft.datum = k.geburtstag;
           verknuepft.jahrUnbekannt = gueltigesTeildatum(k.geburtstag);
         }
-      } else if (k.geburtstag && !namensgleich) {
-        d.jahrestage.push({ id: uid(), uid: "", kontaktId: k.id,
-          name: [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma,
+      } else if (k.geburtstag) {
+        const name = [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma;
+        const schluessel = namensSchluessel(name, k.geburtstag);
+        if (geburtstageNachNameUndTag.has(schluessel)) continue;
+        const geburtstag = { id: uid(), uid: "", kontaktId: k.id, name,
           datum: k.geburtstag, jahrUnbekannt: gueltigesTeildatum(k.geburtstag),
-          typ: "birthday" });
+          typ: "birthday" };
+        d.jahrestage.push(geburtstag);
+        ersterGeburtstagProKontakt.set(k.id, geburtstag);
+        zaehleGeburtstag(schluessel, 1);
       }
     }
     for (const j of d.jahrestage) delete j._providerJahrUnbekannt;
