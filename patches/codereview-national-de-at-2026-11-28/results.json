@@ -1,0 +1,719 @@
+{
+  "basis": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "prerequisites": [
+    "#850",
+    "first #853 CH/FR/NL"
+  ],
+  "counts": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "before": 23,
+      "after": 34,
+      "total": 34
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "before": 23,
+      "after": 34,
+      "total": 34
+    }
+  ],
+  "results": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "mainBlob": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+      "before": [
+        {
+          "name": "1989-10-03 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1990-10-03 DE => unity-gate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 DE => unity-gate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-02 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-04 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 FR => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1964-10-26 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1965-10-26 AT => neutrality-parliament",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 AT => neutrality-parliament",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-25 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-27 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 CH => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03  => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 de => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AU => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-02-30 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-04-05 AT => eggs",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-01-01 DE => glass",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate stamp shape",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "unity-gate inherits visual contract",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament stamp shape",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament inherits visual contract",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "DE day",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "no duplicate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "country switch",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "AT day",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "locked",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "after": [
+        {
+          "name": "1989-10-03 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1990-10-03 DE => unity-gate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 DE => unity-gate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-02 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-04 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 FR => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1964-10-26 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1965-10-26 AT => neutrality-parliament",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 AT => neutrality-parliament",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-25 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-27 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 CH => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03  => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 de => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AU => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-02-30 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-04-05 AT => eggs",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-01-01 DE => glass",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate stamp shape",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate inherits visual contract",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament stamp shape",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament inherits visual contract",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "DE day",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "no duplicate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "country switch",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "AT day",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "locked",
+          "ok": true,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "mainBlob": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+      "before": [
+        {
+          "name": "1989-10-03 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1990-10-03 DE => unity-gate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 DE => unity-gate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-02 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-04 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 FR => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1964-10-26 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1965-10-26 AT => neutrality-parliament",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 AT => neutrality-parliament",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "2026-10-25 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-27 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 CH => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03  => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 de => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AU => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-02-30 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-04-05 AT => eggs",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-01-01 DE => glass",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate stamp shape",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "unity-gate inherits visual contract",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament stamp shape",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament inherits visual contract",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "DE day",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "no duplicate",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "country switch",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "AT day",
+          "ok": false,
+          "error": ""
+        },
+        {
+          "name": "locked",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "after": [
+        {
+          "name": "1989-10-03 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1990-10-03 DE => unity-gate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 DE => unity-gate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-02 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-04 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 FR => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1964-10-26 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "1965-10-26 AT => neutrality-parliament",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 AT => neutrality-parliament",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-25 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-27 AT => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 CH => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03  => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-26 de => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-10-03 AU => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-02-30 DE => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-04-05 AT => eggs",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "2026-01-01 DE => glass",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate stamp shape",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "unity-gate inherits visual contract",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament stamp shape",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "neutrality-parliament inherits visual contract",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "DE day",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "no duplicate",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "country switch",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "AT day",
+          "ok": true,
+          "error": ""
+        },
+        {
+          "name": "locked",
+          "ok": true,
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

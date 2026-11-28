@@ -1,0 +1,114 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -68,3 +68,14 @@
+     ],
+-    "kings-crown": [
++    "unity-gate": [
++      { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
++      { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
++      { d: "M30 26V22H50V26M35 22L37 16L41 16L43 22M29 20L26 15L30 12L34 15L34 20M46 20L46 15L50 12L54 15L51 20M40 16V9M36 12L40 9L44 12", fill: "none", "data-motif-part": "quadriga" }
++    ],
++    "neutrality-parliament": [
++      { d: "M10 66H70M15 61H65V66H15ZM16 31L40 16L64 31ZM17 35H63M20 36V61M26 36V61M34 36V61M40 36V61M48 36V61M54 36V61", fill: "none", "data-motif-part": "parliament" },
++      { d: "M40 8V16M40 8Q52 3 62 8V16Q52 11 40 16", fill: "none", "data-motif-part": "flag" },
++      { d: "M42 11Q52 7 60 11", fill: "none", "data-motif-part": "flag-stripe" },
++      { d: "M7 47L11 51M69 51L73 47M9 21L13 25M67 25L71 21", fill: "none", "data-motif-part": "festive-rays" }
++    ],
++    "kings-crown": [
+       { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
+@@ -106,3 +117,5 @@
+   const nationalMotifs = Object.freeze({
+-    "ch-national-day": "swiss-lantern",
++    "de-unity-day": "unity-gate",
++    "at-national-day": "neutrality-parliament",
++    "ch-national-day": "swiss-lantern",
+     "fr-national-day": "french-rosette",
+@@ -112,3 +125,5 @@
+     const { year, month, day } = value;
+-    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
++    if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
++    if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
++    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
+     if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -68,3 +68,14 @@
+     ],
+-    "kings-crown": [
++    "unity-gate": [
++      { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
++      { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
++      { d: "M30 26V22H50V26M35 22L37 16L41 16L43 22M29 20L26 15L30 12L34 15L34 20M46 20L46 15L50 12L54 15L51 20M40 16V9M36 12L40 9L44 12", fill: "none", "data-motif-part": "quadriga" }
++    ],
++    "neutrality-parliament": [
++      { d: "M10 66H70M15 61H65V66H15ZM16 31L40 16L64 31ZM17 35H63M20 36V61M26 36V61M34 36V61M40 36V61M48 36V61M54 36V61", fill: "none", "data-motif-part": "parliament" },
++      { d: "M40 8V16M40 8Q52 3 62 8V16Q52 11 40 16", fill: "none", "data-motif-part": "flag" },
++      { d: "M42 11Q52 7 60 11", fill: "none", "data-motif-part": "flag-stripe" },
++      { d: "M7 47L11 51M69 51L73 47M9 21L13 25M67 25L71 21", fill: "none", "data-motif-part": "festive-rays" }
++    ],
++    "kings-crown": [
+       { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
+@@ -106,3 +117,5 @@
+   const nationalMotifs = Object.freeze({
+-    "ch-national-day": "swiss-lantern",
++    "de-unity-day": "unity-gate",
++    "at-national-day": "neutrality-parliament",
++    "ch-national-day": "swiss-lantern",
+     "fr-national-day": "french-rosette",
+@@ -112,3 +125,5 @@
+     const { year, month, day } = value;
+-    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
++    if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
++    if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
++    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
+     if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
+diff --git a/magnolie-organizer/pruefungen/appearance-national-de-at.cjs b/magnolie-organizer/pruefungen/appearance-national-de-at.cjs
+new file mode 100644
+--- /dev/null
++++ b/magnolie-organizer/pruefungen/appearance-national-de-at.cjs
+@@ -0,0 +1,43 @@
++/* #853 targeted source host, no native GUI. Run from repo root with node magnolie-organizer/pruefungen/appearance-national-de-at.cjs */
++function run(source) {
++  const nodes=[];
++  class Node {
++    constructor(name){this.name=name;this.attrs={};this.dataset={};this.children=[];this.style={};this.classList={add:()=>{}};}
++    setAttribute(k,v){this.attrs[k]=String(v);}
++    append(...nodes){for(const n of nodes){n.parent=this;this.children.push(n);}}
++    querySelectorAll(){return this.children.filter(n=>n.dataset.appearanceWatermark);}
++    remove(){if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this);}
++  }
++  const document={createElementNS:(_ns,n)=>new Node(n),querySelector:()=>null,querySelectorAll:()=>nodes,body:{toggleAttribute:()=>{}}};
++  const window={};
++  new Function("window","document",source)(window,document);
++  const a=window.MagnolieAppearance, results=[];
++  function check(name,fn){let ok=false, error="";try{ok=!!fn();}catch(e){error=String(e);}results.push({name,ok,error});}
++  for(const [date,land,want] of [
++    ["1989-10-03","DE","none"],["1990-10-03","DE","unity-gate"],["2026-10-03","DE","unity-gate"],
++    ["2026-10-02","DE","none"],["2026-10-04","DE","none"],["2026-10-03","AT","none"],["2026-10-03","FR","none"],
++    ["1964-10-26","AT","none"],["1965-10-26","AT","neutrality-parliament"],["2026-10-26","AT","neutrality-parliament"],
++    ["2026-10-25","AT","none"],["2026-10-27","AT","none"],["2026-10-26","DE","none"],["2026-10-26","CH","none"],
++    ["2026-10-03","","none"],["2026-10-26","de","none"],["2026-10-03","AU","none"],["2026-02-30","DE","none"],
++    ["2026-08-01","CH","swiss-lantern"],["2026-07-14","FR","french-rosette"],["2025-04-26","NL","kings-crown"],
++    ["2025-04-27","NL","none"],["2026-12-06","DE","boots"],["2026-04-05","AT","eggs"],["2026-01-01","DE","glass"]
++  ])check(date+" "+land+" => "+want,()=>a.holiday(date,land)===want);
++  for(const [kind,parts] of [["unity-gate",3],["neutrality-parliament",4]]) {
++    check(kind+" stamp shape",()=>{const s=a.stamp(kind);return s?.attrs.viewBox==="0 0 80 80"&&s.attrs["aria-hidden"]==="true"&&s.attrs.focusable==="false"&&s.children.length===parts;});
++    check(kind+" inherits visual contract",()=>a.stamp(kind)?.children.every(n=>n.attrs.stroke==="currentColor"&&n.attrs["stroke-width"]==="2"&&n.attrs["stroke-linejoin"]==="round"&&n.attrs.d.length>0));
++  }
++  const day=new Node("div");nodes.push(day);const state={today:"2026-10-03",developer:false,locked:false};
++  a.update({...state,country:"DE"});a.day(day,"2026-10-03");
++  check("DE day",()=>day.children.length===1&&day.children[0].dataset.appearanceWatermark==="unity-gate");
++  a.day(day,"2026-10-03");check("no duplicate",()=>day.children.length===1);
++  a.update({...state,country:"AT"});check("country switch",()=>day.children.length===0);
++  a.day(day,"2026-10-26");check("AT day",()=>day.children.length===1&&day.children[0].dataset.appearanceWatermark==="neutrality-parliament");
++  a.update({...state,country:"AT",locked:true});check("locked",()=>day.children.length===0);
++  return results;
++}
++if(typeof module!=="undefined"&&require.main===module) {
++  const fs=require("fs");let failures=0;
++  for(const p of ["magnolie-organizer/web/appearance.js","magnolie-organizer-windows/app/web/appearance.js"]) {
++    const results=run(fs.readFileSync(p,"utf8"));console.log(JSON.stringify({path:p,results},null,2));failures+=results.filter(x=>!x.ok).length;
++  } process.exitCode=failures?1:0;
++}
