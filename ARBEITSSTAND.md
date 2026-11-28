@@ -45,6 +45,11 @@ aufgeführt.
   Basis rote Fälle sind in #870 und #871 erfasst. Zwölf native Windows-
   Testgruppen und der reguläre WinForms-Bau bestanden.
 
+- [#871](https://github.com/maik3531/Magnolie-Organizer/issues/871):
+  Der Linux-Bluetooth-Fallbacktest verwendet den tatsächlichen
+  Capability-Anfangszustand des Readers. Alle 42 Linux-Telefontests
+  bestanden auf unverändertem Produktcode.
+
 - [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
   Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
   Brücke mit exakter Regions- und Jahresabdeckung. Ungebundene Antworten

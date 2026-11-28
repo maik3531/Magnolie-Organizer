@@ -889,7 +889,7 @@ def test_wifi_priority_fallback_delay_and_disable_closes_rfcomm():
         service.connection_transports[peer_id] = "wifi"
         service._bluetooth_tick(100)
         assert backend.connected == []
-        channel = mock.Mock()
+        channel = mock.Mock(last_capabilities=None)
         service.connections[peer_id] = channel
         service.connection_transports[peer_id] = "bluetooth"
         service.set_bluetooth(peer_id, False)
