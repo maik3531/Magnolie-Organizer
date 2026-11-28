@@ -77,6 +77,12 @@
       { d: "M18 29C34 21 49 39 66 30", fill: "none", "data-motif-part": "horizontal-bands" },
       { d: "M8 16L4 11M72 19L77 15M34 59L29 65M53 58L58 65M41 68V75", fill: "none", "data-motif-part": "festive-rays" }
     ],
+    "liechtenstein-lights": [
+      { d: "M7 62L22 43L31 52L44 34L73 63M7 68H73", fill: "none", "data-motif-part": "mountain-ridge" },
+      { d: "M24 15L31 23L40 11L49 23L56 15L52 34H28ZM29 29H51", fill: "none", "data-motif-part": "illuminated-crown" },
+      { d: "M18 51Q12 46 18 39Q18 44 22 45Q25 50 18 51ZM58 57Q52 52 58 45Q58 50 62 51Q65 56 58 57Z", fill: "none", "data-motif-part": "mountain-fires" },
+      { d: "M12 18L16 22M64 18L68 14M40 3V6M33 72L30 76M48 72L51 76", fill: "none", "data-motif-part": "festive-rays" }
+    ],
     "unity-gate": [
       { d: "M8 65H72M12 60H68V65H12ZM14 30H66V35H14ZM12 26H68V30H12Z", fill: "none", "data-motif-part": "gate-entablature" },
       { d: "M18 35V60M23 35V60M31 35V60M36 35V60M44 35V60M49 35V60M57 35V60M62 35V60", fill: "none", "data-motif-part": "gate-columns" },
@@ -140,6 +146,7 @@
   const nationalMotifs = Object.freeze({
     "it-republic-day": "italian-ballot",
     "pl-independence-day": "polish-banner",
+    "li-national-day": "liechtenstein-lights",
     "de-unity-day": "unity-gate",
     "at-national-day": "neutrality-parliament",
     "ch-national-day": "swiss-lantern",
@@ -157,6 +164,8 @@
       if (firstSunday ? day <= 7 && value.date.getUTCDay() === 0 : day === 2) return "it-republic-day";
     }
     if (country === "PL" && (year === 1937 || year === 1938 || year >= 1989) && month === 11 && day === 11) return "pl-independence-day";
+    // National celebration since 1940, retained by law in 1990.
+    if (country === "LI" && year >= 1940 && month === 8 && day === 15) return "li-national-day";
     if (country === "DE" && year >= 1990 && month === 10 && day === 3) return "de-unity-day";
     if (country === "AT" && year >= 1965 && month === 10 && day === 26) return "at-national-day";
     if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
@@ -317,7 +326,7 @@
     sync.addEventListener("change", () => { if (section.isConnected && context.developer && !context.locked) { preview.sync = sync.checked; changed(); } }); section.append(syncRow);
     select("season", "Seasonal background", [["auto", "Automatic"], ["none", "None"], ["crystals", "Snowflakes"], ["stars", "Stars"]]);
     select("holiday", "Holiday watermark", [["auto", "Automatic"], ["none", "None"], ["boots", "Boots"], ["santa", "Santa Claus"], ["rocket", "Rocket"], ["glass", "Champagne glass"], ["eggs", "Easter eggs"],
-      ["italian-ballot", "Italy"], ["polish-banner", "Poland"],
+      ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"],
       ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"], ["french-rosette", "France"], ["kings-crown", "Netherlands"], ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"]]);
     const dateRow = document.createElement("label"), date = document.createElement("input"); date.type = "date"; date.className = "feld"; date.value = preview.date;
     date.dataset.appearanceTest = "date"; dateRow.className = "formzeile"; dateRow.append(document.createTextNode(t("Date")), date); section.append(dateRow);

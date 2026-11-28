@@ -28,8 +28,9 @@ kopiert oder als Programmbestandteil übernommen.
   (26. Oktober ab 1965, Parlamentsmotiv), Belgien (21. Juli ab 1890,
   dreigeteiltes Festbanner), Luxemburg (23. Juni, Konzert-/Feuerwerksmotiv,
   konservativ ab 1964 wegen abweichender Angaben zum ersten Sommertermin),
-  Italien (Republikfest, Wahlurne) und Polen (11. November 1937/38 und ab
-  1989, zweigeteiltes Festbanner).
+  Italien (Republikfest, Wahlurne), Polen (11. November 1937/38 und ab
+  1989, zweigeteiltes Festbanner) und Liechtenstein (15. August ab 1940,
+  Höhenfeuer mit stilisierter Feuerkrone).
   Das italienische Motiv folgt dem 2. Juni ab den belegten Feiern 1947/48,
   1977–2000 dem ersten Junisonntag mit der gesetzlichen Ausnahme am
   2. Juni 1986 und seit 2001 wieder dem 2. Juni.
@@ -42,6 +43,9 @@ kopiert oder als Programmbestandteil übernommen.
   [Gesetz 200/1986](https://www.gazzettaufficiale.it/eli/id/1986/05/23/086U0200/sg).
   Polen: [Gesetz von 1937](https://eli.gov.pl/eli/DU/1937/255/ogl),
   [Wiederherstellung 1989](https://eli.gov.pl/eli/DU/1989/34/ogl).
+  Liechtenstein: [Regierungsbeschluss 1940](https://e-archiv.li/textDetail.aspx?backurl=auto&eID=1&etID=41401),
+  [Gesetz von 1990](https://www.gesetze.li/chrono/pdf/1990034000) und
+  [offizielles Festprogramm mit der Krone auf Tuass](https://staatsfeiertag.li/).
 - Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
   https://www.info.gouv.fr/actualite/pourquoi-le-14-juillet-est-il-notre-fete-nationale ,
   https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day ,

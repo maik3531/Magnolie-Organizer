@@ -50,7 +50,15 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           ["1988-11-11", "PL", "none"],
           ["1989-11-11", "PL", "polish-banner"],
           ["2026-06-02", "PL", "none"],
-          ["2026-11-11", "IT", "none"]
+          ["2026-11-11", "IT", "none"],
+          ["1939-08-15", "LI", "none"],
+          ["1940-08-15", "LI", "liechtenstein-lights"],
+          ["1989-08-15", "LI", "liechtenstein-lights"],
+          ["1990-08-15", "LI", "liechtenstein-lights"],
+          ["2026-08-14", "LI", "none"],
+          ["2026-08-16", "LI", "none"],
+          ["2026-08-15", "CH", "none"],
+          ["2026-08-15", "", "none"]
         ]) {
           assert.equal(b.w.MagnolieAppearance.holiday(date, land), motif, `${land} ${date}`);
         }
@@ -59,7 +67,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           ["2026-08-01", "CH", "swiss-lantern"], ["2026-07-14", "FR", "french-rosette"],
           ["2025-04-26", "NL", "kings-crown"], ["2026-07-21", "BE", "belgian-banner"],
           ["2026-06-23", "LU", "luxembourg-concert"], ["2026-06-02", "IT", "italian-ballot"],
-          ["2026-11-11", "PL", "polish-banner"]
+          ["2026-11-11", "PL", "polish-banner"], ["2026-08-15", "LI", "liechtenstein-lights"]
         ]) {
           b.t.zustand().kalender.tag = date;
           await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
@@ -68,6 +76,11 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
           assert.equal(watermarks().length, 1);
           assert.equal(watermarks()[0].dataset.appearanceWatermark, motif);
           assert.equal(watermarks()[0].getAttribute("aria-hidden"), "true");
+          if (land === "LI") {
+            assert.equal(watermarks()[0].getAttribute("focusable"), "false");
+            assert.deepEqual([...watermarks()[0].querySelectorAll("[data-motif-part]")].map(node => node.dataset.motifPart),
+              ["mountain-ridge", "illuminated-crown", "mountain-fires", "festive-rays"]);
+          }
           selectCountry("ES");
           assert.equal(watermarks().length, 0);
         }
@@ -117,7 +130,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         ["unity-gate", "Germany"], ["neutrality-parliament", "Austria"], ["swiss-lantern", "Switzerland"],
         ["french-rosette", "France"], ["kings-crown", "Netherlands"],
         ["belgian-banner", "Belgium"], ["luxembourg-concert", "Luxembourg"],
-        ["italian-ballot", "Italy"], ["polish-banner", "Poland"]
+        ["italian-ballot", "Italy"], ["polish-banner", "Poland"], ["liechtenstein-lights", "Liechtenstein"]
       ]) {
         assert.equal(holiday.querySelector(`option[value="${motif}"]`)?.textContent, t(country));
         choose("holiday", motif);
@@ -125,7 +138,7 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         assert(d.querySelector(`.wo-tag [data-appearance-watermark="${motif}"]`));
       }
       choose("holiday", "unknown");
-      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "polish-banner");
+      assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "liechtenstein-lights");
       choose("date", "2026-12-06");
       choose("holiday", "auto");
       assert.equal(sample.querySelector("svg")?.dataset.appearanceWatermark, "boots");
