@@ -1,0 +1,537 @@
+{
+  "base": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "reviewParent": "a473d769d590cf2a2771f2e890727025230a0f80",
+  "dependencies": [
+    [
+      "940c4c91eb3b9985c4b6788e483e814f307aae24",
+      "patches/codereview-regional-school-display-2026-11-28/school-display.patch"
+    ],
+    [
+      "64d6f17283bec82ac177499a6510d8edfc4c75bc",
+      "patches/codereview-regional-status-2026-11-28/status.patch"
+    ],
+    [
+      "a473d769d590cf2a2771f2e890727025230a0f80",
+      "patches/codereview-holiday-live-austria-2026-11-28/holiday-cache-855-plus-austria-856.patch"
+    ]
+  ],
+  "host": "controlled V8; extracted actual JS; DOM/bridge/save doubles; no Node/native/HTTP",
+  "results": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "baseBlob": "bd2df1c6dccf3de3012dfafe851be77cead3f765",
+      "before": [
+        {
+          "name": "all 12 verified provider codes, no invented codes",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZA",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZB",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZC",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-CO",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-GP",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-GY",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-MQ",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-YT",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-RU",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-BL",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-MF",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-SP",
+          "pass": false
+        },
+        {
+          "name": "country-wide legacy request remains one request with schools",
+          "pass": true
+        },
+        {
+          "name": "FR all_regions bool remains unsupported; use empty direct scope",
+          "pass": true
+        },
+        {
+          "name": "foreign and fabricated codes rejected",
+          "pass": true
+        },
+        {
+          "name": "country switch resets region and preserves data",
+          "pass": true
+        },
+        {
+          "name": "DE region-required behavior unchanged",
+          "pass": true
+        },
+        {
+          "name": "school opt-out still sent",
+          "pass": false
+        },
+        {
+          "name": "zone A includes explicit zone plus administrative aliases, not zone B or overseas",
+          "pass": false
+        },
+        {
+          "name": "Réunion Southern summer does not leak to Zone C",
+          "pass": false
+        },
+        {
+          "name": "national public holiday stays visible in selected zone, foreign does not",
+          "pass": false
+        },
+        {
+          "name": "status counts selected cached rows only",
+          "pass": false
+        },
+        {
+          "name": "actual settings page has Region, All blank choice, 12 options, no state checkbox",
+          "pass": false
+        },
+        {
+          "name": "actual settings change handler selects Zone B",
+          "pass": false
+        },
+        {
+          "name": "MCP exposes same regions",
+          "pass": false
+        },
+        {
+          "name": "MCP retrieval selected code and no fake state requirement",
+          "pass": false
+        },
+        {
+          "name": "MCP country-wide retrieval unchanged",
+          "pass": true
+        },
+        {
+          "name": "scope refresh Zone A preserves Zone B and overseas rows",
+          "pass": false
+        },
+        {
+          "name": "legacy country-wide valid coverage still recognized",
+          "pass": true
+        },
+        {
+          "name": "unconfirmed region refresh preserves cached school dates",
+          "pass": false
+        }
+      ],
+      "after": [
+        {
+          "name": "all 12 verified provider codes, no invented codes",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZA",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZB",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZC",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-CO",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-GP",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-GY",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-MQ",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-YT",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-RU",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-BL",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-MF",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-SP",
+          "pass": true
+        },
+        {
+          "name": "country-wide legacy request remains one request with schools",
+          "pass": true
+        },
+        {
+          "name": "FR all_regions bool remains unsupported; use empty direct scope",
+          "pass": true
+        },
+        {
+          "name": "foreign and fabricated codes rejected",
+          "pass": true
+        },
+        {
+          "name": "country switch resets region and preserves data",
+          "pass": true
+        },
+        {
+          "name": "DE region-required behavior unchanged",
+          "pass": true
+        },
+        {
+          "name": "school opt-out still sent",
+          "pass": true
+        },
+        {
+          "name": "zone A includes explicit zone plus administrative aliases, not zone B or overseas",
+          "pass": true
+        },
+        {
+          "name": "Réunion Southern summer does not leak to Zone C",
+          "pass": true
+        },
+        {
+          "name": "national public holiday stays visible in selected zone, foreign does not",
+          "pass": true
+        },
+        {
+          "name": "status counts selected cached rows only",
+          "pass": true
+        },
+        {
+          "name": "actual settings page has Region, All blank choice, 12 options, no state checkbox",
+          "pass": true
+        },
+        {
+          "name": "actual settings change handler selects Zone B",
+          "pass": true
+        },
+        {
+          "name": "MCP exposes same regions",
+          "pass": true
+        },
+        {
+          "name": "MCP retrieval selected code and no fake state requirement",
+          "pass": true
+        },
+        {
+          "name": "MCP country-wide retrieval unchanged",
+          "pass": true
+        },
+        {
+          "name": "scope refresh Zone A preserves Zone B and overseas rows",
+          "pass": true
+        },
+        {
+          "name": "legacy country-wide valid coverage still recognized",
+          "pass": true
+        },
+        {
+          "name": "unconfirmed region refresh preserves cached school dates",
+          "pass": true
+        }
+      ],
+      "syntax": true,
+      "roundtrip": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "baseBlob": "5d66c66cfc867fad3391a1d8f1992c0c04d0b9b2",
+      "before": [
+        {
+          "name": "all 12 verified provider codes, no invented codes",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZA",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZB",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-ZC",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-CO",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-GP",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-GY",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-MQ",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-YT",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-RU",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-BL",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-MF",
+          "pass": false
+        },
+        {
+          "name": "selected subdivision FR-SP",
+          "pass": false
+        },
+        {
+          "name": "country-wide legacy request remains one request with schools",
+          "pass": true
+        },
+        {
+          "name": "FR all_regions bool remains unsupported; use empty direct scope",
+          "pass": true
+        },
+        {
+          "name": "foreign and fabricated codes rejected",
+          "pass": true
+        },
+        {
+          "name": "country switch resets region and preserves data",
+          "pass": true
+        },
+        {
+          "name": "DE region-required behavior unchanged",
+          "pass": true
+        },
+        {
+          "name": "school opt-out still sent",
+          "pass": false
+        },
+        {
+          "name": "zone A includes explicit zone plus administrative aliases, not zone B or overseas",
+          "pass": false
+        },
+        {
+          "name": "Réunion Southern summer does not leak to Zone C",
+          "pass": false
+        },
+        {
+          "name": "national public holiday stays visible in selected zone, foreign does not",
+          "pass": false
+        },
+        {
+          "name": "status counts selected cached rows only",
+          "pass": false
+        },
+        {
+          "name": "actual settings page has Region, All blank choice, 12 options, no state checkbox",
+          "pass": false
+        },
+        {
+          "name": "actual settings change handler selects Zone B",
+          "pass": false
+        },
+        {
+          "name": "MCP exposes same regions",
+          "pass": false
+        },
+        {
+          "name": "MCP retrieval selected code and no fake state requirement",
+          "pass": false
+        },
+        {
+          "name": "MCP country-wide retrieval unchanged",
+          "pass": true
+        },
+        {
+          "name": "scope refresh Zone A preserves Zone B and overseas rows",
+          "pass": false
+        },
+        {
+          "name": "legacy country-wide valid coverage still recognized",
+          "pass": true
+        },
+        {
+          "name": "unconfirmed region refresh preserves cached school dates",
+          "pass": false
+        }
+      ],
+      "after": [
+        {
+          "name": "all 12 verified provider codes, no invented codes",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZA",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZB",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-ZC",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-CO",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-GP",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-GY",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-MQ",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-YT",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-RU",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-BL",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-MF",
+          "pass": true
+        },
+        {
+          "name": "selected subdivision FR-SP",
+          "pass": true
+        },
+        {
+          "name": "country-wide legacy request remains one request with schools",
+          "pass": true
+        },
+        {
+          "name": "FR all_regions bool remains unsupported; use empty direct scope",
+          "pass": true
+        },
+        {
+          "name": "foreign and fabricated codes rejected",
+          "pass": true
+        },
+        {
+          "name": "country switch resets region and preserves data",
+          "pass": true
+        },
+        {
+          "name": "DE region-required behavior unchanged",
+          "pass": true
+        },
+        {
+          "name": "school opt-out still sent",
+          "pass": true
+        },
+        {
+          "name": "zone A includes explicit zone plus administrative aliases, not zone B or overseas",
+          "pass": true
+        },
+        {
+          "name": "Réunion Southern summer does not leak to Zone C",
+          "pass": true
+        },
+        {
+          "name": "national public holiday stays visible in selected zone, foreign does not",
+          "pass": true
+        },
+        {
+          "name": "status counts selected cached rows only",
+          "pass": true
+        },
+        {
+          "name": "actual settings page has Region, All blank choice, 12 options, no state checkbox",
+          "pass": true
+        },
+        {
+          "name": "actual settings change handler selects Zone B",
+          "pass": true
+        },
+        {
+          "name": "MCP exposes same regions",
+          "pass": true
+        },
+        {
+          "name": "MCP retrieval selected code and no fake state requirement",
+          "pass": true
+        },
+        {
+          "name": "MCP country-wide retrieval unchanged",
+          "pass": true
+        },
+        {
+          "name": "scope refresh Zone A preserves Zone B and overseas rows",
+          "pass": true
+        },
+        {
+          "name": "legacy country-wide valid coverage still recognized",
+          "pass": true
+        },
+        {
+          "name": "unconfirmed region refresh preserves cached school dates",
+          "pass": true
+        }
+      ],
+      "syntax": true,
+      "roundtrip": true
+    }
+  ]
+}
