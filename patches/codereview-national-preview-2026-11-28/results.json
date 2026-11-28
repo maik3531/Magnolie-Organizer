@@ -1,0 +1,376 @@
+{
+  "basis": "a11d899eb24918034dfac22f71cbadbac90fb848",
+  "host": "controlled V8 with DOM doubles",
+  "reports": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "blob": "63fc57d42bceab796d0fc2780a3ac5b92aabd029",
+      "before": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": false
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": false
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": false
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": false
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "option french-rosette",
+          "pass": false
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": false
+        },
+        {
+          "name": "option kings-crown",
+          "pass": false
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": false
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        }
+      ],
+      "after": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        }
+      ],
+      "roundtrip": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "blob": "63fc57d42bceab796d0fc2780a3ac5b92aabd029",
+      "before": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": false
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": false
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": false
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": false
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "option french-rosette",
+          "pass": false
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": false
+        },
+        {
+          "name": "option kings-crown",
+          "pass": false
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": false
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        }
+      ],
+      "after": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        }
+      ],
+      "roundtrip": true
+    }
+  ]
+}
