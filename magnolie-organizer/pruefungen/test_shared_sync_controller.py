@@ -53,6 +53,41 @@ def test_unsupported_peer_cannot_initialize_from_a_local_preview(tmp_path, monke
     assert service.store.shared_settings(peer["device_id"], peer["static_public"]) is None
 
 
+@pytest.mark.parametrize("action", ["change", "initialize", "start"])
+def test_unnegotiated_connection_mode_cannot_replace_wlan_automation(tmp_path, monkeypatch, action):
+    service, peer, channel, _ = fixture(tmp_path, monkeypatch, initialize=False)
+    peer_id = peer["device_id"]
+    public = peer["static_public"]
+    fingerprint = phone.fingerprint(phone.unb64(public, 32))
+    legacy = dict(shared.DEFAULTS, auto_mode="wifi")
+    unsupported = dict(legacy, auto_mode="connection")
+    with tempfile.TemporaryDirectory(prefix="shared-auto-") as root:
+        socket = str(Path(root) / "bridge.sock")
+        server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
+        try:
+            proxy = background.PhoneServiceProxy(socket)
+            if action == "change":
+                proxy.initialize_common_preferences(peer_id, fingerprint, legacy)
+            previous = service.store.shared_settings(peer_id, public)
+            previous_wlan = copy.deepcopy(peer["personal_sync"])
+            frames = copy.deepcopy(channel.sent)
+            with pytest.raises(background.IPCError):
+                if action == "change":
+                    proxy.change_common_preference(peer_id, fingerprint, "auto_mode", "connection", legacy)
+                elif action == "initialize":
+                    proxy.initialize_common_preferences(peer_id, fingerprint, unsupported)
+                else:
+                    proxy.start_common_sync(peer_id, fingerprint, unsupported)
+            assert service.store.shared_settings(peer_id, public) == previous
+            assert peer["personal_sync"] == previous_wlan
+            assert channel.sent == frames
+            assert not service.store.has_kind(peer_id, shared.START_KIND)
+            assert proxy.initialize_common_preferences(peer_id, fingerprint, legacy)["values"] == legacy
+            assert peer["personal_sync"]["auto_wifi"] is True
+        finally:
+            server.close()
+
+
 @pytest.mark.parametrize("action", ["choice", "start"])
 def test_paired_preferences_do_not_require_another_confirmation_or_restore_revoked_modules(tmp_path, monkeypatch, action):
     service, peer, _, _ = fixture(tmp_path, monkeypatch, initialize=False)

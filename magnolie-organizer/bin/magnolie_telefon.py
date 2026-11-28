@@ -5601,15 +5601,22 @@ class PhoneService:
             self.store.remove_kind(peer_id, "personal_sync.custom_settings")
             self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
 
-    def _common_preference_peer(self, peer_id, expected_fingerprint, initial, activate=False):
+    def _common_preference_peer(self, peer_id, expected_fingerprint, initial, activate=False, requested_auto_mode=None):
         peer = self.store.sole_peer(peer_id)
+        local_items = desktop_capabilities()["items"]
+        remote_items = (peer or {}).get("capabilities", {}).get("items", {})
         if (not peer or fingerprint(unb64(peer["static_public"], 32)).lower() != str(expected_fingerprint).lower() or
                 (not activate and peer.get("personal_sync", {}).get("own_device") is not True) or
-                not shared_sync_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
+                not shared_sync_contract.supported(local_items, remote_items)):
             raise PermissionError("Shared preferences are unavailable for this paired device.")
         if not isinstance(initial, dict) or set(initial) != set(shared_sync_contract.DEFAULTS):
             raise ValueError("A complete initial preference snapshot is required.")
         shared_sync_contract.create(self.store.identity["device_id"], initial)
+        seeds_connection_mode = (initial["auto_mode"] == "connection" and
+                                 self.store.shared_settings(peer_id, peer["static_public"]) is None)
+        if ((requested_auto_mode == "connection" or seeds_connection_mode) and
+                not personal_sync_contract.auto_connection_supported(local_items, remote_items)):
+            raise PermissionError("Automatic synchronization over the current connection is unsupported for this pairing.")
         if activate and peer.get("personal_sync", {}).get("own_device") is not True:
             # An explicit local synchronization choice replaces the old UI's
             # set_personal_sync_mode call. A status/initialization never opts in.
@@ -5631,7 +5638,8 @@ class PhoneService:
             if expected_revision is not None and expected_revision != self.mcp_notes_settings(peer_id, expected_fingerprint)["revision"]:
                 raise ValueError("phone_control_conflict")
             shared_sync_contract.setting_value(field, value)
-            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial, activate=True)
+            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial, activate=True,
+                                               requested_auto_mode=value if field == "auto_mode" else None)
             self.store.change_shared_setting(peer_id, peer["static_public"], field, value, initial)
             self._apply_common_function_policies(peer_id, self.store.shared_settings(peer_id, peer["static_public"]))
             self._queue_shared_settings(peer_id)
