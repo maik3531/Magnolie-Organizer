@@ -233,7 +233,8 @@ internal sealed class FirstRunSetupForm : Form
         qrTooltips.RemoveAll();
         pageHost.SuspendLayout();
         pageHost.AutoScrollPosition = Point.Empty;
-        pageHost.Controls.Clear();
+        while (pageHost.Controls.Count > 0)
+            pageHost.Controls[0].Dispose();
         progress.Page = page;
         progress.AccessibleName = T("Set up Magnolie Organizer");
         progress.AccessibleDescription = $"{page + 1} / 7";

@@ -7,6 +7,13 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#858](https://github.com/maik3531/Magnolie-Organizer/issues/858):
+  Der Windows-Assistent gibt ersetzte Seiten und ihre Fensterhandles beim
+  Neuaufbau frei. Die native Gegenprobe prüfte den freigegebenen
+  Seitenbaum und erreichte alle 20 Sprachblöcke statt des Abbruchs
+  beim siebten. Der modale Telefonfall benötigt weiterhin einen
+  interaktiven Windows-Desktop.
+
 - [#853](https://github.com/maik3531/Magnolie-Organizer/issues/853):
   Fünf nationale Kalenderwasserzeichen für DE, AT, CH, FR und NL sind in
   den Desktopquellen integriert. Die Wochenansicht folgt dem gewählten

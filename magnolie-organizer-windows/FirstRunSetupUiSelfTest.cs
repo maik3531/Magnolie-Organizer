@@ -376,7 +376,9 @@ internal static class FirstRunSetupUiSelfTest
                     "Show school holidays for %(state)s in the calendar?").Replace("%(state)s", NativeLocalization.Gettext(name)),
                     "Localized native school-holiday consent must start unchecked and name the selected region.");
                 check.Checked = true;
+                var previousPage = Field<Panel>(form, "pageHost").Controls[0];
                 render.Invoke(form, null);
+                Test(previousPage.IsDisposed && check.IsDisposed, "Replacing a setup page must dispose its controls.");
                 Test(Descendants(form).OfType<CheckBox>().Single(c => c.Name == "setup-school-holidays").Checked,
                     "Re-rendering the same selection lost consent.");
             }
