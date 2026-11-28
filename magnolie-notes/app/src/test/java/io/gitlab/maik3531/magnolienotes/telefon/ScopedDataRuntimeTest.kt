@@ -179,6 +179,8 @@ class ScopedDataRuntimeTest {
 
     @Test fun authenticatedWifiWithLateSettingsReplacesOnlyTheStaleAutomaticRun() = exercise("auto-late-stale")
     @Test fun automaticWifiWaitsForLateSettingsWithoutExpiringTheTransition() = exercise("auto-late-delayed")
+    @Test fun automaticWifiImportWaitsForLateSharedSettings() = exercise("auto-late-import")
+    @Test fun automaticWifiFullCollectionWaitsForLateSharedSettings() = exercise("auto-late-full")
     @Test fun unchangedWifiReconnectDoesNotQueueAnotherRun() = exercise("auto-late-unchanged")
     @Test fun resumedValidAutomaticRunDoesNotCreateADuplicateAfterCompletion() = exercise("auto-late-active")
     @Test fun automaticWifiOffThenOnDoesNotReviveAnOldPendingTransition() = exercise("auto-late-off")
@@ -186,6 +188,32 @@ class ScopedDataRuntimeTest {
     @Test fun bluetoothAuthenticationDoesNotAuthorizeALaterAutomaticWifiRun() = exercise("auto-late-bluetooth")
     @Test fun aReplacedAuthenticatedChannelCannotStartItsPendingAutomaticRun() = exercise("auto-late-channel")
     @Test fun aReplacedOriginalPipeCannotStartItsPendingAutomaticRun() = exercise("auto-late-pipe")
+
+    private fun checkLateWholeCollectionWifi(work: TelefonWerk, peer: TelefonPeer, channel: TelefonSecureChannel,
+        agreed: JsonObject, documents: Ablage, queue: TelefonQueue, pump: () -> Unit,
+        sent: () -> List<JsonObject>, acknowledge: (String) -> Unit) {
+        val peerId = peer.device_id
+        assertFalse("An unconfirmed import/full choice staged a durable automatic run", queue.hasActiveAutoRun(peerId))
+        pump()
+        assertTrue(sent().none { it["kind"] == JsonPrimitive("personal_sync.request") })
+        work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, agreed, 60000), channel, 0)
+        repeat(2) { pump() }
+        val outgoing = sent()
+        val request = outgoing.single { it["kind"] == JsonPrimitive("personal_sync.request") }
+        val body = request.getValue("body").jsonObject
+        val runId = body.string("run_id")
+        assertEquals("auto_wifi", body.string("trigger"))
+        assertEquals("wifi_only", queue.personalRunPolicy(peerId, runId))
+        val records = outgoing.filter { it["kind"] == JsonPrimitive("personal_sync.batch") }
+            .flatMap { PersonalSyncProtokoll.decodeBatch(it.getValue("body").jsonObject) }
+        assertTrue(records.any { it.kind == "note" && it.id ==
+            PersonalSync.noteWireId(documents.bestand.value.personalSync, "new-offline-note") })
+        outgoing.filter { it["type"] == JsonPrimitive("message") }.forEach { acknowledge(it.string("message_id")) }
+        queue.markPersonalRun(peerId, runId, "reported")
+        repeat(3) { pump() }
+        assertFalse(queue.hasActiveAutoRun(peerId))
+        assertTrue(sent().none { it["kind"] == JsonPrimitive("personal_sync.request") })
+    }
 
     private fun checkCompetingConnectionRequest(
         request: JsonObject, manifest: JsonObject, peerId: String, queue: TelefonQueue,
@@ -724,7 +752,7 @@ class ScopedDataRuntimeTest {
                     }, failBookWrites, failNextFlush, replyOriginal = mode == "start-auto-connection-attachment")
                     return@use
                 }
-                if (automaticReconnect) {
+                fun checkAutomaticWifiReconnect() {
                     val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync", TelefonPeer::class.java,
                         String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
                     val secureTransition = TelefonWerk::class.java.getDeclaredMethod("startPersonalSyncOnSecureWifi",
@@ -753,12 +781,26 @@ class ScopedDataRuntimeTest {
                     // Reconnect with fresh bilateral controls but delayed common settings.
                     session = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
                     sessions[channel] = session
+                    val wholeCollectionMode = when (mode) {
+                        "auto-late-import" -> "phone_import"
+                        "auto-late-full" -> "two_way"
+                        else -> null
+                    }
+                    val agreed = wholeCollectionMode?.let {
+                        SharedSyncSettings.merge(shared,
+                            work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive(it)), peerId, actor)
+                    }
                     queue.removeKind(peerId, SharedSyncSettings.KIND)
                     pump.invoke(work, peer, channel, 0L, true); sent()
                     assertNull(session.sharedReceived)
                     if (mode == "auto-late-bluetooth")
                         field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.BLUETOOTH to pipe)
                     secureTransition.invoke(work, peer, channel, 0L)
+                    if (agreed != null) {
+                        checkLateWholeCollectionWifi(work, peer, channel, agreed, documents, queue,
+                            { pump.invoke(work, peer, channel, 0L, false) }, ::sent, { ack(it) })
+                        return
+                    }
                     if (mode == "auto-late-bluetooth")
                         field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
                     if (mode == "auto-late-delayed")
@@ -767,7 +809,7 @@ class ScopedDataRuntimeTest {
                     if (mode == "auto-late-off") {
                         val disabled = SharedSyncSettings.change(shared, peerId, actor, "auto_mode", JsonPrimitive("manual"))
                         work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, disabled, 60000), channel, 0)
-                        assertFalse(session.autoWifiCheckPending)
+                        assertNull(session.pendingSharedWifiStart)
                         val enabled = SharedSyncSettings.change(disabled, peerId, actor, "auto_mode", JsonPrimitive("wifi"))
                         work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, enabled, 60000), channel, 0)
                         currentShared = enabled
@@ -776,7 +818,7 @@ class ScopedDataRuntimeTest {
                         for ((revision, granted) in listOf(1L to false, 2L to true)) {
                             work.receiveMessage(peer, TelefonNachrichten.message("grants.update",
                                 TelefonNachrichten.grants(revision, personalNotes = granted, personalTasks = true), 60000), channel, 0)
-                            assertFalse(session.autoWifiCheckPending)
+                            assertNull(session.pendingSharedWifiStart)
                         }
                     }
                     if (mode == "auto-late-channel") {
@@ -784,7 +826,7 @@ class ScopedDataRuntimeTest {
                             ByteArray(32) { 4 }, ByteArray(4) { 5 }).use { replacement ->
                             field(TelefonWerk::class.java, "activeChannel").set(work, replacement)
                             pump.invoke(work, peer, channel, 0L, false)
-                            assertFalse(session.autoWifiCheckPending)
+                            assertNull(session.pendingSharedWifiStart)
                         }
                         field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     }
@@ -796,7 +838,7 @@ class ScopedDataRuntimeTest {
                         }
                         field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to replacement)
                         pump.invoke(work, peer, channel, 0L, false)
-                        assertFalse(session.autoWifiCheckPending)
+                        assertNull(session.pendingSharedWifiStart)
                         field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
                     }
                     // No data is permitted merely because shared settings arrived.
@@ -833,9 +875,12 @@ class ScopedDataRuntimeTest {
                     } else {
                         assertFalse(queue.hasActiveAutoRun(peerId)); assertTrue(scoped(sent()).isEmpty())
                     }
-                    assertFalse(session.autoWifiCheckPending)
+                    assertNull(session.pendingSharedWifiStart)
                     repeat(3) { pump.invoke(work, peer, channel, 0L, false) }
                     assertFalse("A heartbeat repeated the completed transition", queue.hasActiveAutoRun(peerId))
+                }
+                if (automaticReconnect) {
+                    checkAutomaticWifiReconnect()
                     return@use
                 }
                 if (mode.startsWith("send-")) {

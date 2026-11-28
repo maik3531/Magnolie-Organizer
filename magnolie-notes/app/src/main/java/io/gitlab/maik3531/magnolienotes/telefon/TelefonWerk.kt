@@ -1049,56 +1049,71 @@ class TelefonWerk private constructor(private val context: Context, private val 
         it["auto_mode"] == JsonPrimitive("wifi")
     } ?: storage.personalAutoWifi()
 
+    private fun bilateralContentModules(peer: TelefonPeer): Set<String> = buildSet {
+        if (peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) add("notes")
+        if (peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted) add("tasks")
+    }
+
+    private fun startAutomaticWifiRunIfDue(peer: TelefonPeer, documents: Ablage) {
+        if (shouldStartPersonalSyncOnSecureWifi(TelefonTransportArt.WIFI, true, true, true, true, true,
+                queue.hasActiveAutoRun(peer.device_id), System.currentTimeMillis(), storage.personalSyncLastAuto(),
+                documents.personalSyncCounter(), storage.personalSyncLastCounter()))
+            runCatching { enqueuePersonalSync(peer, "auto_wifi") }
+    }
+
     private fun startPersonalSyncOnSecureWifi(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) =
         peerEffect(expected, generation) { peer ->
             val session = noteSessions[channel] ?: return@peerEffect
             if (!sessionTransportAktuell(channel, generation) || activeTransport?.first != TelefonTransportArt.WIFI ||
                 !automaticWifi(peer) || !peer.own_device || !peer.remote_own_device) return@peerEffect
-            val modules = buildSet {
-                if (peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) add("notes")
-                if (peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted) add("tasks")
-            }
+            val modules = bilateralContentModules(peer)
             if (modules.isEmpty()) return@peerEffect
-            if (usesScopedContent(peer)) {
-                if (modules != setOf("notes", "tasks")) return@peerEffect
-                // Common settings may arrive after FS1 is online. Evaluate only
-                // after the new scope has retired a previous incomplete run.
-                session.autoWifiCheckPending = true
+            val documents = Ablage.hole(context)
+            val common = commonValues(peer)
+            if (common != null) {
+                val contentMode = common["content_mode"]?.jsonPrimitive?.content ?: return@peerEffect
+                if (contentMode == "phone_scope" && modules != setOf("notes", "tasks")) return@peerEffect
+                session.pendingSharedWifiStart = PersonalNoteSession.SharedWifiStart(contentMode, modules, documents.baum.value.syncEpoch)
             } else {
-                val documents = Ablage.hole(context)
                 documents.personalSyncSnapshot(modules, negotiatedPersonalFormat(peer, modules))
-                if (shouldStartPersonalSyncOnSecureWifi(TelefonTransportArt.WIFI, true, true, true, true, true,
-                        queue.hasActiveAutoRun(peer.device_id), System.currentTimeMillis(), storage.personalSyncLastAuto(),
-                        documents.personalSyncCounter(), storage.personalSyncLastCounter()))
-                    runCatching { enqueuePersonalSync(peer, "auto_wifi") }
+                startAutomaticWifiRunIfDue(peer, documents)
             }
         }
 
-    private fun queueAutomaticScopedSync(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
+    private fun queueAutomaticSharedWifiSync(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
         val session = noteSessions[channel] ?: return
-        if (!session.autoWifiCheckPending) return
+        val start = session.pendingSharedWifiStart ?: return
+        val common = commonValues(peer)
+        val scoped = start.contentMode == "phone_scope"
         if (!sessionTransportAktuell(channel, generation) || activeTransport?.first != TelefonTransportArt.WIFI ||
-            !automaticWifi(peer) || !usesScopedContent(peer) || !peer.own_device || !peer.remote_own_device ||
-            !peer.personal_notes_sync_granted || !peer.remote_personal_notes_sync_granted ||
-            !peer.personal_tasks_sync_granted || !peer.remote_personal_tasks_sync_granted || session.contentScopeFailed) {
-            session.autoWifiCheckPending = false
+            common?.get("auto_mode") != JsonPrimitive("wifi") || common["content_mode"] != JsonPrimitive(start.contentMode) ||
+            !peer.own_device || !peer.remote_own_device || bilateralContentModules(peer) != start.modules ||
+            scoped && session.contentScopeFailed) {
+            session.pendingSharedWifiStart = null
             return
         }
-        if (!contentScopeControlsReady(peer, session) || session.localContentScope == null) return
+        if (!noteModeReady(peer, session)) return
+        if (scoped && (!contentScopeControlsReady(peer, session) || session.localContentScope == null)) return
         synchronized(Ablage.SCHREIBSPERRE) {
             val documents = Ablage.hole(context)
-            val live = PersonalSync.livePersonalContent(documents.bestand.value)
-            val parts = maxOf(1, (live.notes.size + live.tasks.size + 255) / 256)
-            if (session.contentScopeSelection != live || session.contentScopeRestoreEpoch != documents.baum.value.syncEpoch ||
-                session.contentScopeAccepted != (0 until parts).toSet()) return
-            documents.personalSyncScopedSnapshot(live, peer.device_id, negotiatedPersonalFormat(peer, listOf("notes", "tasks")))
+            if (documents.baum.value.syncEpoch != start.restoreEpoch) {
+                session.pendingSharedWifiStart = null
+                return
+            }
+            val format = negotiatedPersonalFormat(peer, start.modules)
+            if (scoped) {
+                val live = PersonalSync.livePersonalContent(documents.bestand.value)
+                val parts = maxOf(1, (live.notes.size + live.tasks.size + 255) / 256)
+                if (session.contentScopeSelection != live || session.contentScopeRestoreEpoch != documents.baum.value.syncEpoch ||
+                    session.contentScopeAccepted != (0 until parts).toSet()) return
+                documents.personalSyncScopedSnapshot(live, peer.device_id, format)
+            } else {
+                documents.personalSyncSnapshot(start.modules, format)
+            }
             // A valid existing run continues. Heartbeats cannot repeat this
             // transition's decision after completion or after an unchanged sync.
-            session.autoWifiCheckPending = false
-            if (shouldStartPersonalSyncOnSecureWifi(TelefonTransportArt.WIFI, true, true, true, true, true,
-                    queue.hasActiveAutoRun(peer.device_id), System.currentTimeMillis(), storage.personalSyncLastAuto(),
-                    documents.personalSyncCounter(), storage.personalSyncLastCounter()))
-                runCatching { enqueuePersonalSync(peer, "auto_wifi") }
+            session.pendingSharedWifiStart = null
+            startAutomaticWifiRunIfDue(peer, documents)
         }
     }
 
@@ -1916,8 +1931,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val values = commonValues(peer) ?: return
         val deletions = values["skip_deletions"] == JsonPrimitive(false)
         val autoWifi = values["auto_mode"] == JsonPrimitive("wifi")
-        if (!autoWifi || values["content_mode"] != JsonPrimitive("phone_scope"))
-            noteSessions.values.forEach { it.autoWifiCheckPending = false }
+        noteSessions.values.forEach { session ->
+            val start = session.pendingSharedWifiStart
+            if (start != null && (!autoWifi || values["content_mode"] != JsonPrimitive(start.contentMode)))
+                session.pendingSharedWifiStart = null
+        }
         if (peer.personal_deletions_sync_granted != deletions || storage.personalAutoWifi() != autoWifi)
             setPersonalSync(true, peer.personal_notes_sync_granted, peer.personal_tasks_sync_granted, autoWifi, deletions, false)
     }
@@ -2241,7 +2259,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                          deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true,
                          rememberDeletions: Boolean = true) {
         require(own) { "Zum Trennen die Kopplung aufheben; Inhalte über ihre Freigaben steuern." }
-        if (!notes || !tasks || !autoWifi) noteSessions.values.forEach { it.autoWifiCheckPending = false }
+        noteSessions.values.forEach { session ->
+            val start = session.pendingSharedWifiStart
+            if (start != null && (!autoWifi || !notes && "notes" in start.modules || !tasks && "tasks" in start.modules))
+                session.pendingSharedWifiStart = null
+        }
         val peer = safePeer()
         if (peer != null) queue.purgePersonalModules(peer.device_id,
             buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") })
@@ -4918,7 +4940,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (!updated.remote_personal_notes_sync_granted) add("notes")
                     if (!updated.remote_personal_tasks_sync_granted) add("tasks")
                 }
-                if (revoked.isNotEmpty()) noteSession?.autoWifiCheckPending = false
+                if (noteSession?.pendingSharedWifiStart?.modules?.any { it in revoked } == true)
+                    noteSession.pendingSharedWifiStart = null
                 queue.purgePersonalModules(peer.device_id, revoked)
                 Ablage.hole(context).personalSyncRevokeModules(revoked, peer.device_id)
             }
@@ -5235,7 +5258,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         mediaTransport(channel)?.queueSettings()
         peerEffect(peer, generation) { current -> queueSharedSettings(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueContentScope(current, noteSessions[channel]) }
-        peerEffect(peer, generation) { current -> queueAutomaticScopedSync(current, channel, generation) }
+        peerEffect(peer, generation) { current -> queueAutomaticSharedWifiSync(current, channel, generation) }
         if (!controlsOnly) peerEffect(peer, generation) { current -> queueAutomaticConnectionSync(current, channel, generation) }
         peerEffect(peer, generation) { current -> queueScopedContentRun(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->

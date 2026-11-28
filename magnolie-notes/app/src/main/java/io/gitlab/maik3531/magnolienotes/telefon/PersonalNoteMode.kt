@@ -138,9 +138,10 @@ internal class PersonalNoteSession {
     var timeSnapshot: String? = null
     var sharedSent: JsonObject? = null
     var sharedReceived: JsonObject? = null
-    // One authenticated WLAN transition, consumed only after its current scope
-    // has retired stale runs and received all membership acknowledgments.
-    var autoWifiCheckPending = false
+    // One authenticated WLAN transition awaiting agreement on its original
+    // content choice and, for phone_scope, the current membership receipts.
+    data class SharedWifiStart(val contentMode: String, val modules: Set<String>, val restoreEpoch: String)
+    var pendingSharedWifiStart: SharedWifiStart? = null
     var connectionCapabilityRevision: Long? = null
     var connectionAutoEnqueued = false
     var receivedConnectionRequestHash: String? = null

@@ -8,6 +8,10 @@ aufgeführt.
 ## Weitere Abnahme für den Gesamtrelease
 
 - [#128](https://github.com/maik3531/Magnolie-Organizer/issues/128):
+  Notes wartet beim automatischen WLAN-Import und WLAN-Vollabgleich auf
+  die bestätigte gemeinsame Einstellung auf derselben Verbindung. Danach
+  kann genau ein Lauf für den gewählten Inhalt starten. 168 Release-JVM-Fälle
+  einschließlich verschlüsselter Gegenproben für beide Modi bestanden.
   Notes nimmt Verbindungsautomatik erst an, wenn die aktuelle lokale
   Capability-Revision über genau diese Verbindung gesendet wurde.
   Ein fehlender oder veralteter Versandbeleg hält den Lauf vor der
