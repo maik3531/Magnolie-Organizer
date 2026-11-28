@@ -1,0 +1,993 @@
+{
+  "base": "26616856fe7d019e818836fa6db74e046b050d88",
+  "results": [
+    {
+      "path": "magnolie-organizer/web/anwendung.js",
+      "sha": "bd2df1c6dccf3de3012dfafe851be77cead3f765",
+      "before": [
+        {
+          "name": "foreign-country",
+          "ok": false,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "foreign-subdivision",
+          "ok": false,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "inferred-foreign-country",
+          "ok": false,
+          "actual": [
+            {
+              "id": "inferred",
+              "region": "AT-9"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "no-country-selection",
+          "ok": false,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "before-grouping",
+          "ok": false,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "foreign-does-not-hide-synced",
+          "ok": false,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "same-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "short-region-code",
+          "ok": true,
+          "actual": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ]
+        },
+        {
+          "name": "regions-array",
+          "ok": true,
+          "actual": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "nationwide",
+          "ok": true,
+          "actual": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "unqualified-legacy",
+          "ok": true,
+          "actual": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "public-disabled-school-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "school-disabled-public-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "matching-dedup",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "country-switch",
+          "ok": false,
+          "actual": [
+            {
+              "id": "de",
+              "region": "AT-9,DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ]
+        }
+      ],
+      "after": [
+        {
+          "name": "foreign-country",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "foreign-subdivision",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "inferred-foreign-country",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "no-country-selection",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "before-grouping",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "foreign-does-not-hide-synced",
+          "ok": true,
+          "actual": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "same-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "short-region-code",
+          "ok": true,
+          "actual": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ]
+        },
+        {
+          "name": "regions-array",
+          "ok": true,
+          "actual": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "nationwide",
+          "ok": true,
+          "actual": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "unqualified-legacy",
+          "ok": true,
+          "actual": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "public-disabled-school-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "school-disabled-public-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "matching-dedup",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "country-switch",
+          "ok": true,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ]
+        }
+      ],
+      "reverse": true,
+      "syntax": true
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/anwendung.js",
+      "sha": "5d66c66cfc867fad3391a1d8f1992c0c04d0b9b2",
+      "before": [
+        {
+          "name": "foreign-country",
+          "ok": false,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "foreign-subdivision",
+          "ok": false,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "inferred-foreign-country",
+          "ok": false,
+          "actual": [
+            {
+              "id": "inferred",
+              "region": "AT-9"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "no-country-selection",
+          "ok": false,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "before-grouping",
+          "ok": false,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "foreign-does-not-hide-synced",
+          "ok": false,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "same-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "short-region-code",
+          "ok": true,
+          "actual": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ]
+        },
+        {
+          "name": "regions-array",
+          "ok": true,
+          "actual": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "nationwide",
+          "ok": true,
+          "actual": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "unqualified-legacy",
+          "ok": true,
+          "actual": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "public-disabled-school-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "school-disabled-public-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "matching-dedup",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "country-switch",
+          "ok": false,
+          "actual": [
+            {
+              "id": "de",
+              "region": "AT-9,DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ]
+        }
+      ],
+      "after": [
+        {
+          "name": "foreign-country",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "foreign-subdivision",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "inferred-foreign-country",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "no-country-selection",
+          "ok": true,
+          "actual": [],
+          "expected": []
+        },
+        {
+          "name": "before-grouping",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "foreign-does-not-hide-synced",
+          "ok": true,
+          "actual": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "sync-ferien-ics",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "same-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "short-region-code",
+          "ok": true,
+          "actual": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "short",
+              "region": "BY"
+            }
+          ]
+        },
+        {
+          "name": "regions-array",
+          "ok": true,
+          "actual": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "group",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "nationwide",
+          "ok": true,
+          "actual": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "nation",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "unqualified-legacy",
+          "ok": true,
+          "actual": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ],
+          "expected": [
+            {
+              "id": "legacy",
+              "region": ""
+            }
+          ]
+        },
+        {
+          "name": "all-regions",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BY,DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "no-subdivision",
+          "ok": true,
+          "actual": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ],
+          "expected": [
+            {
+              "id": "berlin",
+              "region": "DE-BE"
+            }
+          ]
+        },
+        {
+          "name": "public-disabled-school-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "school-disabled-public-enabled",
+          "ok": true,
+          "actual": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "public",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "matching-dedup",
+          "ok": true,
+          "actual": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ],
+          "expected": [
+            {
+              "id": "de",
+              "region": "DE-BY"
+            }
+          ]
+        },
+        {
+          "name": "country-switch",
+          "ok": true,
+          "actual": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ],
+          "expected": [
+            {
+              "id": "at",
+              "region": "AT-9"
+            }
+          ]
+        }
+      ],
+      "reverse": true,
+      "syntax": true
+    }
+  ]
+}
