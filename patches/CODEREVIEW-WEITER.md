@@ -1,3 +1,11 @@
+## 28.11.2026 – Übernahmen abgeglichen, #853 explizite Nationalmotivvorschau
+
+Main `a11d899eb24918034dfac22f71cbadbac90fb848`: #850/#851/#852/#855/#856/#857 und fünf Nationalmotive #853 laut ARBEITSSTAND, Commitdelta und aktuellen Codex-Kommentaren integriert; keine alten Patches erneut anwenden. #128 privat aktiv (Windows-Notes-Gegenstellenprobe); #691/alter Desktop-Pumpfix seit 1749c92e keine betroffenen Sync-Quellen im Delta, nicht als übernommen bestätigt.
+
+#854 nächste GUI/MCP/Cache-/Setup-Integration bleibt offen: anwendung.js über GitHub trotz Blob-SHA ohne Inhalt (UTF-8/Zeilenbereich/Base64), Checkout DNS nicht erreichbar. Keine ungebundene Änderung. Unabhängiger #853-Rest explizite Vorschau fertig: [Einzelpatch, Probe, Ergebnisse](codereview-national-preview-2026-11-28/README.md); 12/22 -> 22/22 je Desktop im V8-DOM-Double-Host, Text-Rundlauf. Vorschau bleibt absichtlich deaktiviert, kein natives/visuelles/Sprachkatalog-Gate. Nächster freier Schritt #854 sobald vollständige Quellen abrufbar und Codex nicht aktiv; andernfalls weitere unabhängige verifizierte Festidentitäten oder Handbuch. Sync-Aufsetzpunkt erhalten.
+
+---
+
 ## 28.11.2026 – Zwischenzeitliche Codex-Übernahme #855/#856 abgeglichen
 
 **Aktuell gelesener Produkt-main: `8b0b253b9593d139c3ceeadcc222a498a5da34f3`.**
