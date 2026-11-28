@@ -1,13 +1,29 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const vm = require('node:vm');
+const { execFileSync } = require('node:child_process');
 const { webcrypto } = require('node:crypto');
 const root = path.resolve(__dirname, '../..');
 const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-custom-consent-v4-vectors.json'), 'utf8'));
 
+function timezoneRuntime() {
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'magnolie-custom-timezones-'));
+  try {
+    const python = process.env.MAGNOLIE_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+    execFileSync(python, [path.join(root, 'magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py'), '--output', output],
+      { timeout: 10000, stdio: ['ignore', 'ignore', 'inherit'] });
+    return new vm.Script(fs.readFileSync(path.join(output, 'normative-timezones.js'), 'utf8'),
+      { filename: 'normative-timezones.js' });
+  } finally {
+    fs.rmSync(output, { recursive: true, force: true });
+  }
+}
+
 (async () => {
   const outputs = [];
+  const runtime = timezoneRuntime();
   for (const file of ['magnolie-organizer/web/anwendung.js', 'magnolie-organizer-windows/app/web/anwendung.js']) {
     const source = fs.readFileSync(path.join(root, file), 'utf8');
     new vm.Script(source, { filename: file });
@@ -30,6 +46,7 @@ const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-c
       App: { personalSyncFehler: x => errors.push(x) },
       Bruecke: { sende: x => { assert(saves > 0); sent.push(JSON.parse(JSON.stringify(x))); } },
       nachDauerhaftemSpeichern: action => { saves++; action(); } });
+    runtime.runInContext(ctx);
     const zone = source.slice(source.indexOf('  function organizerZeitzone('), source.indexOf('  const ZEITZONEN_FORMATIERER'));
     const tab = source.slice(source.indexOf('  function registerAktiv('), source.indexOf('  function customTabName('));
     ctx.personalCustomSenden = vm.runInContext(helpers + tab + zone + sender + '\npersonalCustomSenden;', ctx);
