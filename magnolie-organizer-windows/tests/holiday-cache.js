@@ -235,6 +235,70 @@ test("location status counts matching cache without attributing a pending or pas
   } finally { b.close(); }
 });
 
+const france = (id, region, values = {}) => entry(id, { name: id, country: "FR", region, regions: [region], ...values });
+test("France exposes verified subdivisions and explicitly keeps the unfiltered request", web => {
+  const b = boot(web, [], { land: "FR", region: "", alleRegionen: true });
+  try {
+    const request = b.start();
+    const d = b.w.document;
+    assert.deepEqual([...d.querySelector("#ort-region").options].map(node => node.value),
+      ["", "FR-ZA", "FR-ZB", "FR-ZC", "FR-CO", "FR-GP", "FR-GY", "FR-MQ", "FR-YT", "FR-RU", "FR-BL", "FR-MF", "FR-SP"]);
+    assert.equal(d.querySelector("#ort-region").options[0].textContent, "All");
+    assert.equal(d.querySelector("#ort-alle-regionen"), null);
+    assert.deepEqual([request.land, request.region, request.regionen, request.regionErforderlich, request.ferien],
+      ["FR", "", [], false, true]);
+    b.reply({ abrufbereiche: [scope("", "school-holiday", 2026, "FR")] });
+    const picker = d.querySelector("#ort-region");
+    picker.value = "FR-ZB";
+    const priorRequests = b.messages.filter(item => item.cmd === "feiertage").length;
+    picker.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.equal(b.messages.filter(item => item.cmd === "feiertage").length, priorRequests);
+    assert.equal(b.start().region, "FR-ZB");
+  } finally { b.close(); }
+});
+test("French incomplete school year merges its verified periods and preserves old dates", web => {
+  const b = boot(web, [france("old-corsica-autumn", "FR-CO"), france("other-zone", "FR-ZA")],
+    { land: "FR", region: "FR-CO" });
+  try {
+    b.start();
+    b.reply({ feiertage: [france("published-term", "FR-CO", { von: "2026-02-01", bis: "2026-02-14" })],
+      abrufbereiche: [scope("FR-CO", "school-holiday", 2026, "FR")] });
+    assert.ok(find(b, "old-corsica-autumn") && find(b, "other-zone"));
+    assert.ok(b.entries().some(item => item.name === "published-term"));
+  } finally { b.close(); }
+});
+test("French nationwide public holidays remain applicable and full school response replaces only its subdivision", web => {
+  const national = france("national-holiday", "", { art: "public-holiday", nationwide: true, regions: [] });
+  const b = boot(web, [france("outdated-zone-a", "FR-ZA"), france("other-zone", "FR-ZB")], { land: "FR", region: "FR-ZA" });
+  try {
+    b.start();
+    b.reply({ feiertage: [
+      france("winter-start", "FR-ZA", { von: "2025-12-21", bis: "2026-01-04", regions: ["FR-ZA", "FR-ZB"] }),
+      france("winter-end", "FR-ZA", { von: "2026-12-20", bis: "2027-01-03", regions: ["FR-ZA", "FR-ZB"] }), national
+    ], abrufbereiche: [scope("FR-ZA", "school-holiday", 2026, "FR")] });
+    assert.equal(find(b, "outdated-zone-a"), undefined);
+    assert.ok(find(b, "other-zone"));
+    assert.ok(b.t.feiertageAm(national.von, true).some(item => item.name === national.name));
+    const reopened = boot(web, [], {}, b.save());
+    try { assert.deepEqual(reopened.entries(), b.entries()); } finally { reopened.close(); }
+  } finally { b.close(); }
+});
+for (const wrong of [
+  { feiertage: [france("wrong-subdivision", "FR-ZB")] },
+  { feiertage: [france("wrong-country", "BE-FR", { country: "BE" })] },
+  { jahre: [2027] }
+]) test(`French misplaced response retains cache and status: ${JSON.stringify(wrong)}`, web => {
+  const b = boot(web, [france("old", "FR-ZA")], { land: "FR", region: "FR-ZA" });
+  try {
+    const before = b.entries(), settings = plain(b.t.daten().einstellungen.ort);
+    b.start();
+    b.reply({ abrufbereiche: [scope("FR-ZA", "school-holiday", 2026, "FR")], ...wrong });
+    assert.deepEqual(b.entries(), before);
+    assert.deepEqual(plain(b.t.daten().einstellungen.ort), settings);
+    assert.equal(b.w.document.querySelector("#ort-stand").textContent, "Retrieval failed.");
+  } finally { b.close(); }
+});
+
 const results = [];
 for (const web of ["magnolie-organizer/web", "magnolie-organizer-windows/app/web"]) {
   for (const { name, fn } of cases) {

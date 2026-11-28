@@ -27,6 +27,18 @@ aufgeführt.
   Normale Auswahl, Ersteinrichtung und Desktop-Importer bleiben in #854;
   die native Paketabnahme bleibt in #113.
 
+- [#854](https://github.com/maik3531/Magnolie-Organizer/issues/854):
+  Die Desktop-Auswahl kennt zwölf bestätigte französische Schulferiengebiete.
+  „Alle“ ruft weiterhin Frankreich in einer Anfrage je Kalenderart und Jahr
+  ab. Bei der Regionswahl bleiben landesweite gesetzliche Feiertage sichtbar.
+  Unpassende Antworten und unvollständig veröffentlichte Ferienjahre dürfen
+  keine älteren Ferientermine entfernen. 94 Desktop-DOM- und zehn MCP-Fälle
+  sowie offene und zonengebundene Abrufe mit aufgezeichneten Anbieterantworten
+  geprüft. Quelle: [OpenHolidays API](https://www.openholidaysapi.org/en/),
+  [Daten unter ODbL 1.0](https://github.com/openpotato/openholidaysapi.data).
+  Belgien/Niederlande in der normalen Auswahl, Ersteinrichtung, Handbuch
+  und native Paketabnahme bleiben offen.
+
 - [#852](https://github.com/maik3531/Magnolie-Organizer/issues/852):
   Der Abrufstatus zählt gespeicherte Feiertage und Ferien der gewählten
   Geografie. Ein laufender Abruf wird nur seiner Auswahl zugeordnet;

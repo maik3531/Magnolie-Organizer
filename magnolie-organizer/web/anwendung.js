@@ -9158,7 +9158,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     o.landName = S(or.landName);
     o.region = S(or.region).toUpperCase();
     o.regionName = S(or.regionName);
-    o.alleRegionen = !!or.alleRegionen;
+    o.alleRegionen = o.land !== "FR" && !!or.alleRegionen;
     o.ferien = or.ferien === undefined ? true : !!or.ferien;
     o.feiertage = or.feiertage !== false;
     o.setupFerienAbruf = or.setupFerienAbruf === true && o.ferien;
@@ -27867,7 +27867,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     { code: "LU", name: msgid("Luxembourg"), regionen: [] },
     { code: "BE", name: msgid("Belgium"), regionen: [] },
     { code: "NL", name: msgid("Netherlands"), regionen: [] },
-    { code: "FR", name: msgid("France"), regionen: [] },
+    // OpenHolidays school subdivisions; the labels use their local names.
+    { code: "FR", name: msgid("France"), regionen: [
+      ["FR-ZA", "Zone A"], ["FR-ZB", "Zone B"], ["FR-ZC", "Zone C"], ["FR-CO", "Corse"],
+      ["FR-GP", "Guadeloupe"], ["FR-GY", "Guyane"], ["FR-MQ", "Martinique"],
+      ["FR-YT", "Mayotte"], ["FR-RU", "La Réunion"], ["FR-BL", "Saint-Barthélemy"],
+      ["FR-MF", "Saint-Martin"], ["FR-SP", "Saint-Pierre-et-Miquelon"]] },
     { code: "IT", name: msgid("Italy"), regionen: [] },
     { code: "PL", name: msgid("Poland"), regionen: [] },
     { code: "CZ", name: msgid("Czechia"), regionen: [] },
@@ -34152,14 +34157,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       regionZeile.textContent = "";
       const land = LAENDER.find((l) => l.code === landWahl.value);
       if (!land || !land.regionen.length) return;
+      const landesweiterAbruf = land.code === "FR";
       const wahl = auswahlFeld(
-        [["", _("— please select —")]].concat(
+        [["", landesweiterAbruf ? _("All") : _("— please select —")]].concat(
           land.regionen.map((r) => [r[0], _(r[1])])), o.region);
       wahl.id = "ort-region";
       const alleHak = document.createElement("input");
       alleHak.type = "checkbox";
       alleHak.id = "ort-alle-regionen";
-      alleHak.checked = !!o.alleRegionen;
+      alleHak.checked = !landesweiterAbruf && !!o.alleRegionen;
       const alleZeile = el("label", "hak hak-eingerueckt");
       alleZeile.append(alleHak, document.createTextNode(
         " " + (land.code === "CH" ? _("All cantons") : _("All states"))));
@@ -34182,9 +34188,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zeichneAlles();
       });
       regionZeile.append(formZeile(
-        land.code === "CH" ? _("Canton") : _("State"), wahl), alleZeile);
-      regionZeile.append(el("p", "einst-hinweis",
-        _("Without a selected region, all available public holidays of the country apply. School holidays need a region or the All selection.")));
+        landesweiterAbruf ? _("Region") : land.code === "CH" ? _("Canton") : _("State"), wahl));
+      if (!landesweiterAbruf) {
+        regionZeile.append(alleZeile, el("p", "einst-hinweis",
+          _("Without a selected region, all available public holidays of the country apply. School holidays need a region or the All selection.")));
+      }
       wirkung();
     };
 
@@ -34303,6 +34311,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (stand) stand.textContent = ortStandText();
   }
 
+  function feiertagsAbrufDaten(o, land, jahre) {
+    return { land: o.land, region: o.alleRegionen ? "" : o.region,
+      regionen: o.alleRegionen ? land.regionen : [],
+      regionErforderlich: land.code !== "FR" && land.regionen.length > 0,
+      jahre, ferien: !!o.ferien };
+  }
+
   function starteFeiertage(jahre) {
     const o = DATEN.einstellungen.ort;
     if (!Bruecke.vorhanden) {
@@ -34322,10 +34337,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const knopfFeld = $("#ort-abrufen");
     if (knopfFeld) knopfFeld.disabled = true;
     ortStandAktualisieren();
-    Bruecke.sende({ cmd: "feiertage", land: o.land, region: o.alleRegionen ? "" : o.region,
-      regionen: o.alleRegionen && land ? land.regionen : [],
-      regionErforderlich: !!(land && land.regionen.length),
-      jahre: jahre, ferien: !!o.ferien });
+    Bruecke.sende({ cmd: "feiertage", ...feiertagsAbrufDaten(o, land, jahre) });
   }
 
   function zeitZeileLetzterSync() {
@@ -37815,15 +37827,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (stand) stand.textContent = ortStandText();
         return;
       }
-      if (nutzlast.fehler) {
+      if (nutzlast.fehler || wendeFeiertageDatenAn(nutzlast, anfrage) === null) {
         const stand = $("#ort-stand");
         if (stand) stand.textContent = _("Retrieval failed.");
         const k = $("#ort-abrufen");
         if (k) k.disabled = false;
-        zettel(nutzlast.fehler);
+        zettel(nutzlast.fehler || _("Retrieval failed."));
         return;
       }
-      wendeFeiertageDatenAn(nutzlast, anfrage);
       planeSpeichern();
       zeichneAlles();
       if (!$("#einstellungen-schleier").classList.contains("verborgen")) {
@@ -43328,7 +43339,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (values.region) next.alleRegionen = false;
     }
     if (values.alleRegionen !== undefined) {
-      if (values.alleRegionen && !country?.regionen.length) return false;
+      if (values.alleRegionen && (!country?.regionen.length || country.code === "FR")) return false;
       next.alleRegionen = values.alleRegionen; next.setupFerienAbruf = false;
     }
     if (values.feiertage !== undefined) next.feiertage = values.feiertage;
@@ -43349,8 +43360,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const country = /^[A-Z]{2}$/.test(anfrage?.land || "") ? anfrage.land : "";
     const land = LAENDER.find(item => item.code === country);
     const requested = new Set(Array.isArray(anfrage?.jahre) ? anfrage.jahre : []);
+    if (country === "FR" && (years.length !== requested.size || years.some(year => !requested.has(year)))) return null;
     const targets = new Set(anfrage?.alleRegionen ? (land?.regionen || []).map(item => item[0])
       : [String(anfrage?.region || "")]);
+    const rawRows = Array.isArray(value.feiertage) ? value.feiertage : [];
+    const istSchulferienzeile = item => item.art === "school-holiday" || item.art === "ferien";
+    const rows = country !== "FR" ? rawRows : rawRows.filter(item => {
+      if (item?.country !== country || !gueltigesISO(item.von) || !gueltigesISO(item.bis) ||
+          item.bis < item.von || !item.name || !years.some(year => item.von <= `${year}-12-31` && item.bis >= `${year}-01-01`)) return false;
+      const regions = feiertagRegionen(item);
+      const passt = !anfrage.region || Array.isArray(regions) && regions.includes(anfrage.region);
+      if (istSchulferienzeile(item)) return anfrage.ferien && passt;
+      return ["public-holiday", "feiertag"].includes(item.art) && (item.nationwide === true || passt);
+    });
+    if (country === "FR" && rawRows.length && !rows.length) return null;
     const scopeYears = new Map();
     // #855: a year alone is not a successful country/type/region retrieval.
     // Old hosts without this additive field can merge rows, but cannot delete.
@@ -43361,6 +43384,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const year = Number(String(scope.von || "").slice(0, 4));
       if (!years.includes(year) || !requested.has(year) || scope.von !== `${year}-01-01` ||
           scope.bis !== `${year}-12-31`) continue;
+      if (country === "FR") {
+        if (rows.length !== rawRows.length) continue;
+        // Some French calendars stop at the end of the summer term. An
+        // explicit school subdivision must cover both holiday-year edges
+        // before absent entries can be removed; the country view only merges.
+        if (scope.art === "school-holiday" && ![scope.von, scope.bis].every(edge =>
+          rows.some(item => istSchulferienzeile(item) && item.von <= edge && edge <= item.bis))) continue;
+      }
       const key = [scope.country, scope.art, scope.region].join("|");
       if (!scopeYears.has(key)) scopeYears.set(key, new Set());
       scopeYears.get(key).add(year);
@@ -43422,7 +43453,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const positions = new Map();
     retained.forEach((item, index) => { if (!positions.has(identity(item))) positions.set(identity(item), index); });
     let imported = 0;
-    for (const item of Array.isArray(value.feiertage) ? value.feiertage : []) {
+    for (const item of rows) {
       if (!item || !gueltigesISO(item.von) || !item.name) continue;
       const clean = { id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
         art: enumWert(item.art, { ferien: "school-holiday", "school-holiday": "school-holiday", feiertag: "public-holiday", "public-holiday": "public-holiday" }, "public-holiday"),
@@ -43482,10 +43513,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (new Set(args.years).size !== args.years.length) throw new MagnolieMcp.ToolError("invalid_selection", "Holiday years must be unique");
           feiertageLaufen = true;
           try {
-            const value = await mcpNativeAufruf("feiertage", { land: settings.land, region: settings.alleRegionen ? "" : settings.region, regionen: settings.alleRegionen ? country.regionen : [], regionErforderlich: country.regionen.length > 0, jahre: args.years, ferien: !!settings.ferien }, "feiertageErgebnis", signal);
+            const value = await mcpNativeAufruf("feiertage", feiertagsAbrufDaten(settings, country, args.years), "feiertageErgebnis", signal);
             if (signal.aborted || DATEN !== book || snapshot() !== before) throw new MagnolieMcp.ToolError("conflict", "Holiday settings changed during retrieval");
             if (value.fehler || !Array.isArray(value.feiertage) || !Array.isArray(value.jahre) || value.jahre.length !== args.years.length || value.jahre.some(year => !args.years.includes(year))) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval failed or returned unexpected years");
-            mcpEditorPruefen(); return { imported_count: wendeFeiertageDatenAn(value, { ...settings, jahre: args.years }) };
+            mcpEditorPruefen();
+            const imported = wendeFeiertageDatenAn(value, { ...settings, jahre: args.years });
+            if (imported === null) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval returned data outside the requested scope");
+            return { imported_count: imported };
           } finally { feiertageLaufen = false; }
         }) }
     ];
