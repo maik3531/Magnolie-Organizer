@@ -161,7 +161,7 @@ def test_whole_native_batch_drains_every_original_and_cache_fd_before_one_verifi
 @pytest.mark.parametrize('interrupted_at', ['source_batch_retirement_planned', 'source_batch_retirement_moved'])
 def test_interrupted_batch_end_requires_fresh_local_recovery_without_resend(pc, interrupted_at, monkeypatch):
     from magnolie_media_source_pc import NativeCollectionMediaSource
-    from magnolie_media_source_recovery import _NativeBatchSourceRetirementRecovery, recover_pending_pc_image_batch_end
+    from magnolie_media_source_recovery import _NativeBatchSourceRetirementRecovery, recover_pending_pc_source_end
     from magnolie_media_source_retirement import _NativeSourceRetirementJournal
 
     h = pc
@@ -217,9 +217,9 @@ def test_interrupted_batch_end_requires_fresh_local_recovery_without_resend(pc, 
             incomplete.run(h.preferences.issue_action(), h.preferences.read())
         assert journal.lookup(batch._id) == pending
 
-    ended = recover_pending_pc_image_batch_end(h.source, lambda: True)
+    ended = recover_pending_pc_source_end(h.source, lambda: True, ('images',))
     assert ended.body == dict(pending.body, state='archived')
-    assert recover_pending_pc_image_batch_end(h.source, lambda: True) is None
+    assert recover_pending_pc_source_end(h.source, lambda: True, ('images',)) is None
 
     assert (h.channel.send_seq, h.channel.receive_seq) == wire
     assert not cache.directory.exists() and (cache.directory.parent / ended.body['archive']).is_dir()

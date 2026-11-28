@@ -97,6 +97,10 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                 try:self._close_held()
                 finally:
                     if self._original_batch is not None:self._original_batch._close_owned()
+                # Once the closed owner's native handles really drained, its
+                # process-local preparations must not block local recovery.
+                # The protected job and encrypted cache remain on disk.
+                self._prepared.clear()
             finally:self._gate.release()
 
     def select_original_batch(self,action,expected,selected,members,*,kind='images',native_current=lambda:True,all_new_only=False):

@@ -29,6 +29,11 @@ def verify_encrypted_source(jobs,parent,name,retired,ready,kind,current,boundary
     if [value.st_dev,value.st_ino]!=retired['parent_key']:raise TransferError('media_source_retirement_original_parent_required')
     root=os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent)
     try:
+        local=ready['format']==3
+        signatures={}
+        def signature(value):
+            return value.st_dev,value.st_ino,value.st_mode,value.st_uid,value.st_nlink,value.st_size,value.st_mtime_ns,value.st_ctime_ns
+
         def guarded():
             current();value=os.fstat(root);named=os.stat(name,dir_fd=parent,follow_symlinks=False)
             for item in (value,named):
@@ -41,10 +46,10 @@ def verify_encrypted_source(jobs,parent,name,retired,ready,kind,current,boundary
                 if not 29<=before.st_size<=CHUNK_BYTES+28:raise TransferError('media_source_recovery_original_member_required')
                 raw=os.pread(fd,before.st_size+1,0);boundary('source_recovery_cipher_read');guarded()
                 after=os.fstat(fd);named=os.stat(leaf,dir_fd=root,follow_symlinks=False)
-                signature=lambda v:(v.st_dev,v.st_ino,v.st_mode,v.st_uid,v.st_nlink,v.st_size,v.st_mtime_ns,v.st_ctime_ns)
                 actual=dict(key=[after.st_dev,after.st_ino],size=len(raw),sha256=sha256(raw).hexdigest())
                 if (len(raw)!=before.st_size or signature(before)!=signature(after) or signature(named)!=signature(after)
                         or witness is not None and actual!=witness):raise TransferError('media_source_recovery_original_member_required')
+                if local:signatures[leaf]=signature(after)
                 return raw,actual
             finally:os.close(fd)
         def metadata(leaf,witness):
@@ -54,25 +59,32 @@ def verify_encrypted_source(jobs,parent,name,retired,ready,kind,current,boundary
             if type(body) is not dict or canonical(body)!=plain:raise TransferError('media_source_recovery_invalid_metadata')
             return body
         proof=metadata('manifest.enc',retired['proof_witness']);manifest=FileManifest.parse(ready['manifest']);file=manifest.files[0]
-        if (set(proof)!={'format','state','intent_sha256','job_nonce','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'}
-                or type(proof['format']) is not int or proof['format']!=2 or proof['state']!='sealed'
+        proof_format=3 if local else 2
+        local_fields={'local_origin','root_catalog','media_type'} if local else set()
+        if (set(proof)!={'format','state','intent_sha256','job_nonce','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'} | local_fields
+                or type(proof['format']) is not int or proof['format']!=proof_format or proof['state']!='sealed'
                 or proof['intent_sha256']!=ready['intent_sha256'] or proof['job_nonce']!=ready['nonce']
                 or proof['book_version']!=ready['book_version'] or proof['manifest']!=ready['manifest']
                 or proof['original_references']!=ready['original_references'] or type(proof['chunk_count']) is not int
                 or proof['chunk_count']!=file.chunks or type(proof['metadata']) is not dict
                 or set(proof['metadata'])!={'intent.enc','copying.enc'}):raise TransferError('media_source_recovery_original_proof_required')
         references=ready['original_references']
-        if set(references)!={file.id} or references[file.id].get('media_type')!=kind:
+        if local:
+            if (kind!='video' or ready['media_type']!=kind or references
+                    or any(proof[field]!=ready[field] for field in local_fields)):
+                raise TransferError('media_source_recovery_original_media_scope_required')
+        elif set(references)!={file.id} or references[file.id].get('media_type')!=kind:
             raise TransferError('media_source_recovery_original_media_scope_required')
         intent=metadata('intent.enc',proof['metadata']['intent.enc']);copying=metadata('copying.enc',proof['metadata']['copying.enc'])
-        if (type(intent.get('format')) is not int or intent.get('format')!=2 or intent.get('state')!='planned'
+        if (type(intent.get('format')) is not int or intent.get('format')!=proof_format or intent.get('state')!='planned'
                 or intent.get('scope')!=jobs._scope or intent.get('job_id')!=manifest.source_id or intent.get('job_nonce')!=ready['nonce']
                 or intent.get('file_id')!=file.id or intent.get('size')!=file.size or intent.get('chunks')!=file.chunks
                 or intent.get('media_type')!=kind or intent.get('book_version')!=ready['book_version']
                 or intent.get('root_key')!=ready['root_key'] or intent.get('parent_key')!=ready['parent_key']
                 or intent.get('pairing_epoch')!=ready['pairing_epoch'] or intent.get('source_policy_sha256')!=ready['source_policy_sha256']
+                or any(intent.get(field)!=ready[field] for field in local_fields)
                 or sha256(canonical(intent)).hexdigest()!=ready['intent_sha256']
-                or copying!=dict(format=2,state='copying',intent_sha256=ready['intent_sha256'])):
+                or copying!=dict(format=proof_format,state='copying',intent_sha256=ready['intent_sha256'])):
             raise TransferError('media_source_recovery_original_intent_required')
         expected={'intent.enc','copying.enc','manifest.enc'}|{'chunk-%08x.enc'%i for i in range(file.chunks)}
         if set(os.listdir(root))!=expected:raise TransferError('media_source_recovery_archive_layout_changed')
@@ -84,6 +96,9 @@ def verify_encrypted_source(jobs,parent,name,retired,ready,kind,current,boundary
             members.update(canonical(dict(index=index,**witness)))
         if members.hexdigest()!=proof['chunks_sha256']:raise TransferError('media_source_recovery_cipher_membership_changed')
         guarded()
+        for leaf,before in signatures.items():
+            if signature(os.stat(leaf,dir_fd=root,follow_symlinks=False))!=before:
+                raise TransferError('media_source_recovery_original_member_required')
         if set(os.listdir(root))!=expected:raise TransferError('media_source_recovery_archive_layout_changed')
         return intent # Authenticated metadata only, never a source READ grant.
     finally:os.close(root)
@@ -122,7 +137,10 @@ class _NativeSourceRetirementRecovery:
                 raise TransferError('media_source_recovery_original_exchange_required')
             with self._jobs._database() as (db,key):
                 db.execute('BEGIN');self._jobs._catalog.verify(db,key)
-                verify_retirement_exchange(self._jobs,db,key,self._ready,self._record.body)
+                exchange=verify_retirement_exchange(self._jobs,db,key,self._ready,self._record.body)
+                if actual.body['format']==3 and (exchange.body['format']!=4
+                        or exchange.body['phase']!='peer_readback' or exchange.body['offer']['body']['format']!=2):
+                    raise TransferError('media_source_retirement_completed_readback_required')
 
     def _require_planned(self):
         self._current();actual=self._journal.lookup(self._job)
@@ -133,12 +151,30 @@ class _NativeSourceRetirementRecovery:
         ready=self._ready.body
         expected=dict(job_id=self._job,job_nonce=ready['nonce'],job_version=self._ready.version,
             proof_sha256=ready['proof_sha256'],book_version=ready['book_version'],manifest=ready['manifest'])
+        if ready['format']==3:
+            file=FileManifest.parse(ready['manifest']).files[0]
+            expected.update(format=2,local_origin=ready['local_origin'],root_catalog=ready['root_catalog'],
+                media_type='video',source_path=file.path)
         reference=verified_source_backup(self._backups,self._selected,expected,self._source._authority.protection,self._current)
         if reference!=self._record.body['backup']:raise TransferError('media_source_recovery_original_backup_required')
 
     def _validate_records(self,body,original,expected):
         if body['format']==3:
             raise TransferError('media_source_whole_batch_recovery_owner_required')
+        if original['format']==3:
+            raise TransferError('media_source_recovery_native_owner_required')
+
+    def _require_pc_context(self,original,expected):
+        if self._source._prepared or self._source._original_batch is not None:
+            raise TransferError('media_source_recovery_native_owner_required')
+        peer=self._source._authority.current_peer()
+        if peer is None or original['pairing_epoch']!=peer.pairing_epoch:
+            raise TransferError('media_source_recovery_original_pairing_required')
+        roots=expected.policy.collection_roots
+        if roots is None or roots.wire()!=original['root_catalog']:
+            raise TransferError('media_source_recovery_original_root_required')
+        if original['source_policy_sha256']!=expected.version:
+            raise TransferError('media_source_recovery_original_policy_required')
 
     def _verify_cache(self,parent,name):
         verify_encrypted_source(self._jobs,parent,name,self._record.body,self._ready.body,
@@ -192,6 +228,22 @@ class _NativeSourceRetirementRecovery:
             self._thread=self._book=self._permission=None;self._source._gate.release()
 
 
+class _NativePcVideoRetirementRecovery(_NativeSourceRetirementRecovery):
+    """An already received PC MP4, with original v1 and one local backup."""
+
+    def __init__(self,source,job_id,retirement_version,backups,selected,*,boundary=lambda _:None):
+        from magnolie_media_backups import NativeMediaBackupVersion
+        from magnolie_media_source_pc import NativeCollectionMediaSource
+        if type(source) is not NativeCollectionMediaSource or type(selected) is not NativeMediaBackupVersion:
+            raise TransferError('media_source_recovery_native_owner_required')
+        self._init_recovery(source,job_id,retirement_version,backups,selected,'video',boundary)
+
+    def _validate_records(self,body,original,expected):
+        if body['format']!=1 or original['format']!=3 or original['media_type']!=self._kind:
+            raise TransferError('media_source_recovery_original_job_required')
+        self._require_pc_context(original,expected)
+
+
 class _NativeBatchSourceRetirementRecovery(_NativeSourceRetirementRecovery):
     """Revalidate an existing whole-batch END intent without reopening a sender."""
 
@@ -207,16 +259,7 @@ class _NativeBatchSourceRetirementRecovery(_NativeSourceRetirementRecovery):
         if (body['format']!=3 or original['format']!=4 or original['media_type']!=self._kind
                 or set(self._selected)!=set(original['members']) or set(body['backups'])!=set(original['members'])):
             raise TransferError('media_source_recovery_original_job_required')
-        if self._source._prepared or self._source._original_batch is not None:
-            raise TransferError('media_source_recovery_native_owner_required')
-        peer=self._source._authority.current_peer()
-        if peer is None or original['pairing_epoch']!=peer.pairing_epoch:
-            raise TransferError('media_source_recovery_original_pairing_required')
-        roots=expected.policy.collection_roots
-        if roots is None or roots.wire()!=original['root_catalog']:
-            raise TransferError('media_source_recovery_original_root_required')
-        if original['source_policy_sha256']!=expected.version:
-            raise TransferError('media_source_recovery_original_policy_required')
+        self._require_pc_context(original,expected)
 
     def _verify_cache(self,parent,name):
         verify_archived_cache(self._jobs,parent,self._record.body,self._current,name=name)
@@ -231,7 +274,7 @@ class _NativeBatchSourceRetirementRecovery(_NativeSourceRetirementRecovery):
             raise TransferError('media_source_recovery_original_backup_required')
 
 
-def recover_pending_pc_image_batch_end(source, native_current):
+def recover_pending_pc_source_end(source, native_current, kinds):
     """Resolve at most one authenticated local END intent during a manual run."""
     from magnolie_file_acceptance import NativeAcceptedDestination
     from magnolie_media_backups import NativeMediaBackups, NativeMediaBackupLocations
@@ -248,17 +291,27 @@ def recover_pending_pc_image_batch_end(source, native_current):
                 if not member.startswith(journal._prefix):
                     continue
                 record = journal._read(db, key, member[len(journal._prefix):])
-                if record.body['format'] == 3 and record.body['state'] == 'archive_planned':
-                    records.append((record, jobs._read(db, key, record.body['job_id'])))
+                body = record.body
+                if body['state'] != 'archive_planned':
+                    continue
+                ready = jobs._read(db, key, body['job_id'])
+                if body['format'] == 3:
+                    kind = 'images'
+                elif body['format'] == 1 and ready is not None and ready.body['format'] == 3 and ready.body['media_type'] == 'video':
+                    kind = 'video'
+                else:
+                    continue
+                if kind in kinds:
+                    records.append((record, ready, kind))
     jobs._catalog.observe(catalog)
     if not records:
         return None
     if len(records) != 1:
         raise TransferError('media_source_recovery_ambiguous_stage')
-    record, ready = records[0]
+    record, ready, kind = records[0]
     body = record.body
     if (ready is None or ready.state != 'cache_ready' or ready.version != body['ready_version']
-            or ready.body['format'] != 4 or ready.body['media_type'] != 'images'):
+            or ready.body['format'] != (4 if kind == 'images' else 3) or ready.body['media_type'] != kind):
         raise TransferError('media_source_recovery_original_job_required')
 
     preferences = source._preferences
@@ -266,17 +319,26 @@ def recover_pending_pc_image_batch_end(source, native_current):
     original = ready.body
     if original['source_policy_sha256'] != expected.version:
         raise TransferError('media_source_recovery_original_policy_required')
-    origin = next(iter(original['members'].values()))['local_origin']  # Job decoder proves one root for all members.
+    if kind == 'images':
+        # The job decoder proves one root for all batch members.
+        origin = next(iter(original['members'].values()))['local_origin']
+        witnesses = body['backups']
+        recovery = _NativeBatchSourceRetirementRecovery
+    else:
+        origin = original['local_origin']
+        witnesses = {FileManifest.parse(original['manifest']).files[0].id: body['backup']}
+        recovery = _NativePcVideoRetirementRecovery
+    root_kind = 'images' if kind == 'images' else 'videos'
     with closing(preferences.open_collection_roots()) as roots:
         if roots.witness().wire() != original['root_catalog']:
             raise TransferError('media_source_recovery_original_root_required')
         root = next((item for item in roots.read().roots
-            if item.id == origin['root_id'] and item.version == origin['root_version'] and item.media_type == 'images'), None)
+            if item.id == origin['root_id'] and item.version == origin['root_version'] and item.media_type == root_kind), None)
         if root is None:
             raise TransferError('media_source_recovery_original_root_required')
         directory = source._authority.binding.native_directory
-        scope = sha256(canonical(dict(subject=preferences._subject, media_type='images'))).hexdigest()
-        storage = NativeAcceptedDestination.parse(next(iter(body['backups'].values()))['storage_parent'])
+        scope = sha256(canonical(dict(subject=preferences._subject, media_type=kind))).hexdigest()
+        storage = NativeAcceptedDestination.parse(next(iter(witnesses.values()))['storage_parent'])
         with closing(roots.open_root(root, native_current)) as actual_root, roots.selected_root_lease(root) as root_current:
             with NativeMediaBackupLocations(directory, scope, native_current) as locations:
                 choice = locations.read()
@@ -294,11 +356,11 @@ def recover_pending_pc_image_batch_end(source, native_current):
                 with NativeMediaBackups(root.directory, source._authority.protection, current, storage_parent=storage) as backups:
                     versions = {version.id: version for version in backups.versions()}
                     selected = {}
-                    for file_id, witness in body['backups'].items():
+                    for file_id, witness in witnesses.items():
                         version = versions.get(witness['version_id'])
                         if version is None or version.record_sha256 != witness['record_sha256']:
                             raise TransferError('media_source_recovery_original_backup_required')
                         selected[file_id] = version
                     action = preferences.issue_action(_native_current=current)
-                    return _NativeBatchSourceRetirementRecovery(source, body['job_id'], record.version,
-                        backups, selected).run(action, expected)
+                    selection = selected if kind == 'images' else next(iter(selected.values()))
+                    return recovery(source, body['job_id'], record.version, backups, selection).run(action, expected)

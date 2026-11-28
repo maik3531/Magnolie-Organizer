@@ -90,8 +90,10 @@ class _NativeSourceRetirementJournal:
         self._jobs._catalog.observe(catalog);return result
 
     def write(self,owner,expected,body):
-        from magnolie_media_source_recovery import _NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery
-        recovery=type(owner) in (_NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery)
+        from magnolie_media_source_recovery import (
+            _NativeSourceRetirementRecovery, _NativeBatchSourceRetirementRecovery, _NativePcVideoRetirementRecovery,
+        )
+        recovery=type(owner) in (_NativeSourceRetirementRecovery,_NativeBatchSourceRetirementRecovery,_NativePcVideoRetirementRecovery)
         batch=type(owner) in (_NativeBatchSourceRetirement,_NativeBatchSourceRetirementRecovery)
         if (not recovery and type(owner) not in (_NativeSourceRetirement,_NativeBatchSourceRetirement)
                 or owner._journal is not self):
@@ -100,6 +102,8 @@ class _NativeSourceRetirementJournal:
             raise TransferError('media_source_retirement_original_intent_required')
         if recovery and (expected.body['format']==3)!=batch:
             raise TransferError('media_source_whole_batch_recovery_owner_required')
+        if type(owner) is _NativePcVideoRetirementRecovery and expected.body['format']!=1:
+            raise TransferError('media_source_recovery_original_job_required')
         owner._current();job=owner._job
         with self._jobs._database() as (db,key):
             db.execute('BEGIN IMMEDIATE');catalog=self._jobs._catalog.verify(db,key);before=self._read(db,key,job)

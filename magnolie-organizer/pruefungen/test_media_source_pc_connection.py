@@ -250,6 +250,7 @@ def test_normal_pc_close_drains_actual_secure_output_before_releasing_original_s
         try:
             assert entered.wait(5);assert not h.connection.close()
             assert not ended.is_set() and root._fd is not None and member._owned
+            assert cached.manifest.source_id in sender._source._prepared
             assert not h.authority.protection._closed and os.fstat(authority_fd)
             with NativeMediaRetention(h.authority.binding.native_directory) as retention:
                 with retention.activity() as activity:assert activity is None
@@ -257,6 +258,7 @@ def test_normal_pc_close_drains_actual_secure_output_before_releasing_original_s
         assert ended.is_set() and not worker.is_alive() and len(errors)==1 and isinstance(errors[0],TransferError)
         assert h.wire.receive()['kind']=='file_transfer.chunk'
         assert root._fd is None and member._owned==() and h.authority.protection._closed
+        assert not sender._source._prepared
         # ExistingFileTransferProtection intentionally retains the numeric field
         # after close; verify the actual OS descriptor, not a None assignment.
         with pytest.raises(OSError):os.fstat(authority_fd)

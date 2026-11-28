@@ -196,9 +196,13 @@ aufgeführt.
   Sicherungen voraus. Beide Unterbrechungspunkte vor und nach der
   Cache-Umbenennung wurden geprüft. Im gekoppelten Test blieb das
   bereits empfangene Foto unverändert und wurde nicht erneut übertragen;
-  die noch ausstehende Original-MP4 folgte separat. Unterbrechungen vor
-  dem vollständigen Rücklesen, MP4-Quellenabschluss, gemischte WLAN-
-  Automatik und Änderungen vorhandener Galeriezeilen bleiben offen.
+  die noch ausstehende Original-MP4 folgte separat. Nach vollständigem
+  MP4-Saved/v1 kann der manuelle Lauf auch dessen unterbrochenen
+  Quellenabschluss lokal fortsetzen. Im gekoppelten Mischlauf behielt
+  Notes genau eine Veröffentlichung je Typ, und der Folgelauf
+  übertrug keine Medien. Unterbrechungen vor dem vollständigen Rücklesen,
+  gemischte WLAN-Automatik und Änderungen vorhandener Galeriezeilen
+  bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl
   startet keine Übertragung. Der Lauf braucht getrennt bestätigtes
