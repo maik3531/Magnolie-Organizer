@@ -4220,11 +4220,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             connectionRequestAuthority(peer, noteSession, body)
                         } else null
                         if (authority != null) {
+                            val session = checkNotNull(noteSession)
+                            val requestHash = PersonalSync.hash(message)
+                            val previousHash = session.receivedConnectionRequestHash
+                            check(previousHash == null || previousHash == requestHash) {
+                                "This reader already admitted an automatic request."
+                            }
                             val receipt = queue.receiveScopedConnectionRequest(sharedBinding(peer), sharedPreferences, decoded,
                                 reference, authority) {
                                 check(connectionRequestAuthority(peer, noteSession, body) == authority &&
                                     noteDirectionAllowed(peer, false, innerKind, body, noteSession))
                             }
+                            session.receivedConnectionRequestHash = requestHash
                             return@empfangSchreiben decoded to receipt
                         }
                         queue.rememberScopedRun(sharedBinding(peer), sharedPreferences, body, reference, message.long("expires_ms"))

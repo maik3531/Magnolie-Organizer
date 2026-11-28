@@ -143,6 +143,7 @@ internal class PersonalNoteSession {
     var autoWifiCheckPending = false
     var connectionCapabilityRevision: Long? = null
     var connectionAutoEnqueued = false
+    var receivedConnectionRequestHash: String? = null
     val connectionSaveConflicts = linkedMapOf<String, Int>()
     var localContentScope: JsonObject? = null
     var contentScopeSelection: io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection? = null

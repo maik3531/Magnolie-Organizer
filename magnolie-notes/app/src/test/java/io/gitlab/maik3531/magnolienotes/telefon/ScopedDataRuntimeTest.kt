@@ -135,6 +135,8 @@ class ScopedDataRuntimeTest {
         exercise("receive-auto-connection-advertisement", 14)
     @Test fun scopedConnectionRequestFromTheNonElectedPeerDoesNotCreateARun() =
         exercise("receive-auto-connection-higher-uuid", 14)
+    @Test fun scopedConnectionReaderRejectsASecondAutomaticRun() = exercise("receive-auto-connection-second-run", 14)
+    @Test fun scopedConnectionReaderRejectsARepackagedRequest() = exercise("receive-auto-connection-repackaged", 14)
     @Test fun scopedConnectionInitiatorWaitsForTheOriginalRequestAckBeforeItsBatch() =
         exercise("start-auto-connection", 3)
     @Test fun scopedConnectionInitiatorSavesTheReplyOriginalBeforeSendingItsResult() =
@@ -184,6 +186,43 @@ class ScopedDataRuntimeTest {
     @Test fun bluetoothAuthenticationDoesNotAuthorizeALaterAutomaticWifiRun() = exercise("auto-late-bluetooth")
     @Test fun aReplacedAuthenticatedChannelCannotStartItsPendingAutomaticRun() = exercise("auto-late-channel")
     @Test fun aReplacedOriginalPipeCannotStartItsPendingAutomaticRun() = exercise("auto-late-pipe")
+
+    private fun checkCompetingConnectionRequest(
+        request: JsonObject, manifest: JsonObject, peerId: String, queue: TelefonQueue,
+        repackage: Boolean, receive: (JsonObject) -> JsonObject
+    ) {
+        val run = request.string("run_id")
+        val competingRun = if (repackage) run else UUID.randomUUID().toString()
+        val competing = JsonObject(request + ("run_id" to JsonPrimitive(competingRun)))
+        val packet = TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+            PhoneContentScope.wrap("personal_sync.request", competing, manifest), 60_000)
+        val rejected = receive(packet)
+        assertEquals("rejected", rejected.string("status"))
+        assertEquals("not_granted", rejected.string("error"))
+        assertNull(queue.duplicateResult(peerId, packet.string("message_id")))
+        if (!repackage) {
+            assertNull(queue.personalRun(peerId, competingRun))
+            assertFalse(queue.containsScopedRun(peerId, competingRun))
+        }
+        assertEquals(request, queue.personalRun(peerId, run))
+    }
+
+    private fun checkConnectionRequestRollback(
+        queue: TelefonQueue, peerId: String, run: String, messageId: String, receive: () -> JsonObject
+    ) {
+        val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+        database.execSQL("CREATE TRIGGER connection_request_receipt_failure BEFORE INSERT ON inbox " +
+            "WHEN NEW.message_id='$messageId' AND NEW.state='accepted' " +
+            "BEGIN SELECT RAISE(ABORT,'synthetic connection request receipt failure'); END")
+        try {
+            val failed = receive()
+            assertEquals("rejected", failed.string("status"))
+            assertNull("Rejected request left a persisted run", queue.personalRun(peerId, run))
+            assertFalse(queue.containsScopedRun(peerId, run))
+            assertNull(queue.duplicateResult(peerId, messageId))
+            assertEquals("temporary_failure", failed.string("error"))
+        } finally { database.execSQL("DROP TRIGGER connection_request_receipt_failure") }
+    }
 
     private fun checkConnectionInitiator(work: TelefonWerk, peer: TelefonPeer, queue: TelefonQueue, manifest: JsonObject,
                                         sendDue: () -> List<JsonObject>, ackScope: () -> Unit,
@@ -2144,21 +2183,12 @@ class ScopedDataRuntimeTest {
                           assertWaiting()
                           publish(peer.capabilities_revision)
                       }
-                     if (mode.endsWith("-atomic")) {
-                         val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
-                         database.execSQL("CREATE TRIGGER connection_request_receipt_failure BEFORE INSERT ON inbox " +
-                             "WHEN NEW.message_id='${requestMessage.string("message_id")}' AND NEW.state='accepted' " +
-                             "BEGIN SELECT RAISE(ABORT,'synthetic connection request receipt failure'); END")
-                         try {
-                             work.receiveMessage(peer, requestMessage, channel, 0)
-                             val failed = requestAck()
-                             assertEquals("rejected", failed.string("status"))
-                             assertNull("Rejected request left a persisted run", queue.personalRun(peerId, run))
-                             assertFalse(queue.containsScopedRun(peerId, run))
-                             assertNull(queue.duplicateResult(peerId, requestMessage.string("message_id")))
-                             assertEquals("temporary_failure", failed.string("error"))
-                         } finally { database.execSQL("DROP TRIGGER connection_request_receipt_failure") }
-                     }
+                      if (mode.endsWith("-atomic")) {
+                          checkConnectionRequestRollback(queue, peerId, run, requestMessage.string("message_id")) {
+                              work.receiveMessage(peer, requestMessage, channel, 0)
+                              requestAck()
+                          }
+                      }
                       work.receiveMessage(peer, requestMessage, channel, 0)
                       val ack = requestAck()
                        if (mode.endsWith("-format") || nonElectedPeer) {
@@ -2172,10 +2202,17 @@ class ScopedDataRuntimeTest {
                       assertEquals(ack.toString(), "accepted", ack.string("status"))
                      assertEquals(request, queue.personalRun(peerId, run))
                      assertEquals("connection_only", queue.personalRunPolicy(peerId, run))
-                     work.receiveMessage(peer, requestMessage, channel, 0)
-                     assertEquals("duplicate", requestAck().string("status"))
+                      work.receiveMessage(peer, requestMessage, channel, 0)
+                      assertEquals("duplicate", requestAck().string("status"))
+                      if (mode.endsWith("-second-run") || mode.endsWith("-repackaged")) {
+                          checkCompetingConnectionRequest(request, manifest, peerId, queue, mode.endsWith("-repackaged")) { packet ->
+                              work.receiveMessage(peer, packet, channel, 0)
+                              sent().single { it["message_id"] == packet["message_id"] }
+                          }
+                          return
+                      }
 
-                     val attachmentSave = mode.endsWith("-attachment-save")
+                      val attachmentSave = mode.endsWith("-attachment-save")
                      val attachmentComplete = mode.endsWith("-attachment-complete")
                      val attachmentSend = mode.endsWith("-attachment-send") || attachmentComplete
                      val attachmentReply = mode.endsWith("-attachment-reply") || attachmentSend
