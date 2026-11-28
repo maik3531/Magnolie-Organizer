@@ -5391,31 +5391,65 @@ function knopfMit(text, wurzel) {
   assert.ok($("#ort-abrufen").disabled, "Abruf ohne Brücke müsste gesperrt sein");
   assert.ok($("#ort-ferien").checked, "Schulferien sind voreingestellt");
 
-  /* Abrufergebnis einspielen */
-  w.App.feiertageErgebnis({ jahre: [2026], bericht: "Abgerufen: 2 Feiertage.",
-    feiertage: [
-      { von: "2026-07-24", bis: "2026-07-24", name: "Prüftag", art: "feiertag" },
-      { von: "2026-07-20", bis: "2026-07-26", name: "Sommerferien", art: "ferien" }
-    ] });
-  assert.strictEqual(T.daten().feiertage.length, 2, "Feiertage nicht übernommen");
-  assert.ok($("#ort-stand").textContent.includes("1 Feiertag") &&
-    $("#ort-stand").textContent.includes("1 Ferienabschnitt"),
-    "Standanzeige nach Abruf: " + $("#ort-stand").textContent);
-  w.App.feiertageErgebnis({ jahre: [2027], feiertage: [
-    { von: "2027-01-01", bis: "2027-01-01", name: "Neujahr", art: "feiertag" }
-  ] });
-  assert.strictEqual(T.daten().feiertage.length, 3,
+  const abruf2026 = [
+    { von: "2026-07-24", bis: "2026-07-24", name: "Prüftag", art: "public-holiday" },
+    { von: "2026-07-20", bis: "2026-07-26", name: "Sommerferien", art: "school-holiday" }
+  ];
+  const vorUngebundenemAbruf = w.JSON.stringify(T.daten().feiertage);
+  w.App.feiertageErgebnis({ jahre: [2026], feiertage: abruf2026 });
+  assert.strictEqual(w.JSON.stringify(T.daten().feiertage), vorUngebundenemAbruf,
+    "ungebundene Feiertagsantwort darf nicht übernommen werden");
+
+  const feiertagDom = new JSDOM(html, {
+    runScripts: "outside-only", url: "https://feiertage.test/", pretendToBeVisual: true
+  });
+  const feiertagFenster = feiertagDom.window, feiertagDokument = feiertagFenster.document, abrufNachrichten = [];
+  let abrufJetzt = Date.UTC(2026, 6, 1);
+  feiertagFenster.Date = class extends Date {
+    constructor(...args) { super(...(args.length ? args : [abrufJetzt])); }
+    static now() { return abrufJetzt; }
+  };
+  feiertagFenster.__MAGNOLIE_BRUECKE__ = "feiertag_bridge";
+  feiertagFenster.webkit = { messageHandlers: { feiertag_bridge: {
+    postMessage: (text) => { const nachricht = JSON.parse(text); if (nachricht.cmd === "feiertage") abrufNachrichten.push(nachricht); }
+  } } };
+  ladeAnwendung(feiertagFenster);
+  feiertagFenster.App.init({ daten: { einstellungen: { ort: { land: "DE", region: "DE-NW", ferien: true } } },
+    neu: false, regional: { language: "de", timeZone: "Europe/Berlin" } });
+  const feiertagTest = feiertagFenster.OrganizerTest;
+  const abrufen = (jahr, eintraege) => {
+    abrufJetzt = Date.UTC(jahr, 6, 1);
+    feiertagTest.oeffneEinstellungen();
+    feiertagDokument.querySelector("#einst-tab-ort").click();
+    feiertagDokument.querySelector("#ort-jahre").value = String(jahr);
+    const bisher = abrufNachrichten.length;
+    feiertagDokument.querySelector("#ort-abrufen").click();
+    assert.strictEqual(abrufNachrichten.length, bisher + 1);
+    const { land, region, jahre, ferien } = abrufNachrichten.at(-1);
+    assert.deepStrictEqual({ land, region, jahre, ferien }, { land: "DE", region: "DE-NW", jahre: [jahr], ferien: true });
+    feiertagFenster.App.feiertageErgebnis({ jahre,
+      feiertage: eintraege.map(eintrag => ({ ...eintrag, country: land, region, regions: [region] })),
+      abrufbereiche: [...new Set(eintraege.map(eintrag => eintrag.art))].map(art =>
+        ({ country: land, region, art, von: `${jahr}-01-01`, bis: `${jahr}-12-31` })) });
+  };
+  abrufen(2026, abruf2026);
+  assert.strictEqual(feiertagTest.daten().feiertage.length, 2, "Feiertage nicht übernommen");
+  const abrufStand = feiertagDokument.querySelector("#ort-stand").textContent;
+  assert.ok(abrufStand.includes("1 Feiertag") && abrufStand.includes("1 Ferienabschnitt"),
+    "Standanzeige nach Abruf: " + abrufStand);
+  abrufen(2027, [{ von: "2027-01-01", bis: "2027-01-01", name: "Neujahr", art: "public-holiday" }]);
+  assert.strictEqual(feiertagTest.daten().feiertage.length, 3,
     "ein Abruf darf Einträge anderer Jahre nicht entfernen");
-  assert.deepStrictEqual(T.daten().einstellungen.ort.jahre, [2026, 2027],
+  assert.deepStrictEqual(feiertagTest.daten().einstellungen.ort.jahre, [2026, 2027],
     "die Standanzeige muss erhaltene und neu abgerufene Jahre nennen");
-  w.App.feiertageErgebnis({ jahre: [2027], feiertage: [
-    { von: "2027-01-02", bis: "2027-01-02", name: "Ersatztag", art: "feiertag" }
-  ] });
-  assert.ok(T.daten().feiertage.some((f) => f.name === "Ersatztag") &&
-    !T.daten().feiertage.some((f) => f.name === "Neujahr") &&
-    T.daten().feiertage.some((f) => f.name === "Prüftag"),
+  abrufen(2027, [{ von: "2027-01-02", bis: "2027-01-02", name: "Ersatztag", art: "public-holiday" }]);
+  const nachAbruf = feiertagTest.daten().feiertage;
+  assert.ok(nachAbruf.some((f) => f.name === "Ersatztag") &&
+    !nachAbruf.some((f) => f.name === "Neujahr") &&
+    nachAbruf.some((f) => f.name === "Prüftag"),
     "ein Neuabruf muss nur das angefragte Jahr ersetzen");
-  T.daten().feiertage = T.daten().feiertage.filter((f) => f.von.startsWith("2026-"));
+  T.daten().feiertage = w.JSON.parse(JSON.stringify(nachAbruf.filter((f) => f.von.startsWith("2026-"))));
+  feiertagFenster.close();
   T.daten().einstellungen.ort.jahre = [2026];
   const syncFerien = { id: "sync-ferien-sn", uid: "ferien-sn-2026",
     datum: "2026-07-20", endDatum: "2026-07-26", zeit: "", endZeit: "",

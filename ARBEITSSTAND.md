@@ -7,6 +7,11 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#869](https://github.com/maik3531/Magnolie-Organizer/issues/869):
+  Der breite Linux-Webtest prüft Feiertagsabrufe über die kontrollierte
+  Brücke mit exakter Regions- und Jahresabdeckung. Ungebundene Antworten
+  bleiben wirkungslos. Der vollständige Webtest bestand.
+
 - [#395](https://github.com/maik3531/Magnolie-Organizer/issues/395):
   Linux normalisiert gelesene Wiederherstellungsarchive ohne zweite JSON-Kopie.
   Archivbytes und gelesene Daten blieben im Vergleich identisch. 25 Journal-/
