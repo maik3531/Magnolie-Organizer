@@ -63,9 +63,13 @@ aufgeführt.
   für Formate 1/2/3/14. Windows gleicht beim gruppierten Start alle
   Anhangsgrößen und MIME-Typen mit den geprüften Quellbytes ab, bevor
   eine Anfrage eingereiht werden kann. Fünf native Bridge-Fälle sowie
-  zwei weitere Windows-Testgruppen bestanden. Die gemeinsame Transaktion
-  für das nachgelagerte Windows-Staging und die Automatik über weitere
-  freigegebene Transporte bleiben offen.
+  zwei weitere Windows-Testgruppen bestanden. Linux weist beim gruppierten
+  Senden und beim Empfang widersprüchliche Angaben zum selben Anhang ab.
+  Ein fehlerhaftes empfangenes Paket erhält keine Annahmebestätigung.
+  Alte widersprüchliche Gruppen bleiben bis zum Ablauf gespeichert
+  und blockieren gültige Gruppen nicht. 124 Hosttests bestanden.
+  Die gemeinsame Transaktion für das nachgelagerte Windows-Staging und
+  die Automatik über weitere freigegebene Transporte bleiben offen.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

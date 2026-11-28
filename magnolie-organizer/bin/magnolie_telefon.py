@@ -183,6 +183,22 @@ def negotiated_personal_notes_format(peer):
     return max((version for version in versions if version in (1, 2, 3, 14)), default=1)
 
 
+class _AttachmentManifestConflict(ValueError):
+    pass
+
+
+def _check_attachment_manifest(records, descriptors):
+    for record in records:
+        if record["kind"] != "note":
+            continue
+        for item in record["value"].get("attachments", []):
+            digest = item["sha256"]
+            previous = descriptors.get(digest)
+            if previous is not None and (previous["size"], previous["mime"]) != (item["size"], item["mime"]):
+                raise _AttachmentManifestConflict("conflicting attachment manifest")
+            descriptors[digest] = item
+
+
 def supports_personal_format(peer, capability, format):
     versions = (((peer or {}).get("capabilities") or {}).get("items") or {}).get(
         capability, {}).get("versions", [])
@@ -1526,10 +1542,16 @@ class PhoneStore:
                     any(row[0] > final_sequences[0] for row in rows)):
                 raise ValueError("conflicting personal batch final sequence")
             record_count = 0
+            descriptors = {}
+            check_manifest = not personal_actor_contract.is_storage_peer(peer_id)
             for staged_sequence, _batch, _message, staged_payload, _last in rows:
                 staged_primary = "%s:%s:%d:%d" % (peer_id, body["run_id"], body["reply"], staged_sequence)
                 staged = strict_json(self._decrypt(staged_payload, "personal_batch", staged_primary))
-                record_count += len(staged["body"]["records"])
+                staged_body = staged["body"]
+                record_count += len(staged_body["records"])
+                if check_manifest and staged_body.get("format", 1) >= 2:
+                    _check_attachment_manifest(staged_body["records"], descriptors)
+            descriptors.clear()
             if record_count > 100000:
                 raise ValueError("personal run too large")
         if len(rows) > 4096:
@@ -2106,8 +2128,12 @@ class PhoneStore:
                 row = db.execute("SELECT payload FROM personal_batch WHERE peer_id=? AND run_id=? AND reply=? AND sequence=?",
                     (peer_id, run_id, reply, sequence)).fetchone()
             if row:
-                aggregate = self.stage_personal_batch(peer_id,
-                    strict_json(self._decrypt(row[0], "personal_batch", primary)))
+                try:
+                    aggregate = self.stage_personal_batch(peer_id,
+                        strict_json(self._decrypt(row[0], "personal_batch", primary)))
+                except _AttachmentManifestConflict:
+                    # Keep old conflicting rows for expiry without replaying them.
+                    continue
                 if aggregate:
                     ready.append((peer_id, aggregate))
         return ready
@@ -8258,8 +8284,8 @@ class PhoneService:
                 or (format in (3, 14) and any(not supports_personal_format(peer, name, format)
                                        for name in needed))):
             raise RuntimeError("Persoenlicher Sync ist nicht beidseitig freigegeben.")
-        descriptors = {item["sha256"]: item for record in records if record["kind"] == "note"
-                       for item in record["value"]["attachments"]}
+        descriptors = {}
+        _check_attachment_manifest(records, descriptors)
         if (not isinstance(sources, list) or len(sources) != len(descriptors)
                 or any(not isinstance(item, dict) or set(item) != {"sha256", "data"} for item in sources)
                 or {item["sha256"] for item in sources} != set(descriptors)):
