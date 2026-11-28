@@ -11363,17 +11363,24 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return codes.length && laender.size === 1 && !laender.has("") ? [...laender][0] : "";
   }
 
-  function feiertagPasstZurRegion(eintrag, nachweis = false) {
+  function feiertagPasstZurAuswahl(eintrag, nachweis = false) {
     const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
-    if (ort.feiertage === false || nachweis && (!land || !ort.land)) return false;
+    if (nachweis && (!land || !ort.land)) return false;
     if (land && land !== ort.land) return false;
     if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
     const norm = code => code.includes("-") ? code : land + "-" + code;
     return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
   }
 
+  function feiertagPasstZurRegion(eintrag, nachweis = false) {
+    return DATEN.einstellungen.ort.feiertage !== false && feiertagPasstZurAuswahl(eintrag, nachweis);
+  }
+
   function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
-    const liste = (feiertagVerzeichnis().get(iso) || []).slice();
+    // Filter retrieved school holidays before deduplication and grouping.
+    // Unqualified legacy/imported appointments retain their existing treatment.
+    const liste = (feiertagVerzeichnis().get(iso) || []).filter(f =>
+      f.art !== "school-holiday" || feiertagPasstZurAuswahl(f));
     const ferienVorhanden = new Set(liste.filter((f) => f.art === "school-holiday")
       .map(ferienSchluessel));
     const feiertageVorhanden = new Set(liste.filter((f) => f.art === "public-holiday")
@@ -32900,11 +32907,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
         wirkung();
         planeSpeichern();
+        zeichneAlles();
       });
       alleHak.addEventListener("change", () => {
         wendeOrtAuswahlDatenAn({ alleRegionen: alleHak.checked });
         wirkung();
         planeSpeichern();
+        zeichneAlles();
       });
       regionZeile.append(formZeile(
         land.code === "CH" ? _("Canton") : _("State"), wahl), alleZeile);
@@ -32919,6 +32928,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       planeSpeichern();
       regionenZeigen();
       window.MagnolieAppearance?.update({ today: isoHeute(), country: DATEN.einstellungen.ort.land, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
+      zeichneAlles();
     });
     regionenZeigen();
     const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";

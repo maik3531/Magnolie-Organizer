@@ -807,6 +807,33 @@ async function run(web) {
     report([wifi], { enabled: false }); assert(!webcam() && !screen());
   });
 
+  await test("school holiday display follows region without changing cached rows", async b => {
+    await b.t.wechsel("aufgaben");
+    const calendar = b.t.zustand().kalender;
+    Object.assign(calendar, { jahr: 2026, monat: 11, tag: "2026-12-10", ansicht: "month" });
+    await b.t.wechsel("kalender");
+    const document = b.w.document;
+    const labels = () => [...document.querySelectorAll(".ferien-marke")].map(mark => mark.title).join(" ");
+    const before = plain(b.t.daten().feiertage);
+    assert.match(labels(), /Saxon break/);
+    assert.doesNotMatch(labels(), /Bavarian break|Austrian break/);
+    b.t.oeffneEinstellungen(); document.querySelector("#einst-tab-ort").click();
+    const region = document.querySelector("#ort-region");
+    region.value = "DE-BY"; region.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.match(labels(), /Bavarian break/);
+    assert.doesNotMatch(labels(), /Saxon break|Austrian break/);
+    const country = document.querySelector("#ort-land");
+    country.value = "AT"; country.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.match(labels(), /Austrian break/);
+    assert.doesNotMatch(labels(), /Saxon break|Bavarian break/);
+    assert.deepEqual(plain(b.t.daten().feiertage), before);
+  }, {
+    einstellungen: { ort: { land: "DE", region: "DE-SN", ferien: true, feiertage: false } },
+    feiertage: [["Saxon break", "DE", "DE-SN"], ["Bavarian break", "DE", "DE-BY"], ["Austrian break", "AT", "AT-9"]]
+      .map(([name, country, region]) => ({ id: region, art: "school-holiday", name, country, region, regions: [region],
+        von: "2026-12-10", bis: "2026-12-10" }))
+  });
+
   await test("duplicate pending Personal Sync joins save and retries failure", async b => {
     b.w.App.telefonStand({ peers: [{ device_id: "peer", display_name: "Synthetic" }] });
     b.t.daten().personalSync.applied_batches.push("pending-token");

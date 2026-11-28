@@ -7,6 +7,12 @@ aufgeführt.
 
 ## Weitere Abnahme für den Gesamtrelease
 
+- [#851](https://github.com/maik3531/Magnolie-Organizer/issues/851):
+  Abgerufene Schulferien werden vor der Gruppierung geografisch gefiltert.
+  Länder- und Regionswechsel aktualisieren den offenen Kalender. Die
+  gespeicherten Cacheeinträge und unqualifizierte synchronisierte Ferien
+  bleiben erhalten. Native Paketabnahme in #113.
+
 - [#850](https://github.com/maik3531/Magnolie-Organizer/issues/850):
   Automatische Eiskristalle berücksichtigen das gewählte Land. Ein normaler
   Länderwechsel aktualisiert den Hintergrund sofort. 41 Modellproben und
