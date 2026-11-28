@@ -34,7 +34,8 @@ def test_read_is_side_effect_free_and_revision_tracks_consent_not_reports(tmp_pa
     service, peer, events = modern_service(tmp_path)
     before_peers = copy.deepcopy(service.store._load_peers())
     first = service.mcp_action(request(service))
-    assert first["ok"] and first["notesSettings"]["shared"] == {"supported": True, "initialized": False, "ready": False, "values": None}
+    assert first["ok"] and first["notesSettings"]["shared"] == {
+        "supported": True, "auto_connection_supported": False, "initialized": False, "ready": False, "values": None}
     assert service.store._load_peers() == before_peers and not events and not service.server
     peer["personal_sync"]["last_report"] = {"private": "owned-content-not-for-settings"}
     assert service.mcp_action(request(service)) == first
@@ -110,8 +111,20 @@ def test_actual_preference_readback_is_required(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("field,value", [("content_mode", "two_way"), ("auto_mode", "connection"),
     ("custom_enabled", True), ("time_enabled", True), ("time_mode", "two_way")])
-def test_all_shared_choice_types_use_existing_handler(tmp_path, field, value):
+def test_all_shared_choice_types_use_existing_handler(tmp_path, monkeypatch, field, value):
     service, peer, events = modern_service(tmp_path)
+    if value == "connection":
+        production_capabilities = phone.desktop_capabilities
+
+        def with_connection_mode(*args, **kwargs):
+            advertised = production_capabilities(*args, **kwargs)
+            for name in ("personal_notes_sync", "personal_tasks_sync"):
+                advertised["items"][name]["versions"].append(8)
+            return advertised
+
+        monkeypatch.setattr(phone, "desktop_capabilities", with_connection_mode)
+        peer["capabilities"] = with_connection_mode()
+        service.store.save_peers()
     result = change(service, field, value)
     assert result["ok"], result
     assert result["notesSettings"]["shared"]["values"][field] == value

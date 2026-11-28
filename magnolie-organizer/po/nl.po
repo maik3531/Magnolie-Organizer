@@ -1142,6 +1142,9 @@ msgstr "Automatisch een geschikte toepassing kiezen"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Herinneringen aan verjaardagen en jubilea automatisch verbergen"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatische synchronisatie is geselecteerd, maar nog niet beschikbaar."
+
 msgid "Automatically over the current connection"
 msgstr "Automatisch via de huidige verbinding"
 
@@ -10360,9 +10363,6 @@ msgstr "＋ Afspraak toevoegen"
 #~ msgstr ""
 #~ "Automatische synchronisatie is gepauzeerd. Schakel naar handmatige modus "
 #~ "en zet deze opnieuw aan om te hervatten."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr ""
 #~ "Automatische synchronisatie is geselecteerd, maar nog niet beschikbaar."
 
 #~ msgid "Check the access request on your phone, then read the albums again."

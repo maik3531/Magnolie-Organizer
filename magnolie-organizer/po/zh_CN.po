@@ -1066,6 +1066,9 @@ msgstr "自动选择合适的应用程序"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "自动隐藏纪念日提醒"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "已选择自动同步，但暂时无法使用。"
+
 msgid "Automatically over the current connection"
 msgstr "自动通过当前连接"
 
@@ -9741,9 +9744,6 @@ msgstr "＋ 添加约会"
 #~ "Automatic synchronization is paused. Switch to manual mode and enable it "
 #~ "again to resume."
 #~ msgstr "自动同步已暂停。请切换到手动模式，然后重新启用以继续。"
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "已选择自动同步，但暂时无法使用。"
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr "请检查手机上的访问请求，然后重新读取相册。"

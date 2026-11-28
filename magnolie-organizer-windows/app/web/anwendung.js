@@ -2776,8 +2776,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     select("content_mode", _("Notes and tasks"), [["phone_scope", _("Only the Notes collection")],
       ["two_way", _("Synchronize all notes and tasks")], ["phone_import", _("Import Notes → Organizer only")]]);
-    select("auto_mode", _("Synchronization"), [["manual", _("Manually")], ["wifi", _("Automatically synchronize over Wi-Fi")],
-      ...(peer.shared_sync.auto_connection_supported ? [["connection", _("Automatically over the current connection")]] : [])]);
+    const automatik = select("auto_mode", _("Synchronization"),
+      [["manual", _("Manually")], ["wifi", _("Automatically synchronize over Wi-Fi")]]);
+    const automatikStand = el("p", "einst-hinweis");
+    automatikStand.id = automatik.id + "-status";
+    automatikStand.setAttribute("role", "status");
+    automatik.setAttribute("aria-describedby", automatikStand.id);
+    container.append(automatikStand);
+    aktualisiereGemeinsameAutomatik(automatik, automatikStand, peer, initial, initial.auto_mode);
     const deletions = check("skip_deletions", _("Skip deletions"));
     deletions.dataset.sharedSyncDeletion = id;
     const custom = check("custom_enabled", personalCustomBeschriftung()); custom.hidden = !registerAktiv("custom");
@@ -2793,17 +2799,44 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return button;
   }
 
+  function aktualisiereGemeinsameAutomatik(input, status, peer, werte, modus) {
+    const unterstuetzt = peer?.shared_sync?.auto_connection_supported === true;
+    let option = input.querySelector('option[value="connection"]');
+    if (unterstuetzt || modus === "connection") {
+      if (!option) {
+        option = el("option", null, _("Automatically over the current connection"));
+        option.value = "connection";
+        input.append(option);
+      }
+      option.disabled = !unterstuetzt;
+    } else option?.remove();
+    input.value = modus;
+    const freigaben = [peer?.local_grants?.grants, peer?.grants?.grants];
+    const bereit = unterstuetzt && peer.shared_sync.ready === true &&
+      ["online_wifi", "online_bluetooth"].includes(peer.state) && peer.own_device && peer.remote_own_device &&
+      werte.content_mode === "phone_scope" &&
+      freigaben.every(value => value?.personal_notes_sync === true && value?.personal_tasks_sync === true);
+    status.hidden = !peer || modus !== "connection" || bereit;
+    status.textContent = status.hidden ? "" : _("Automatic synchronization is selected but is not available yet.");
+  }
+
   function aktualisiereGemeinsameSyncFelder() {
     document.querySelectorAll("[data-shared-sync-peer]").forEach(input => {
       const peer = personalSyncNotizPeer(input.dataset.sharedSyncPeer);
+      const status = input.dataset.sharedSyncField === "auto_mode"
+        ? document.getElementById(input.getAttribute("aria-describedby")) : null;
       input.disabled = !peer || peer.fingerprint !== input.dataset.sharedSyncFingerprint || peer.shared_sync?.supported !== true;
-      if (input.disabled) return;
+      if (input.disabled) {
+        if (status) { status.hidden = true; status.textContent = ""; }
+        return;
+      }
       const values = gemeinsameSyncWerte(peer), field = input.dataset.sharedSyncField;
       const pending = gemeinsameSyncWartend.get(peer.device_id + ":" + field);
       const waiting = pending?.fingerprint === peer.fingerprint;
       input.disabled = waiting;
       const value = waiting ? pending.wert : values[field];
-      if (input.type === "checkbox") input.checked = value === true;
+      if (status) aktualisiereGemeinsameAutomatik(input, status, peer, values, value);
+      else if (input.type === "checkbox") input.checked = value === true;
       else input.value = value;
     });
     document.querySelectorAll("[data-shared-sync-deletion]").forEach(row => {

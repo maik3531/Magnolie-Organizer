@@ -17,7 +17,8 @@ def test_common_choice_uses_authenticated_local_ipc_and_current_fingerprint(tmp_
     peer_id = peer["device_id"]
     fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
     initial = dict(shared.DEFAULTS, content_mode="phone_import", auto_mode="wifi", time_enabled=True)
-    assert service.shared_settings_status(peer_id) == {"supported": True, "initialized": False, "ready": False, "values": None}
+    assert service.shared_settings_status(peer_id) == {"supported": True, "auto_connection_supported": False,
+                                                      "initialized": False, "ready": False, "values": None}
     assert service.store.shared_settings(peer_id, peer["static_public"]) is None
     with tempfile.TemporaryDirectory(prefix="shared-ui-") as root:
         socket = str(Path(root) / "bridge.sock")
@@ -51,6 +52,26 @@ def test_unsupported_peer_cannot_initialize_from_a_local_preview(tmp_path, monke
     with pytest.raises(PermissionError):
         service.initialize_common_preferences(peer["device_id"], fingerprint, shared.DEFAULTS)
     assert service.store.shared_settings(peer["device_id"], peer["static_public"]) is None
+
+
+def test_connection_mode_support_reflects_both_capabilities_without_a_write(tmp_path, monkeypatch):
+    service, peer, _, _ = fixture(tmp_path, monkeypatch, initialize=False)
+    peer_id = peer["device_id"]
+    local = phone.desktop_capabilities
+
+    def supported(*args, **kwargs):
+        advertised = local(*args, **kwargs)
+        for name in ("personal_notes_sync", "personal_tasks_sync"):
+            advertised["items"][name]["versions"].append(8)
+        return advertised
+
+    assert service.shared_settings_status(peer_id)["auto_connection_supported"] is False
+    monkeypatch.setattr(phone, "desktop_capabilities", supported)
+    assert service.shared_settings_status(peer_id)["auto_connection_supported"] is False
+    peer["capabilities"] = supported()
+    status = service.shared_settings_status(peer_id)
+    assert status["auto_connection_supported"] is True and status["ready"] is False
+    assert service.store.shared_settings(peer_id, peer["static_public"]) is None
 
 
 @pytest.mark.parametrize("action", ["change", "initialize", "start"])

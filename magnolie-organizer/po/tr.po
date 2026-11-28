@@ -1139,6 +1139,9 @@ msgstr "Uygun bir uygulamayı otomatik seç"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Yıldönümü hatırlatmalarını otomatik gizle"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Otomatik eşitleme seçildi ancak henüz kullanılamıyor."
+
 msgid "Automatically over the current connection"
 msgstr "Geçerli bağlantı üzerinden otomatik"
 
@@ -10211,9 +10214,6 @@ msgstr "＋ Randevu ekle"
 #~ msgstr ""
 #~ "Otomatik eşitleme duraklatıldı. Sürdürmek için elle moda geçip yeniden "
 #~ "etkinleştirin."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Otomatik eşitleme seçildi ancak henüz kullanılamıyor."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr ""

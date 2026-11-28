@@ -23,6 +23,20 @@ internal static class SharedSyncControllerTests
             var preview = controller.SharedPreferences(peer.Id);
             TestAssert.That(preview["supported"]!.GetValue<bool>() && !preview["initialized"]!.GetValue<bool>() &&
                 preview["values"] is null && store.SharedSettings(peer.Id, peer.PublicKey) is null, "Preview initialized preferences.");
+            var connectionCapabilities = capabilities.DeepClone().AsObject();
+            foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" })
+                connectionCapabilities[name]!["versions"]!.AsArray().Add(8);
+            TestAssert.That(!preview["auto_connection_supported"]!.GetValue<bool>(), "Production preview advertised marker 8.");
+            controller.SharedLocalCapabilities = () => connectionCapabilities;
+            TestAssert.That(!controller.SharedPreferences(peer.Id)["auto_connection_supported"]!.GetValue<bool>(),
+                "Local marker alone exposed connection automation.");
+            store.UpdatePeerProtocol(peer.Id, 2, connectionCapabilities, 0, null);
+            var compatiblePreview = controller.SharedPreferences(peer.Id);
+            TestAssert.That(compatiblePreview["auto_connection_supported"]!.GetValue<bool>() &&
+                !compatiblePreview["ready"]!.GetValue<bool>() && store.SharedSettings(peer.Id, peer.PublicKey) is null,
+                "Bilateral support must be visible without claiming a ready reader or creating preferences.");
+            store.UpdatePeerProtocol(peer.Id, 3, capabilities, 0, null);
+            controller.SharedLocalCapabilities = () => capabilities;
             var initial = new JsonObject { ["content_mode"] = "phone_import", ["auto_mode"] = "wifi", ["skip_deletions"] = true,
                 ["custom_enabled"] = false, ["time_enabled"] = true, ["time_mode"] = "phone_import" };
             await controller.SetCommonPreferencesAsync(peer.Id, fingerprint, initial);

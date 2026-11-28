@@ -24,49 +24,80 @@ for (const web of [path.join(__dirname, '../app/web'), path.join(__dirname, '../
       local_grants: { grants: { personal_notes_sync: true, personal_tasks_sync: true } },
       grants: { grants: { personal_notes_sync: true, personal_tasks_sync: true } },
       shared_sync: { supported: true, initialized: true, ready: true, values } };
-    w.App.telefonStand({ peers: [structuredClone(peer)] });
-    w.OrganizerTest.oeffneGeraeteDialog({ kennung: peer.device_id, name: peer.display_name });
-    const skip = w.document.querySelector('[data-shared-sync-field="skip_deletions"]');
-    assert.ok(skip && !skip.parentElement.hidden, 'Skip deletions must be visible in the Notes collection');
-    skip.checked = false; skip.dispatchEvent(new w.Event('change'));
+    const report = (update = {}) => w.App.telefonStand({ possible: true, enabled: true,
+      peers: [{ ...structuredClone(peer), ...structuredClone(update) }] });
+    report();
+    w.OrganizerTest.oeffneEinstellungen();
+    w.document.querySelector('#einst-tab-baum').click();
+    const skip = () => w.document.querySelector('[data-shared-sync-field="skip_deletions"]');
+    assert.ok(skip() && !skip().parentElement.hidden, 'Skip deletions must be visible in the Notes collection');
+    skip().checked = false; skip().dispatchEvent(new w.Event('change'));
     const change = sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_aendern');
     assert.ok(change.requestId); assert.equal(change.wert, false);
-    assert.equal(skip.checked, false); assert.equal(skip.disabled, true);
-    w.App.telefonStand({ peers: [structuredClone(peer)] });
-    assert.equal(skip.checked, false, 'A delayed pre-save status must not undo the pending choice');
+    assert.equal(skip().checked, false); assert.equal(skip().disabled, true);
+    report();
+    assert.equal(skip().checked, false, 'A delayed pre-save status must not undo the pending choice');
     w.App.gemeinsameSyncGespeichert({ kennung: peer.device_id, feld: 'skip_deletions', requestId: 'obsolete', ok: false });
-    assert.equal(skip.disabled, true);
+    assert.equal(skip().disabled, true);
     const changed = { ...peer.shared_sync, values: { ...values, skip_deletions: false } };
     w.App.gemeinsameSyncGespeichert({ kennung: peer.device_id, feld: 'skip_deletions', requestId: change.requestId,
       ok: true, status: structuredClone(changed) });
-    assert.equal(skip.disabled, false); assert.equal(skip.checked, false);
-    w.App.telefonStand({ peers: [{ ...structuredClone(peer), shared_sync: structuredClone(changed) }] });
-    assert.equal(skip.checked, false);
-    skip.checked = true; skip.dispatchEvent(new w.Event('change'));
+    assert.equal(skip().disabled, false); assert.equal(skip().checked, false);
+    report({ shared_sync: changed });
+    assert.equal(skip().checked, false);
+    skip().checked = true; skip().dispatchEvent(new w.Event('change'));
     const failed = sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_aendern');
     w.App.gemeinsameSyncGespeichert({ kennung: peer.device_id, feld: 'skip_deletions', requestId: failed.requestId,
       ok: false, fehler: 'Synthetic save failure' });
-    assert.equal(skip.disabled, false); assert.equal(skip.checked, false, 'A failed write returns to the persisted choice');
-    const start = w.document.querySelector('[data-shared-sync-start]');
-    w.App.telefonStand({ peers: [{ ...structuredClone(peer), own_device: false,
-      shared_sync: { supported: true, initialized: false, ready: false, values: null } }] });
-    assert.equal(start.disabled, false, 'An explicit sync click must be able to activate the local side');
-    start.click();
+    assert.equal(skip().disabled, false); assert.equal(skip().checked, false, 'A failed write returns to the persisted choice');
+    const start = () => w.document.querySelector('[data-shared-sync-start]');
+    const initial = { supported: true, initialized: false, ready: false, values: null };
+    report({ own_device: false, shared_sync: initial });
+    assert.equal(start().disabled, false, 'An explicit sync click must be able to activate the local side');
+    start().click();
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.content_mode, 'phone_scope');
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, true,
       'A missing time policy must include time synchronization by default');
     for (const enabled of [false, true]) {
-      w.App.telefonStand({ peers: [{ ...structuredClone(peer), time_sync: { local: { enabled } },
-        shared_sync: { supported: true, initialized: false, ready: false, values: null } }] });
-      start.click();
+      report({ time_sync: { local: { enabled } }, shared_sync: initial });
+      start().click();
       assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, enabled,
         'An existing native time policy must retain its explicit choice');
     }
-    w.App.telefonStand({ peers: [{ ...structuredClone(peer), shared_sync: { ...changed, values: { ...changed.values, auto_mode: 'wifi' } } }] });
-    start.click();
+    report({ shared_sync: { ...changed, values: { ...changed.values, auto_mode: 'wifi' } } });
+    start().click();
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.auto_mode, 'wifi', 'Start must use the current selection rather than the dialog-opening snapshot');
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, false,
       'Persisted shared opt-outs must override the new default');
+    const timing = () => w.document.querySelector('[data-shared-sync-field="auto_mode"]');
+    const mode = () => timing().querySelector('option[value="connection"]');
+    const status = () => w.document.getElementById(timing().getAttribute('aria-describedby'));
+    assert.equal(mode(), null, 'An unavailable mode cannot be newly selected');
+    const previousCount = sent.filter(value => value.cmd === 'personal_sync_gemeinsam_aendern').length;
+    const storedConnection = { ...changed, ready: false, values: { ...changed.values, auto_mode: 'connection' } };
+    report({ state: 'offline', shared_sync: storedConnection });
+    assert.equal(timing().value, 'connection', 'A temporarily unsupported persisted mode must stay visible');
+    assert.equal(mode().disabled, true);
+    assert.equal(timing().disabled, false, 'Manual and Wi-Fi remain selectable');
+    assert.equal(status().getAttribute('role'), 'status');
+    assert.match(status().textContent, /not available yet/);
+    assert.equal(sent.filter(value => value.cmd === 'personal_sync_gemeinsam_aendern').length, previousCount,
+      'A status refresh must not change the persisted mode');
+    report({ shared_sync: { ...storedConnection, auto_connection_supported: true } });
+    assert.match(status().textContent, /not available yet/, 'Support alone does not confirm this reader');
+    const compatible = { ...storedConnection, ready: true, auto_connection_supported: true };
+    report({ shared_sync: compatible });
+    assert.equal(mode().disabled, false);
+    assert.equal(status().textContent, '');
+    report({ shared_sync: compatible, grants: { grants: { personal_notes_sync: true } } });
+    assert.match(status().textContent, /not available yet/, 'A revoked module must show waiting');
+    const oldTiming = timing();
+    report({ fingerprint: 'REPLACEMENT', shared_sync: changed });
+    assert.ok(!oldTiming.isConnected || oldTiming.disabled, 'A replacement pairing must not drive the old field');
+    report({ shared_sync: changed });
+    assert.equal(mode(), null, 'An unavailable mode disappears once it is no longer selected');
+    assert.equal(timing().value, 'manual');
+    assert.equal(status().textContent, '');
     w.App.telefonPairingCode({ attempt_id: 'attempt', code: '123 456', confirmation_required: false });
     let buttons = [...w.document.querySelectorAll('#telefon-pairing-dialog button')].map(button => button.textContent);
     assert.ok(!buttons.includes('Codes match'), 'The initiating desktop displays the code without a second approval');

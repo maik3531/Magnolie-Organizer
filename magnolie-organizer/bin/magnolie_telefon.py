@@ -5980,10 +5980,14 @@ class PhoneService:
         with self.lock:
             peer = self.store.peer(peer_id)
             if not peer or peer.get("state") != "paired":
-                return {"supported": False, "initialized": False, "ready": False, "values": None}
+                return {"supported": False, "auto_connection_supported": False,
+                        "initialized": False, "ready": False, "values": None}
             body = self.store.shared_settings(peer_id, peer["static_public"])
-            return {"supported": shared_sync_contract.supported(desktop_capabilities()["items"],
-                        peer.get("capabilities", {}).get("items", {})),
+            local_items = desktop_capabilities()["items"]
+            remote_items = peer.get("capabilities", {}).get("items", {})
+            supported = shared_sync_contract.supported(local_items, remote_items)
+            return {"supported": supported, "auto_connection_supported": supported and
+                        personal_sync_contract.auto_connection_supported(local_items, remote_items),
                     "initialized": body is not None, "ready": self.shared_settings_ready(peer_id),
                     "values": shared_sync_contract.effective(body) if body is not None else None}
 

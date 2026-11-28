@@ -1100,6 +1100,9 @@ msgstr "適切なアプリケーションを自動選択"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "記念日のリマインダーを自動的に非表示にする"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "自動同期が選択されていますが、まだ利用できません。"
+
 msgid "Automatically over the current connection"
 msgstr "現在の接続で自動的に"
 
@@ -10132,9 +10135,6 @@ msgstr "＋ 予定を追加"
 #~ msgstr ""
 #~ "自動同期は一時停止中です。手動モードに切り替えてから再度有効にすると再開で"
 #~ "きます。"
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "自動同期が選択されていますが、まだ利用できません。"
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr ""

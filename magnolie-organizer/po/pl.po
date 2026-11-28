@@ -1183,6 +1183,9 @@ msgstr "Automatycznie wybierz odpowiednią aplikację"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Automatycznie ukrywaj przypomnienia o rocznicach"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Wybrano automatyczną synchronizację, ale nie jest jeszcze dostępna."
+
 msgid "Automatically over the current connection"
 msgstr "Automatycznie przez bieżące połączenie"
 
@@ -10334,9 +10337,6 @@ msgstr "＋ Dodaj spotkanie"
 #~ msgstr ""
 #~ "Automatyczna synchronizacja jest wstrzymana. Przełącz na tryb ręczny i "
 #~ "włącz ją ponownie, aby wznowić."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Wybrano automatyczną synchronizację, ale nie jest jeszcze dostępna."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr ""

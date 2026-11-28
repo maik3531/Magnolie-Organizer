@@ -1176,6 +1176,9 @@ msgstr "Автоматично вибрати відповідну програ�
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Автоматично приховувати нагадування про річниці"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Вибрано автоматичну синхронізацію, але вона ще недоступна."
+
 msgid "Automatically over the current connection"
 msgstr "Автоматично через поточне з’єднання"
 
@@ -10288,9 +10291,6 @@ msgstr "＋ Додати зустріч"
 #~ msgstr ""
 #~ "Автоматичну синхронізацію призупинено. Перейдіть у ручний режим і знову "
 #~ "ввімкніть її для продовження."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Вибрано автоматичну синхронізацію, але вона ще недоступна."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr ""

@@ -1152,6 +1152,9 @@ msgstr "Automatisch passendes Programm wählen"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Jahrestagserinnerungen automatisch ausblenden"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatischer Abgleich ist ausgewählt, aber noch nicht verfügbar."
+
 msgid "Automatically over the current connection"
 msgstr "Automatisch über die aktuelle Verbindung"
 
@@ -10485,9 +10488,6 @@ msgstr "＋ Termin hinzufügen"
 
 #~ msgid "Media operation paused. No completion was confirmed."
 #~ msgstr "Medienvorgang angehalten. Ein Abschluss wurde nicht bestätigt."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Automatischer Abgleich ist ausgewählt, aber noch nicht verfügbar."
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "Ein nativer Medienvorgang läuft noch."

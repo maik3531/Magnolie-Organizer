@@ -1281,6 +1281,9 @@ msgstr "اختيار تطبيق مناسب تلقائيًا"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "إخفاء تذكيرات الذكريات السنوية تلقائيًا"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "تم اختيار المزامنة التلقائية لكنها غير متاحة بعد."
+
 msgid "Automatically over the current connection"
 msgstr "تلقائيًا عبر الاتصال الحالي"
 
@@ -10319,9 +10322,6 @@ msgstr "＋ إضافة موعد"
 #~ msgstr ""
 #~ "المزامنة التلقائية متوقفة مؤقتًا. انتقل إلى الوضع اليدوي ثم فعّلها مجددًا "
 #~ "للمتابعة."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "تم اختيار المزامنة التلقائية لكنها غير متاحة بعد."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr "تحقق من طلب الوصول على هاتفك، ثم اقرأ الألبومات مجددًا."

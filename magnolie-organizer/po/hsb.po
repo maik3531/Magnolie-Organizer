@@ -1220,6 +1220,9 @@ msgstr "Awtomatisce přihódne nałoženje wubrać"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Dopomnjeća na róčnicy awtomatisce schować"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Awtomatiske wusynkronizowanje je wubrane, ale hišće k dispoziciji njeje."
+
 msgid "Automatically over the current connection"
 msgstr "Awtomatisce přez aktualny zwisk"
 
@@ -10387,9 +10390,6 @@ msgstr "＋ Termin přidać"
 #~ msgstr ""
 #~ "Awtomatiska synchronizacija je zastajena. Přeńdźće do manuelneho modusa a "
 #~ "zmóžńće ju znowa, zo byšće pokročował."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr ""
 #~ "Awtomatiska synchronizacija je wubrana, ale hišće k dispoziciji njeje."
 
 #~ msgid "Check the access request on your phone, then read the albums again."

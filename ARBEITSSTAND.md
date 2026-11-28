@@ -245,6 +245,13 @@ aufgeführt.
   Beide Rollen der Windows/Notes-Kopplung sind separat am privaten
   Quellstand geprüft. Weitere Inhaltsmodi, Funk und die installierte
   Abnahme bleiben offen.
+  In den Organizer-Einstellungen bleibt eine gespeicherte Wahl
+  „Automatisch über die aktuelle Verbindung“ bei fehlenden
+  Voraussetzungen sichtbar, mit einem Wartehinweis. Die Anzeige ändert
+  die Wahl und die bestehenden manuellen/WLAN-Wege nicht. 54 Linux-Tests,
+  die Einstellungen und Zeitabgleichs-Oberflächen beider Desktopquellen,
+  acht Linux-Rendererfälle, zwei native Windows-Testgruppen und der
+  vollständige WinForms-Bau bestanden. Marker 8 bleibt unbeworben.
 - [#148](https://github.com/maik3531/Magnolie-Organizer/issues/148):
   Bei der Notes-Fernprüfung beginnt die nächste Runde nach dem zuletzt
   tatsächlich versuchten Partner. Das vermeidet, dass langsame frühere

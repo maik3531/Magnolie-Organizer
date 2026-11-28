@@ -1171,6 +1171,9 @@ msgstr "Automaticky vybrat vhodnou aplikaci"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Automaticky skrývat připomínky výročí"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatická synchronizace je vybrána, ale zatím není dostupná."
+
 msgid "Automatically over the current connection"
 msgstr "Automaticky přes aktuální spojení"
 
@@ -10240,9 +10243,6 @@ msgstr "＋ Přidat schůzku"
 #~ msgstr ""
 #~ "Automatická synchronizace je pozastavena. Pro pokračování přepněte do "
 #~ "ručního režimu a znovu ji zapněte."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Automatická synchronizace je vybrána, ale zatím není dostupná."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr "Zkontrolujte žádost o přístup v telefonu a poté znovu načtěte alba."

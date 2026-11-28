@@ -1106,6 +1106,9 @@ msgstr ""
 msgid "Automatic cloud-folder backups"
 msgstr ""
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr ""
+
 msgid "Automatically choose a suitable application"
 msgstr ""
 

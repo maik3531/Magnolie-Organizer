@@ -1160,6 +1160,9 @@ msgstr "Choisir automatiquement une application adaptée"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Masquer automatiquement les rappels d’anniversaire"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "La synchronisation automatique est sélectionnée, mais elle n’est pas encore disponible."
+
 msgid "Automatically over the current connection"
 msgstr "Automatiquement via la connexion actuelle"
 
@@ -10507,9 +10510,6 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ msgstr ""
 #~ "La synchronisation automatique est en pause. Passez en mode manuel, puis "
 #~ "réactivez-la pour reprendre."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr ""
 #~ "La synchronisation automatique est sélectionnée, mais pas encore "
 #~ "disponible."
 

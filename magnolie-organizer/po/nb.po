@@ -1130,6 +1130,9 @@ msgstr "Velg automatisk et egnet program"
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Skjul påminnelser om merkedager automatisk"
 
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatisk synkronisering er valgt, men er ennå ikke tilgjengelig."
+
 msgid "Automatically over the current connection"
 msgstr "Automatisk via den gjeldende forbindelsen"
 
@@ -10226,9 +10229,6 @@ msgstr "＋ Legg til avtale"
 #~ msgstr ""
 #~ "Automatisk synkronisering er satt på pause. Bytt til manuell modus og "
 #~ "aktiver den igjen for å fortsette."
-
-#~ msgid "Automatic synchronization is selected but is not available yet."
-#~ msgstr "Automatisk synkronisering er valgt, men er ennå ikke tilgjengelig."
 
 #~ msgid "Check the access request on your phone, then read the albums again."
 #~ msgstr ""

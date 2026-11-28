@@ -11,10 +11,14 @@ internal sealed partial class TelefonCoordinator
         lock (gate)
         {
             var peer = store.LoadPeers().SingleOrDefault(value => value.Id == id && value.State == "paired");
-            if (peer is null) return new JsonObject { ["supported"] = false, ["initialized"] = false, ["ready"] = false, ["values"] = null };
+            if (peer is null) return new JsonObject { ["supported"] = false, ["auto_connection_supported"] = false,
+                ["initialized"] = false, ["ready"] = false, ["values"] = null };
             var body = store.SharedSettings(id, peer.PublicKey);
             online.TryGetValue(id, out var connection);
-            return new JsonObject { ["supported"] = SharedSyncSettings.Supported(SharedLocalCapabilities(), peer.Capabilities),
+            var local = SharedLocalCapabilities();
+            var supported = SharedSyncSettings.Supported(local, peer.Capabilities);
+            return new JsonObject { ["supported"] = supported,
+                ["auto_connection_supported"] = supported && PersonalSyncContract.AutoConnectionSupported(local, peer.Capabilities),
                 ["initialized"] = body is not null, ["ready"] = connection?.SharedSettingsReady == true,
                 ["values"] = body is null ? null : SharedSyncSettings.Effective(body) };
         }
