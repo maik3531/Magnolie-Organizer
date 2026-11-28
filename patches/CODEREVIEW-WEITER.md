@@ -10,11 +10,15 @@ Reviewzweig: work/open-issues-audit-20261127
 
 Diese dauerhafte Fortsetzungsdatei: patches/CODEREVIEW-WEITER.md auf dem Reviewzweig.
 
-Letzte vollständige Übergabe: patches/codereview-holiday-cache-2026-11-28/README.md auf demselben Zweig (Fachissue #855). Ältere Pakete darunter bleiben historische Quellen.
+Letzte vollständige Übergabe: patches/codereview-national-watermarks-2026-11-28/README.md (erster Teilpatch #853 nach #850); #855 bleibt als vorherige Übergabe erhalten.
 
 Zentrale Issue-Übergabe: https://github.com/maik3531/Magnolie-Organizer/issues/113
 
 Stand dieses abgeschlossenen Arbeitspakets: 27. November 2026. Es läuft aus diesem Paket kein ungesicherter Produktänderungsschritt mehr. Bei jedem neuen Lauf tatsächlichen aktuellen main und jüngste Issuekommentare lesen; diese historische Basis ist kein Ersatz für den frischen Vergleich.
+
+## Neuester Teilpatch – nationale Festtagswasserzeichen #853 (28.11.2026)
+
+[Erster Teilpatch und Nachweise](codereview-national-watermarks-2026-11-28/README.md) auf main `1749c92eb42801c38eaba31b272d8c0e27be9164`, **nach #850 anwenden**. Drei nationale Identitäten und neue SVGs (CH/FR/NL), NL-Ersatzsamstag, keine unbekannten Länder. V8-DOM-Doubles je Plattform 22/40 → 40/40, Textpatch-Rundlauf und Syntax; keine native/Raster/JSDOM-Abnahme. #853 bleibt offen für weitere Festidentitäten und regionale Regeln, Motive/Handbuch/Übersetzungen. Nächster konkreter Schritt #854: FR/BE/NL-Gruppen und Unterregionen anhand amtlicher Daten und tatsächlichem Anfrage-/Speicherpfad; #855-Nachprüfung und #128 nicht konkurrierend bearbeiten, Sync-Aufsetzpunkt erhalten.
 
 ## Neuester abgeschlossener Review – Cache-Erhalt #855 (28.11.2026)
 

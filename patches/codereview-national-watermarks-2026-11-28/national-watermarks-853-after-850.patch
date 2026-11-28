@@ -1,0 +1,245 @@
+diff --git a/magnolie-organizer/web/appearance.js b/magnolie-organizer/web/appearance.js
+--- a/magnolie-organizer/web/appearance.js
++++ b/magnolie-organizer/web/appearance.js
+@@ -52,5 +52,27 @@
+       { d: "M38 63C25 49 21 61 38 65C55 51 59 63 41 65M38 65L30 74M41 65L49 73", fill: "none", "data-motif-part": "ribbon" }
+-    ]
+-  });
+-  function element(name, attrs = {}) {
++    ],
++    "swiss-lantern": [
++      { d: "M29 18C29 6 51 6 51 18", fill: "none" },
++      { d: "M20 22L40 16L60 22L56 60L40 69L24 60Z", fill: "none" },
++      { d: "M20 22L40 29L60 22M40 29L40 69M24 60L40 53L56 60", fill: "none" },
++      { d: "M28 32L32 33L32 40L37 42L37 47L32 45L32 52L28 51L28 44L24 42L24 37L28 39Z", fill: "none" },
++      { d: "M44 49C44 44 50 41 49 36C56 44 55 49 50 51C47 52 44 51 44 49Z", fill: "none" },
++      { d: "M31 70L49 70L47 74L33 74Z", fill: "none" }
++    ],
++    "french-rosette": [
++      { d: "M27 50L17 72L29 68L34 76L40 55M53 50L63 72L51 68L46 76L40 55", fill: "none" },
++      { d: "M40 7L46 11L53 10L57 16L64 19L65 26L70 32L67 39L69 45L63 50L60 57L53 58L47 63L40 60L33 63L27 58L20 57L17 50L11 45L13 39L10 32L15 26L16 19L23 16L27 10L34 11Z", fill: "none" },
++      { d: "M40 15A20 20 0 1 1 40 55A20 20 0 1 1 40 15Z", fill: "none" },
++      { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
++      { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
++    ],
++    "kings-crown": [
++      { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
++      { d: "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57", fill: "none" },
++      { d: "M40 8L40 14M37 11L43 11M13 16L17 12M63 12L67 16", fill: "none" },
++      { d: "M40 43L44 47L40 51L36 47Z" },
++      { d: "M9 38L13 43M67 43L71 38M19 68L14 72M61 68L66 72", fill: "none" }
++    ]
++  });
++  function element(name, attrs = {}) {
+     const result = document.createElementNS(ns, name);
+@@ -81,10 +103,29 @@
+   }
+-  function holiday(iso) {
+-    const value = dateParts(iso); if (!value) return "none";
+-    const key = value.month + "-" + value.day;
+-    const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
+-    if (fixed) return fixed;
+-    const delta = value.date.getTime() - easter(value.year).getTime();
+-    return delta === 0 || delta === 86400000 ? "eggs" : "none";
+-  }
++  // Verified national festival identities, not translated calendar names.
++  const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
++  const nationalMotifs = Object.freeze({
++    "ch-national-day": "swiss-lantern",
++    "fr-national-day": "french-rosette",
++    "nl-kings-day": "kings-crown"
++  });
++  function nationalFestival(value, country) {
++    const { year, month, day } = value;
++    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
++    if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
++    if (country === "NL" && year >= 2014 && month === 4) {
++      const observed = new Date(Date.UTC(year, 3, 27)).getUTCDay() === 0 ? 26 : 27;
++      if (day === observed) return "nl-kings-day";
++    }
++    return "";
++  }
++  function holiday(iso, country = "") {
++    const value = dateParts(iso); if (!value || !holidayCountries.has(country)) return "none";
++    const national = nationalMotifs[nationalFestival(value, country)];
++    if (national) return national;
++    const key = value.month + "-" + value.day;
++    const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
++    if (fixed) return fixed;
++    const delta = value.date.getTime() - easter(value.year).getTime();
++    return delta === 0 || delta === 86400000 ? "eggs" : "none";
++  }
+   function connection(notes, kde) {
+@@ -152,3 +193,3 @@
+     if (context.locked) return;
+-    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso);
++    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso, context.country);
+     const image = stamp(kind);
+@@ -193,3 +234,3 @@
+       panel.sample.replaceChildren();
+-      const image = stamp(preview.holiday === "auto" ? holiday(date) : preview.holiday);
++      const image = stamp(preview.holiday === "auto" ? holiday(date, context.country) : preview.holiday);
+       if (image) panel.sample.append(image);
+diff --git a/magnolie-organizer-windows/app/web/appearance.js b/magnolie-organizer-windows/app/web/appearance.js
+--- a/magnolie-organizer-windows/app/web/appearance.js
++++ b/magnolie-organizer-windows/app/web/appearance.js
+@@ -52,5 +52,27 @@
+       { d: "M38 63C25 49 21 61 38 65C55 51 59 63 41 65M38 65L30 74M41 65L49 73", fill: "none", "data-motif-part": "ribbon" }
+-    ]
+-  });
+-  function element(name, attrs = {}) {
++    ],
++    "swiss-lantern": [
++      { d: "M29 18C29 6 51 6 51 18", fill: "none" },
++      { d: "M20 22L40 16L60 22L56 60L40 69L24 60Z", fill: "none" },
++      { d: "M20 22L40 29L60 22M40 29L40 69M24 60L40 53L56 60", fill: "none" },
++      { d: "M28 32L32 33L32 40L37 42L37 47L32 45L32 52L28 51L28 44L24 42L24 37L28 39Z", fill: "none" },
++      { d: "M44 49C44 44 50 41 49 36C56 44 55 49 50 51C47 52 44 51 44 49Z", fill: "none" },
++      { d: "M31 70L49 70L47 74L33 74Z", fill: "none" }
++    ],
++    "french-rosette": [
++      { d: "M27 50L17 72L29 68L34 76L40 55M53 50L63 72L51 68L46 76L40 55", fill: "none" },
++      { d: "M40 7L46 11L53 10L57 16L64 19L65 26L70 32L67 39L69 45L63 50L60 57L53 58L47 63L40 60L33 63L27 58L20 57L17 50L11 45L13 39L10 32L15 26L16 19L23 16L27 10L34 11Z", fill: "none" },
++      { d: "M40 15A20 20 0 1 1 40 55A20 20 0 1 1 40 15Z", fill: "none" },
++      { d: "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z", fill: "none" },
++      { d: "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z" }
++    ],
++    "kings-crown": [
++      { d: "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z", fill: "none" },
++      { d: "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57", fill: "none" },
++      { d: "M40 8L40 14M37 11L43 11M13 16L17 12M63 12L67 16", fill: "none" },
++      { d: "M40 43L44 47L40 51L36 47Z" },
++      { d: "M9 38L13 43M67 43L71 38M19 68L14 72M61 68L66 72", fill: "none" }
++    ]
++  });
++  function element(name, attrs = {}) {
+     const result = document.createElementNS(ns, name);
+@@ -81,10 +103,29 @@
+   }
+-  function holiday(iso) {
+-    const value = dateParts(iso); if (!value) return "none";
+-    const key = value.month + "-" + value.day;
+-    const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
+-    if (fixed) return fixed;
+-    const delta = value.date.getTime() - easter(value.year).getTime();
+-    return delta === 0 || delta === 86400000 ? "eggs" : "none";
+-  }
++  // Verified national festival identities, not translated calendar names.
++  const holidayCountries = new Set(["DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]);
++  const nationalMotifs = Object.freeze({
++    "ch-national-day": "swiss-lantern",
++    "fr-national-day": "french-rosette",
++    "nl-kings-day": "kings-crown"
++  });
++  function nationalFestival(value, country) {
++    const { year, month, day } = value;
++    if (country === "CH" && year >= 1994 && month === 8 && day === 1) return "ch-national-day";
++    if (country === "FR" && year >= 1880 && month === 7 && day === 14) return "fr-national-day";
++    if (country === "NL" && year >= 2014 && month === 4) {
++      const observed = new Date(Date.UTC(year, 3, 27)).getUTCDay() === 0 ? 26 : 27;
++      if (day === observed) return "nl-kings-day";
++    }
++    return "";
++  }
++  function holiday(iso, country = "") {
++    const value = dateParts(iso); if (!value || !holidayCountries.has(country)) return "none";
++    const national = nationalMotifs[nationalFestival(value, country)];
++    if (national) return national;
++    const key = value.month + "-" + value.day;
++    const fixed = { "12-6": "boots", "12-24": "santa", "12-31": "rocket", "1-1": "glass" }[key];
++    if (fixed) return fixed;
++    const delta = value.date.getTime() - easter(value.year).getTime();
++    return delta === 0 || delta === 86400000 ? "eggs" : "none";
++  }
+   function connection(notes, kde) {
+@@ -152,3 +193,3 @@
+     if (context.locked) return;
+-    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso);
++    const kind = simulated() && preview.holiday !== "auto" ? preview.holiday : holiday(iso, context.country);
+     const image = stamp(kind);
+@@ -193,3 +234,3 @@
+       panel.sample.replaceChildren();
+-      const image = stamp(preview.holiday === "auto" ? holiday(date) : preview.holiday);
++      const image = stamp(preview.holiday === "auto" ? holiday(date, context.country) : preview.holiday);
+       if (image) panel.sample.append(image);
+diff --git a/magnolie-organizer/pruefungen/appearance-model.cjs b/magnolie-organizer/pruefungen/appearance-model.cjs
+--- a/magnolie-organizer/pruefungen/appearance-model.cjs
++++ b/magnolie-organizer/pruefungen/appearance-model.cjs
+@@ -13,3 +13,19 @@
+   for (const country of ["", "ES", "FR", "IT", "AU", "CN", "ZZ"]) assert.equal(appearance.season("2026-12-10", country), "none", country);
+-  for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date), expected, date);
++  for (const [date, expected] of [["2026-12-06", "boots"], ["2026-12-24", "santa"], ["2026-12-31", "rocket"], ["2027-01-01", "glass"], ["2026-04-05", "eggs"], ["2026-04-06", "eggs"], ["2027-03-28", "eggs"], ["2027-03-29", "eggs"], ["2026-04-07", "none"]]) assert.equal(appearance.holiday(date, "DE"), expected, date);
++  for (const [date, country, expected] of [
++    ["2026-08-01", "CH", "swiss-lantern"], ["2026-08-01", "DE", "none"],
++    ["2026-07-14", "FR", "french-rosette"], ["2026-07-14", "BE", "none"],
++    ["2025-04-26", "NL", "kings-crown"], ["2025-04-27", "NL", "none"],
++    ["2026-04-27", "NL", "kings-crown"], ["2026-04-26", "NL", "none"],
++    ["2013-04-27", "NL", "none"], ["2026-12-06", "", "none"],
++    ["2026-04-05", "CN", "none"], ["2026-01-01", "ZZ", "none"]
++  ]) assert.equal(appearance.holiday(date, country), expected, date + " " + country);
++  for (const kind of ["swiss-lantern", "french-rosette", "kings-crown"]) {
++    const svg = appearance.stamp(kind);
++    assert.equal(svg.dataset.appearanceWatermark, kind);
++    assert.equal(svg.getAttribute("aria-hidden"), "true");
++    assert.equal(svg.getAttribute("focusable"), "false");
++    assert(svg.querySelectorAll("path").length >= 5);
++    assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
++  }
+   for (const connected of ["none", "notes", "kde", "both"]) for (const mode of ["flower", "camera", "phone"]) for (const sync of [false, true]) {
+@@ -100,3 +116,13 @@
+   assert(day.querySelector('.magnolie-feiertags-schatten[data-appearance-watermark="santa"] [data-motif-part="smile"]'));
+-  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 1);
++  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 1);
++  day.className = "wo-tag"; desktop.append(day);
++  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: false });
++  appearance.day(day, "2025-04-26");
++  assert(day.querySelector('[data-appearance-watermark="kings-crown"]'));
++  appearance.update({ today: "2025-04-26", country: "DE", developer: false, locked: false });
++  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 0);
++  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: false });
++  assert.equal(day.querySelectorAll('[data-appearance-watermark="kings-crown"]').length, 1);
++  appearance.update({ today: "2025-04-26", country: "NL", developer: false, locked: true });
++  assert.equal(day.querySelectorAll("[data-appearance-watermark]").length, 0);
+   console.log("Appearance model PASS: actual-boolean color matrix, seasonal boundaries, Gregorian Easter, 24 isolated icon variants and passive original vector shapes.");
+diff --git a/magnolie-organizer/pruefungen/appearance-ui.cjs b/magnolie-organizer/pruefungen/appearance-ui.cjs
+--- a/magnolie-organizer/pruefungen/appearance-ui.cjs
++++ b/magnolie-organizer/pruefungen/appearance-ui.cjs
+@@ -9,3 +9,3 @@
+     const data = { notizen: [{ id: "keep", titel: "Unchanged", text: "Original" }],
+-      einstellungen: { allgemein: { entwicklermodus: true } } };
++      einstellungen: { allgemein: { entwicklermodus: true }, ort: { land: "DE" } } };
+     const b = await harness.exports.boot(web, data);
+@@ -28,3 +28,3 @@
+       b.w.eval(enabledSource);
+-      b.w.MagnolieAppearance.update({ today: "2026-12-06", developer: true, locked: false });
++      b.w.MagnolieAppearance.update({ today: "2026-12-06", country: "DE", developer: true, locked: false });
+       b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-entwickler").click();
+diff --git a/contracts/appearance-v1.md b/contracts/appearance-v1.md
+--- a/contracts/appearance-v1.md
++++ b/contracts/appearance-v1.md
+@@ -18,7 +18,20 @@
+   und zusätzlich auf 1 cm CSS-Maß begrenzt; keine Animation/zusätzliche Uhr.
+-- Wochen-Tagesfelder: Stiefel am 6. Dezember, Weihnachtsmann am 24. Dezember,
+-  Rakete am 31. Dezember, Sektglas am 1. Januar, Eier am gregorianischen Ostersonntag
+-  und Ostermontag. Die Motive richten sich nach dem dargestellten Tag, nicht nach
+-  angelegten Feiertags-/Termindatensätzen. Der Osterumfang ist die derzeitige
+-  Auslegung von „zu Ostern“ und kann bei anderer Nutzerpräferenz angepasst werden.
++- Wochen-Tagesfelder verwenden das ausdrücklich gewählte Feiertagsland und
++  das Datum des dargestellten Tages. Ohne bekanntes Land erscheint kein
++  automatisches Festtagsmotiv. Für die zwölf derzeit auswählbaren Länder
++  bleiben die bisherigen westlichen Motive vorläufig erhalten; ihre genaue
++  regionale und kulturelle Zuordnung bleibt offen (#853).
++- Neue verifizierte nationale Festidentitäten: Schweiz (1. August, Laterne,
++  landesweit seit 1994); Frankreich (14. Juli seit 1880, Kokarde); Niederlande
++  (Koningsdag, Krone, seit 2014 am 27. April bzw. am Samstag 26. April bei
++  Sonntag). Die Regeln sind unabhängig von Programmsprache und funktionieren
++  offline. Sie erzeugen keine Kalenderdaten, ändern keine Schalter und
++  leiten keine Zugehörigkeit aus Namen, Sprache oder Religion ab.
++- Quellen: https://www.aboutswitzerland.eda.admin.ch/en/national-holiday-and-national-anthem ,
++  https://www.info.gouv.fr/actualite/pourquoi-le-14-juillet-est-il-notre-fete-nationale ,
++  https://www.royal-house.nl/topics/monarchy/king%E2%80%99s-day und
++  https://www.royal-house.nl/latest/news/2013/1/28/kings-day-on-27-april-from-2014 .
++  Automatische Vorschau mit gewähltem Land und Testdatum; bisherige explizite
++  Übersteuerungen bleiben erhalten. Weitere Festidentitäten und Provider
++  sind Folgearbeit (#853/#854).
+ - Die Motive sind sehr schwache Magnolie-farbene Schatten, nicht interaktiv und

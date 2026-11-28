@@ -1,0 +1,1001 @@
+{
+  "main": "1749c92eb42801c38eaba31b272d8c0e27be9164",
+  "prerequisiteCommit": "c5df2b43f5636457aa2129f9a7bc1144e9bd7c9e",
+  "prerequisiteBlob": "02f42b3b92b5862345138df54e8e9e4b5a2ce68c",
+  "sourceBlobs": {
+    "magnolie-organizer/web/appearance.js": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+    "magnolie-organizer-windows/app/web/appearance.js": "d5a8394d3ae57b7f894e6dd09f2c8c423157e9c0",
+    "magnolie-organizer/pruefungen/appearance-model.cjs": "b676117391470defc6d8a2fd8b0be0c34d1b900e",
+    "magnolie-organizer/pruefungen/appearance-ui.cjs": "d177ef456e5af58632ce72b626cd5ce6909f0649",
+    "contracts/appearance-v1.md": "0c900a97b9a8ecd0cdc8f24268f4a570633bbf9c"
+  },
+  "before": [
+    {
+      "passed": 22,
+      "total": 40,
+      "tests": [
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "2025-08-01 CH => swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "1993-08-01 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-31 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-02 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-01 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "pass": false
+        },
+        {
+          "name": "1880-07-14 FR => french-rosette",
+          "pass": false
+        },
+        {
+          "name": "1879-07-14 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-13 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 BE => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-27 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2026-04-26 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2014-04-26 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2014-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2013-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06  => none",
+          "pass": false
+        },
+        {
+          "name": "2026-12-24 AU => none",
+          "pass": false
+        },
+        {
+          "name": "2026-04-05 CN => none",
+          "pass": false
+        },
+        {
+          "name": "2027-01-01 ZZ => none",
+          "pass": false
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 DE => santa",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 DE => rocket",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 DE => glass",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-06 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-07 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 CH => none",
+          "pass": true
+        },
+        {
+          "name": "svg swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "svg french-rosette",
+          "pass": false
+        },
+        {
+          "name": "svg kings-crown",
+          "pass": false
+        },
+        {
+          "name": "initial NL",
+          "pass": false
+        },
+        {
+          "name": "switch DE",
+          "pass": true
+        },
+        {
+          "name": "switch NL",
+          "pass": false
+        },
+        {
+          "name": "no duplicate",
+          "pass": false
+        },
+        {
+          "name": "lock",
+          "pass": true
+        },
+        {
+          "name": "unlock",
+          "pass": false
+        }
+      ],
+      "svg": {}
+    },
+    {
+      "passed": 22,
+      "total": 40,
+      "tests": [
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "2025-08-01 CH => swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "1993-08-01 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-31 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-02 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-01 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "pass": false
+        },
+        {
+          "name": "1880-07-14 FR => french-rosette",
+          "pass": false
+        },
+        {
+          "name": "1879-07-14 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-13 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 BE => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-27 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2026-04-26 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2014-04-26 NL => kings-crown",
+          "pass": false
+        },
+        {
+          "name": "2014-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2013-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06  => none",
+          "pass": false
+        },
+        {
+          "name": "2026-12-24 AU => none",
+          "pass": false
+        },
+        {
+          "name": "2026-04-05 CN => none",
+          "pass": false
+        },
+        {
+          "name": "2027-01-01 ZZ => none",
+          "pass": false
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 DE => santa",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 DE => rocket",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 DE => glass",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-06 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-07 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 CH => none",
+          "pass": true
+        },
+        {
+          "name": "svg swiss-lantern",
+          "pass": false
+        },
+        {
+          "name": "svg french-rosette",
+          "pass": false
+        },
+        {
+          "name": "svg kings-crown",
+          "pass": false
+        },
+        {
+          "name": "initial NL",
+          "pass": false
+        },
+        {
+          "name": "switch DE",
+          "pass": true
+        },
+        {
+          "name": "switch NL",
+          "pass": false
+        },
+        {
+          "name": "no duplicate",
+          "pass": false
+        },
+        {
+          "name": "lock",
+          "pass": true
+        },
+        {
+          "name": "unlock",
+          "pass": false
+        }
+      ],
+      "svg": {}
+    }
+  ],
+  "after": [
+    {
+      "passed": 40,
+      "total": 40,
+      "tests": [
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "2025-08-01 CH => swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "1993-08-01 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-31 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-02 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-01 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "pass": true
+        },
+        {
+          "name": "1880-07-14 FR => french-rosette",
+          "pass": true
+        },
+        {
+          "name": "1879-07-14 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-13 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 BE => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-27 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-26 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2014-04-26 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2014-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2013-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06  => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 AU => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 CN => none",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 ZZ => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 DE => santa",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 DE => rocket",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 DE => glass",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-06 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-07 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 CH => none",
+          "pass": true
+        },
+        {
+          "name": "svg swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "svg french-rosette",
+          "pass": true
+        },
+        {
+          "name": "svg kings-crown",
+          "pass": true
+        },
+        {
+          "name": "initial NL",
+          "pass": true
+        },
+        {
+          "name": "switch DE",
+          "pass": true
+        },
+        {
+          "name": "switch NL",
+          "pass": true
+        },
+        {
+          "name": "no duplicate",
+          "pass": true
+        },
+        {
+          "name": "lock",
+          "pass": true
+        },
+        {
+          "name": "unlock",
+          "pass": true
+        }
+      ],
+      "svg": {
+        "swiss-lantern": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M29 18C29 6 51 6 51 18"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M20 22L40 16L60 22L56 60L40 69L24 60Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M20 22L40 29L60 22M40 29L40 69M24 60L40 53L56 60"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M28 32L32 33L32 40L37 42L37 47L32 45L32 52L28 51L28 44L24 42L24 37L28 39Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M44 49C44 44 50 41 49 36C56 44 55 49 50 51C47 52 44 51 44 49Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M31 70L49 70L47 74L33 74Z"
+            }
+          ]
+        },
+        "french-rosette": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M27 50L17 72L29 68L34 76L40 55M53 50L63 72L51 68L46 76L40 55"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 7L46 11L53 10L57 16L64 19L65 26L70 32L67 39L69 45L63 50L60 57L53 58L47 63L40 60L33 63L27 58L20 57L17 50L11 45L13 39L10 32L15 26L16 19L23 16L27 10L34 11Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 15A20 20 0 1 1 40 55A20 20 0 1 1 40 15Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z"
+            },
+            {
+              "fill": "currentColor",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z"
+            }
+          ]
+        },
+        "kings-crown": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 8L40 14M37 11L43 11M13 16L17 12M63 12L67 16"
+            },
+            {
+              "fill": "currentColor",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 43L44 47L40 51L36 47Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M9 38L13 43M67 43L71 38M19 68L14 72M61 68L66 72"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "passed": 40,
+      "total": 40,
+      "tests": [
+        {
+          "name": "2026-08-01 CH => swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "2025-08-01 CH => swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "1993-08-01 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-31 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-02 CH => none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-01 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 FR => french-rosette",
+          "pass": true
+        },
+        {
+          "name": "1880-07-14 FR => french-rosette",
+          "pass": true
+        },
+        {
+          "name": "1879-07-14 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-13 FR => none",
+          "pass": true
+        },
+        {
+          "name": "2026-07-14 BE => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2025-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-27 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-26 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2014-04-26 NL => kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2014-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2013-04-27 NL => none",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06  => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 AU => none",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 CN => none",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 ZZ => none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-06 DE => boots",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 DE => santa",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 DE => rocket",
+          "pass": true
+        },
+        {
+          "name": "2027-01-01 DE => glass",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-06 DE => eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-04-07 DE => none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 CH => none",
+          "pass": true
+        },
+        {
+          "name": "svg swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "svg french-rosette",
+          "pass": true
+        },
+        {
+          "name": "svg kings-crown",
+          "pass": true
+        },
+        {
+          "name": "initial NL",
+          "pass": true
+        },
+        {
+          "name": "switch DE",
+          "pass": true
+        },
+        {
+          "name": "switch NL",
+          "pass": true
+        },
+        {
+          "name": "no duplicate",
+          "pass": true
+        },
+        {
+          "name": "lock",
+          "pass": true
+        },
+        {
+          "name": "unlock",
+          "pass": true
+        }
+      ],
+      "svg": {
+        "swiss-lantern": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M29 18C29 6 51 6 51 18"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M20 22L40 16L60 22L56 60L40 69L24 60Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M20 22L40 29L60 22M40 29L40 69M24 60L40 53L56 60"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M28 32L32 33L32 40L37 42L37 47L32 45L32 52L28 51L28 44L24 42L24 37L28 39Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M44 49C44 44 50 41 49 36C56 44 55 49 50 51C47 52 44 51 44 49Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M31 70L49 70L47 74L33 74Z"
+            }
+          ]
+        },
+        "french-rosette": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M27 50L17 72L29 68L34 76L40 55M53 50L63 72L51 68L46 76L40 55"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 7L46 11L53 10L57 16L64 19L65 26L70 32L67 39L69 45L63 50L60 57L53 58L47 63L40 60L33 63L27 58L20 57L17 50L11 45L13 39L10 32L15 26L16 19L23 16L27 10L34 11Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 15A20 20 0 1 1 40 55A20 20 0 1 1 40 15Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 23A12 12 0 1 1 40 47A12 12 0 1 1 40 23Z"
+            },
+            {
+              "fill": "currentColor",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 28A7 7 0 1 1 40 42A7 7 0 1 1 40 28Z"
+            }
+          ]
+        },
+        "kings-crown": {
+          "attributes": {
+            "viewBox": "0 0 80 80",
+            "aria-hidden": "true",
+            "focusable": "false"
+          },
+          "paths": [
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M16 24L23 52L57 52L64 24L49 36L40 17L31 36Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M23 52L24 61Q40 66 56 61L57 52M28 57Q40 60 52 57"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 8L40 14M37 11L43 11M13 16L17 12M63 12L67 16"
+            },
+            {
+              "fill": "currentColor",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M40 43L44 47L40 51L36 47Z"
+            },
+            {
+              "fill": "none",
+              "stroke": "currentColor",
+              "stroke-width": "2",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "d": "M9 38L13 43M67 43L71 38M19 68L14 72M61 68L66 72"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "exactForwardReverse": true,
+  "syntax": true,
+  "desktopParity": true,
+  "gitCli": false,
+  "native": false
+}
