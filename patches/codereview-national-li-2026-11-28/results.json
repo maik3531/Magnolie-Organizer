@@ -1,0 +1,1599 @@
+{
+  "base": "f9e2567760f43d479e2a6aef501b91b6395ed256",
+  "latest": "ffe6c2f172a3bc005716e9867a3531651a73b164",
+  "blob": "0d8d5b32bd1d07093a3a0a8008b901717540d784",
+  "counts": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "before": 86,
+      "after": 96,
+      "total": 96,
+      "failed": [],
+      "beforeFailures": [
+        "option liechtenstein-lights",
+        "explicit liechtenstein-lights",
+        "1940-08-15 LI liechtenstein-lights",
+        "1989-08-15 LI liechtenstein-lights",
+        "1990-08-15 LI liechtenstein-lights",
+        "2026-08-15 LI liechtenstein-lights",
+        "2027-08-15 LI liechtenstein-lights",
+        "LI SVG attributes",
+        "LI calendar cell",
+        "LI cell idempotent"
+      ]
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "before": 86,
+      "after": 96,
+      "total": 96,
+      "failed": [],
+      "beforeFailures": [
+        "option liechtenstein-lights",
+        "explicit liechtenstein-lights",
+        "1940-08-15 LI liechtenstein-lights",
+        "1989-08-15 LI liechtenstein-lights",
+        "1990-08-15 LI liechtenstein-lights",
+        "2026-08-15 LI liechtenstein-lights",
+        "2027-08-15 LI liechtenstein-lights",
+        "LI SVG attributes",
+        "LI calendar cell",
+        "LI cell idempotent"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "path": "magnolie-organizer/web/appearance.js",
+      "before": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "option italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "explicit italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "option polish-banner",
+          "pass": true
+        },
+        {
+          "name": "explicit polish-banner",
+          "pass": true
+        },
+        {
+          "name": "option liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "explicit liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        },
+        {
+          "name": "1948-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1949-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1976-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "1977-06-05 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-06 IT none",
+          "pass": true
+        },
+        {
+          "name": "1985-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1986-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "1986-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1947-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-04 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "2001-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2001-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2026-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2024-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1936-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1937-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1938-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1939-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1945-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1988-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1989-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-10 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-12 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02  none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-10-03 DE unity-gate",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 IT eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 PL rocket",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes polish-banner",
+          "pass": true
+        },
+        {
+          "name": "calendar Italian motif",
+          "pass": true
+        },
+        {
+          "name": "calendar no duplicate",
+          "pass": true
+        },
+        {
+          "name": "calendar country refresh removes Italian",
+          "pass": true
+        },
+        {
+          "name": "calendar Polish motif",
+          "pass": true
+        },
+        {
+          "name": "calendar locked clears motif",
+          "pass": true
+        },
+        {
+          "name": "1939-08-15 LI none",
+          "pass": true
+        },
+        {
+          "name": "1940-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "1989-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "1990-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2026-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2027-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2026-08-14 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-16 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-01-23 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 DE none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 CH none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 AT none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15  none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-32 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 LI santa",
+          "pass": true
+        },
+        {
+          "name": "2026-07-21 BE belgian-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-06-23 LU luxembourg-concert",
+          "pass": true
+        },
+        {
+          "name": "LI SVG attributes",
+          "pass": false
+        },
+        {
+          "name": "LI calendar cell",
+          "pass": false
+        },
+        {
+          "name": "LI cell idempotent",
+          "pass": false
+        },
+        {
+          "name": "LI country switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI date switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI locked clears",
+          "pass": true
+        }
+      ],
+      "after": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "option italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "explicit italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "option polish-banner",
+          "pass": true
+        },
+        {
+          "name": "explicit polish-banner",
+          "pass": true
+        },
+        {
+          "name": "option liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "explicit liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        },
+        {
+          "name": "1948-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1949-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1976-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "1977-06-05 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-06 IT none",
+          "pass": true
+        },
+        {
+          "name": "1985-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1986-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "1986-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1947-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-04 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "2001-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2001-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2026-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2024-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1936-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1937-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1938-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1939-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1945-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1988-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1989-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-10 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-12 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02  none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-10-03 DE unity-gate",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 IT eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 PL rocket",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes polish-banner",
+          "pass": true
+        },
+        {
+          "name": "calendar Italian motif",
+          "pass": true
+        },
+        {
+          "name": "calendar no duplicate",
+          "pass": true
+        },
+        {
+          "name": "calendar country refresh removes Italian",
+          "pass": true
+        },
+        {
+          "name": "calendar Polish motif",
+          "pass": true
+        },
+        {
+          "name": "calendar locked clears motif",
+          "pass": true
+        },
+        {
+          "name": "1939-08-15 LI none",
+          "pass": true
+        },
+        {
+          "name": "1940-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "1989-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "1990-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2027-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2026-08-14 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-16 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-01-23 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 DE none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 CH none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 AT none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15  none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-32 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 LI santa",
+          "pass": true
+        },
+        {
+          "name": "2026-07-21 BE belgian-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-06-23 LU luxembourg-concert",
+          "pass": true
+        },
+        {
+          "name": "LI SVG attributes",
+          "pass": true
+        },
+        {
+          "name": "LI calendar cell",
+          "pass": true
+        },
+        {
+          "name": "LI cell idempotent",
+          "pass": true
+        },
+        {
+          "name": "LI country switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI date switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI locked clears",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "path": "magnolie-organizer-windows/app/web/appearance.js",
+      "before": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "option italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "explicit italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "option polish-banner",
+          "pass": true
+        },
+        {
+          "name": "explicit polish-banner",
+          "pass": true
+        },
+        {
+          "name": "option liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "explicit liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        },
+        {
+          "name": "1948-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1949-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1976-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "1977-06-05 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-06 IT none",
+          "pass": true
+        },
+        {
+          "name": "1985-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1986-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "1986-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1947-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-04 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "2001-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2001-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2026-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2024-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1936-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1937-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1938-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1939-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1945-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1988-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1989-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-10 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-12 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02  none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-10-03 DE unity-gate",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 IT eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 PL rocket",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes polish-banner",
+          "pass": true
+        },
+        {
+          "name": "calendar Italian motif",
+          "pass": true
+        },
+        {
+          "name": "calendar no duplicate",
+          "pass": true
+        },
+        {
+          "name": "calendar country refresh removes Italian",
+          "pass": true
+        },
+        {
+          "name": "calendar Polish motif",
+          "pass": true
+        },
+        {
+          "name": "calendar locked clears motif",
+          "pass": true
+        },
+        {
+          "name": "1939-08-15 LI none",
+          "pass": true
+        },
+        {
+          "name": "1940-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "1989-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "1990-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2026-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2027-08-15 LI liechtenstein-lights",
+          "pass": false
+        },
+        {
+          "name": "2026-08-14 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-16 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-01-23 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 DE none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 CH none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 AT none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15  none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-32 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 LI santa",
+          "pass": true
+        },
+        {
+          "name": "2026-07-21 BE belgian-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-06-23 LU luxembourg-concert",
+          "pass": true
+        },
+        {
+          "name": "LI SVG attributes",
+          "pass": false
+        },
+        {
+          "name": "LI calendar cell",
+          "pass": false
+        },
+        {
+          "name": "LI cell idempotent",
+          "pass": false
+        },
+        {
+          "name": "LI country switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI date switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI locked clears",
+          "pass": true
+        }
+      ],
+      "after": [
+        {
+          "name": "default panel remains disabled",
+          "pass": true
+        },
+        {
+          "name": "nondeveloper blocked",
+          "pass": true
+        },
+        {
+          "name": "locked blocked",
+          "pass": true
+        },
+        {
+          "name": "automatic country motif",
+          "pass": true
+        },
+        {
+          "name": "option unity-gate",
+          "pass": true
+        },
+        {
+          "name": "explicit unity-gate",
+          "pass": true
+        },
+        {
+          "name": "option neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "explicit neutrality-parliament",
+          "pass": true
+        },
+        {
+          "name": "option swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "explicit swiss-lantern",
+          "pass": true
+        },
+        {
+          "name": "option french-rosette",
+          "pass": true
+        },
+        {
+          "name": "explicit french-rosette",
+          "pass": true
+        },
+        {
+          "name": "option kings-crown",
+          "pass": true
+        },
+        {
+          "name": "explicit kings-crown",
+          "pass": true
+        },
+        {
+          "name": "option italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "explicit italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "option polish-banner",
+          "pass": true
+        },
+        {
+          "name": "explicit polish-banner",
+          "pass": true
+        },
+        {
+          "name": "option liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "explicit liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "all previous options retained",
+          "pass": true
+        },
+        {
+          "name": "invalid choice cannot change preview",
+          "pass": true
+        },
+        {
+          "name": "reset to automatic",
+          "pass": true
+        },
+        {
+          "name": "country change automatic",
+          "pass": true
+        },
+        {
+          "name": "none clears image",
+          "pass": true
+        },
+        {
+          "name": "legacy override works",
+          "pass": true
+        },
+        {
+          "name": "ordinary changes no native calls",
+          "pass": true
+        },
+        {
+          "name": "lock resets and stale event has no effect",
+          "pass": true
+        },
+        {
+          "name": "1948-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1949-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1976-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "1977-06-05 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1977-06-06 IT none",
+          "pass": true
+        },
+        {
+          "name": "1985-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1986-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "1986-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1947-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-04 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2000-06-02 IT none",
+          "pass": true
+        },
+        {
+          "name": "2001-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2001-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "2026-06-01 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-03 IT none",
+          "pass": true
+        },
+        {
+          "name": "2024-06-02 IT italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "1936-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1937-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1938-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "1939-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1945-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1988-11-11 PL none",
+          "pass": true
+        },
+        {
+          "name": "1989-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 PL polish-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-11-10 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-12 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02 PL none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-06-02  none",
+          "pass": true
+        },
+        {
+          "name": "2026-11-11 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-02-30 IT none",
+          "pass": true
+        },
+        {
+          "name": "2026-10-03 DE unity-gate",
+          "pass": true
+        },
+        {
+          "name": "2025-04-26 NL kings-crown",
+          "pass": true
+        },
+        {
+          "name": "2026-04-05 IT eggs",
+          "pass": true
+        },
+        {
+          "name": "2026-12-31 PL rocket",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes italian-ballot",
+          "pass": true
+        },
+        {
+          "name": "SVG attributes polish-banner",
+          "pass": true
+        },
+        {
+          "name": "calendar Italian motif",
+          "pass": true
+        },
+        {
+          "name": "calendar no duplicate",
+          "pass": true
+        },
+        {
+          "name": "calendar country refresh removes Italian",
+          "pass": true
+        },
+        {
+          "name": "calendar Polish motif",
+          "pass": true
+        },
+        {
+          "name": "calendar locked clears motif",
+          "pass": true
+        },
+        {
+          "name": "1939-08-15 LI none",
+          "pass": true
+        },
+        {
+          "name": "1940-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "1989-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "1990-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2027-08-15 LI liechtenstein-lights",
+          "pass": true
+        },
+        {
+          "name": "2026-08-14 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-16 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-01-23 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 DE none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 CH none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 AT none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15  none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-15 XX none",
+          "pass": true
+        },
+        {
+          "name": "2026-08-32 LI none",
+          "pass": true
+        },
+        {
+          "name": "2026-12-24 LI santa",
+          "pass": true
+        },
+        {
+          "name": "2026-07-21 BE belgian-banner",
+          "pass": true
+        },
+        {
+          "name": "2026-06-23 LU luxembourg-concert",
+          "pass": true
+        },
+        {
+          "name": "LI SVG attributes",
+          "pass": true
+        },
+        {
+          "name": "LI calendar cell",
+          "pass": true
+        },
+        {
+          "name": "LI cell idempotent",
+          "pass": true
+        },
+        {
+          "name": "LI country switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI date switch clears",
+          "pass": true
+        },
+        {
+          "name": "LI locked clears",
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "roundtrip": true,
+  "host": "V8 DOM doubles"
+}
