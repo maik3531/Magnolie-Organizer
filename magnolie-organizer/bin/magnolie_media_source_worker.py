@@ -45,12 +45,10 @@ class NativeMappedMediaWorker:
                 or self._token is None or c._media_transport.intent_for(self._kind,to_phone=True) is not self._token):
             raise TransferError('media_source_native_operation_ended')
         if c._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
-        if self._private_video:
-            intent=c._private_automatic_video() if self._automatic else c._private_manual_output('video')
+        if self._private_video or self._private_images:
+            intent=c._private_automatic_output(self._kind) if self._automatic else c._private_manual_output(self._kind)
             if intent is not self._token:
-                raise TransferError('media_source_typed_video_counterpart_required')
-        if self._private_images and c._private_outgoing_image_batch() is not self._token:
-            raise TransferError('media_source_batch_counterpart_required')
+                raise TransferError('media_source_current_intent_required')
         if self._collection_control is not None:
             controls,session,challenge=self._collection_control
             remote=controls._remote
@@ -190,11 +188,7 @@ class NativeMappedMediaWorker:
             mode=effective(self._token.body)['collection_mode']
             if mode not in ('phone_inventory','entire_collection'):
                 raise TransferError('media_source_current_intent_required')
-            if self._private_video and self._automatic and c._private_automatic_video() is not self._token:
-                raise TransferError('media_source_typed_video_counterpart_required')
-            if self._private_images and (self._automatic or c._private_outgoing_image_batch() is not self._token):
-                raise TransferError('media_source_batch_counterpart_required')
-            if mode=='entire_collection' and self._automatic and not self._private_video:
+            if mode=='entire_collection' and self._automatic and not (self._private_video or self._private_images):
                 # A manual composition proof is not native acceptance of an
                 # unattended whole-collection export. Keep that gate explicit.
                 raise TransferError('media_source_entire_collection_automatic_acceptance_required')

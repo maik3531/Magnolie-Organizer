@@ -169,8 +169,17 @@ aufgeführt.
   starteten keinen Versand; eine neue bewusste WLAN-Wahl war wirksam.
   Die manuellen Foto- und MP4-Gegenproben, 41 Linux-Prüfungen für
   Planung, Erstempfang und Videorechte sowie die Oberfläche bestanden.
-  Automatischer Versand nach einem Verbindungswechsel, Fotoausgabe im
-  WLAN und installierte Abnahme bleiben offen.
+  Der private Linux-Build kann auch neue Originalfotos
+  aus einem gewählten Bilderordner nach ausdrücklicher WLAN-Wahl senden.
+  Der gekoppelte Notes-Quelltest bestätigte zwei bytegleiche PNGs,
+  Saved, vollständiges v2-Rücklesen und den geschützten Quellenabschluss.
+  Bei erneuter bewusster WLAN-Wahl blieb ein unveränderter Ordner ohne
+  weitere Übertragung. Stopp während der ausstehenden Foto-Freigabe
+  verhinderte einen Start durch deren spätere Bestätigung. Die
+  MP4-Gegenprobe für Stopp und Ausschalten bestand. Beide manuellen
+  Gegenproben, 41 Linux-Regressionstests und die Oberfläche bestanden.
+  Automatischer Versand nach einem Verbindungswechsel und installierte
+  Abnahme bleiben offen.
   Änderungen vorhandener Galeriezeilen und Misch-Batches bleiben offen.
   Windows kann in der privaten Medienkonfiguration Original-MP4 aus
   einem ausdrücklich gewählten Videoordner manuell senden. Die Auswahl

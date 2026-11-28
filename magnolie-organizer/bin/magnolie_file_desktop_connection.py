@@ -44,6 +44,15 @@ def is_reserved_file_message(message):
     return isinstance(message, dict) and isinstance(message.get('kind'), str) and message['kind'].startswith('file_transfer.')
 
 
+@dataclass(frozen=True, eq=False)
+class _NativeWifiOutputChoice:
+    kind: str
+    settings: dict
+    sending_version: str
+    roots_version: str
+    book_version: str
+
+
 class NativeDesktopFileConnection:
     # Compiled native receivers, not consent or a file/OS grant. Optional package
     # composition still excludes them where unsupported. Explicit protected
@@ -114,7 +123,7 @@ class NativeDesktopFileConnection:
         self._media_support = media_support
         self._private_pc_video_runtime = private_pc_video_runtime is True and media_support is not None
         self._private_outgoing_bound = None
-        self._video_wifi_choice = None
+        self._wifi_output_choice = None
         self._media_pc_source = None
         self._media_sending_state = None
         self._media_sending_choice = None
@@ -416,7 +425,7 @@ class NativeDesktopFileConnection:
         if self._media_support is not None:
             self._refresh_private_output()
             if self._desktop_session is None:
-                if self._private_automatic_video() is None:
+                if self._private_automatic_output() is None:
                     kinds=self._private_receive_kinds()
                     if not kinds:return
                     from magnolie_media_sync import effective
@@ -443,13 +452,15 @@ class NativeDesktopFileConnection:
         values=effective(token.body)
         return token if (values['collection_mode'],values['direction'])==('entire_collection','pc_to_phone') else None
 
-    def _private_automatic_video(self):
-        choice=self._video_wifi_choice
-        token=self._private_outgoing_video()
+    def _private_automatic_output(self,kind=None):
+        choice=self._wifi_output_choice
+        if choice is None or kind is not None and choice.kind!=kind:
+            return None
+        token=self._private_outgoing_intent(choice.kind)
         sending=self._media_sending_state or {}
         roots=self._media_collection_roots_state or {}
-        if (choice is None or token is None or token.body!=choice[0] or self._private_outgoing_bound is not token
-                or not sending.get('videos') or sending.get('version')!=choice[1] or roots.get('version')!=choice[2]
+        if (token is None or token.body!=choice.settings or self._private_outgoing_bound is not token
+                or sending.get('version')!=choice.sending_version or roots.get('version')!=choice.roots_version
                 or self._media_collection_choice is not None or self._native_destination_choice is not None):
             return None
         return token
@@ -467,7 +478,7 @@ class NativeDesktopFileConnection:
         if token is None or transport.intent_for('video',to_phone=True) is not None:return None
         from magnolie_media_sync import effective
         values=effective(token.body)
-        return token if (values['collection_mode'],values['direction'],values['auto_mode'])==('entire_collection','pc_to_phone','manual') else None
+        return token if (values['collection_mode'],values['direction'])==('entire_collection','pc_to_phone') else None
 
     def _private_outgoing_intent(self,kind):
         return self._private_outgoing_video() if kind=='video' else self._private_outgoing_image_batch()
@@ -629,8 +640,7 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             if self._media_support is not None:
-                intent=(self._private_automatic_video() if automatic and kind=='video' else
-                    None if automatic else self._private_manual_output(kind))
+                intent=self._private_automatic_output(kind) if automatic else self._private_manual_output(kind)
                 if intent is None:
                     raise TransferError('media_source_current_intent_required')
             elif self._media_source is None:raise TransferError('media_source_native_composition_required')
@@ -669,7 +679,7 @@ class NativeDesktopFileConnection:
             self._require_pc_batch_counterpart()
             source=self._media_pc_source
             if (type(worker) is not NativeMappedMediaWorker or self._mapped_worker is not worker or worker._kind!='images'
-                    or worker._automatic or type(worker._collection) is not NativeCollectionPass or source is None
+                    or type(worker._collection) is not NativeCollectionPass or source is None
                     or self._collection_preparation_active() or self._media_sender is not None or self._run is not None
                     or self._source_pending is not None or self._source_run is not None or self._album_worker is not None):
                 raise TransferError('media_collection_original_worker_required')
@@ -765,14 +775,14 @@ class NativeDesktopFileConnection:
                     choices=[]
                     root_state=self._media_collection_roots_state or {}
                     roots=root_state.get('roots',())
-                    wifi_choice=self._video_wifi_choice
+                    wifi_choice=self._wifi_output_choice
                     if wifi_choice is not None:
                         from hashlib import sha256
                         value['collection_automatic_outgoing_waiting']=(
-                            sending.get('videos') is True and sending.get('version')==wifi_choice[1]
-                            and root_state.get('version')==wifi_choice[2]
-                            and shared['version']==sha256(canonical(wifi_choice[0])).hexdigest()
-                            and (self._desktop_session is None or self._desktop_session._video_wifi_started is not wifi_choice))
+                            sending.get('version')==wifi_choice.sending_version
+                            and root_state.get('version')==wifi_choice.roots_version
+                            and shared['version']==sha256(canonical(wifi_choice.settings)).hexdigest()
+                            and (self._desktop_session is None or self._desktop_session._wifi_output_started is not wifi_choice))
                     value['collection_manual_outgoing_ready']=False
                     for kind,field,compiled in (
                             ('images','photos',self._private_pc_image_runtime),
@@ -826,22 +836,33 @@ class NativeDesktopFileConnection:
                     media.change(body if body is not None else media.create(local),local,peer,field,value)
                     permit.require_current();current()
                     changed=transport.change(field,value)
-                    self._video_wifi_choice=None
-                    if (self._private_pc_video_runtime and field=='auto_mode' and value=='wifi'
-                            and media.configured(body if body is not None else media.create(local))['auto_mode']!='wifi'
-                            and media.requested_for(changed,'video',to_phone=True)
-                            and not media.requested_for(changed,'images',to_phone=True)
-                            and media.effective(changed)['direction']=='pc_to_phone'
-                            and media.effective(changed)['collection_mode']=='entire_collection'):
-                        self._local()
-                        sending=self._media_sending_state or {}
-                        roots=self._media_collection_roots_state or {}
-                        if sending.get('videos') and any(root['media_type']=='video' for root in roots.get('roots',())):
-                            self._video_wifi_choice=(changed,sending['version'],roots['version'],retention.saved_book_version())
+                    self._wifi_output_choice=None
+                    if (field=='auto_mode' and value=='wifi'
+                            and media.configured(body if body is not None else media.create(local))['auto_mode']!='wifi'):
+                        self._capture_wifi_output_choice(changed,retention)
                     transport.send_settings()
                     self._shared_schedule_changed()
                     permit.require_current();current()
             return self.desktop_snapshot()
+
+    def _capture_wifi_output_choice(self,settings,retention):
+        from magnolie_media_sync import effective,requested_for
+        values=effective(settings)
+        if (values['direction'],values['collection_mode'])!=('pc_to_phone','entire_collection'):
+            return
+        kinds=tuple(kind for kind in ('images','video') if requested_for(settings,kind,to_phone=True))
+        if kinds==('images',) and self._pc_batch_peer_ready():
+            kind,field='images','photos'
+        elif kinds==('video',) and self._private_pc_video_runtime:
+            kind,field='video','videos'
+        else:
+            return
+        self._local()
+        sending=self._media_sending_state or {}
+        roots=self._media_collection_roots_state or {}
+        if sending.get(field) is True and any(root['media_type']==kind for root in roots.get('roots',())):
+            self._wifi_output_choice=_NativeWifiOutputChoice(
+                kind,settings,sending['version'],roots['version'],retention.saved_book_version())
 
     def native_sending_consent(self,operation,*,photos=None,videos=None,selection=None,version=None):
         """Two-phase private native dialog choice; never a wire/browser approval.
@@ -3570,7 +3591,7 @@ class NativePhotoDesktopSession:
         self._video_destination=None; self._video_albums=[]; self._video_permission=None
         self._mode='manual';self._pending_mode=None;self._automatic_paused=False
         self._shared_schedule_token=None;self._shared_automatic=False
-        self._video_wifi_started=None
+        self._wifi_output_started=None
         self._shared_run_constraint=None
         self._timer=None;self._sync_active=False
         self._recovery=[];self._recovery_result=None
@@ -3686,7 +3707,7 @@ class NativePhotoDesktopSession:
                 self._pending_mode=operation.removeprefix('mode_')
                 self._schedule.set_mode(self._pending_mode) # Stop repeats now; commit UI mode after real I/O END.
             elif operation in ('stop','disable','videos_disable') and running:
-                self.connection._video_wifi_choice=None
+                self.connection._wifi_output_choice=None
                 self._disable_pending=operation=='disable' or self._disable_pending
                 self._video_disable_pending=operation=='videos_disable' or self._video_disable_pending
                 self._automatic_paused=True
@@ -3694,7 +3715,7 @@ class NativePhotoDesktopSession:
                 if worker is not None:worker.stop()
                 self.connection._wake_album_worker()
             elif operation=='stop':
-                self.connection._video_wifi_choice=None
+                self.connection._wifi_output_choice=None
                 self._automatic_paused=True;self._state='canceled'
                 return self.snapshot()
             else:
@@ -3720,14 +3741,14 @@ class NativePhotoDesktopSession:
                             private_output=(kind,intent)
                             break
                 elif operation=='automatic' and getattr(self.connection,'_media_support',None) is not None:
-                    wifi_choice=self.connection._video_wifi_choice
-                    intent=self.connection._private_automatic_video()
+                    wifi_choice=self.connection._wifi_output_choice
+                    intent=self.connection._private_automatic_output()
                     if intent is not None:
-                        if (wifi_choice is not self.connection._video_wifi_choice
-                                or self._video_wifi_started is wifi_choice):
+                        if (wifi_choice is not self.connection._wifi_output_choice
+                                or self._wifi_output_started is wifi_choice):
                             raise TransferError('media_source_wifi_automatic_composition_required')
-                        self._video_wifi_started=wifi_choice
-                        private_output=('video',intent)
+                        self._wifi_output_started=wifi_choice
+                        private_output=(wifi_choice.kind,intent)
                 if (operation=='sync_shared' and private_output is not None
                         and self.connection.desktop_snapshot().get('collection_manual_outgoing_ready') is not True):
                     raise TransferError('media_source_current_send_control_required')
@@ -3783,13 +3804,13 @@ class NativePhotoDesktopSession:
         transport=self.connection._media_transport
         if transport is not None and transport.requires_safe_return():return None
         if getattr(self.connection,'_media_support',None) is not None:
-            video=self.connection._private_automatic_video()
-            if video is not None:
+            output=self.connection._private_automatic_output()
+            if output is not None:
                 try:
                     binding=self.connection._controls.binding('0'*64,sender_is_local=True)
                     if binding is not None:
                         from hashlib import sha256
-                        return NativePhotoSyncScope(binding,sha256(canonical(video.body)).hexdigest(),self.connection)
+                        return NativePhotoSyncScope(binding,sha256(canonical(output.body)).hexdigest(),self.connection)
                 except (TransferError,OSError,InvalidTag):pass
                 return None
             kinds=self.connection._private_receive_kinds()
@@ -3839,8 +3860,8 @@ class NativePhotoDesktopSession:
         transport=self.connection._media_transport
         sending=self.connection._media_sending_state or {}
         private_media=getattr(self.connection,'_media_support',None) is not None
-        video_auto=self.connection._private_automatic_video() if private_media else None
-        token=video_auto or (next((value for kind in ('images','video')
+        output=self.connection._private_automatic_output() if private_media else None
+        token=output or (next((value for kind in ('images','video')
             if sending.get('photos' if kind=='images' else 'videos') is True
             and (value:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None and not private_media else None)
         if token is None and transport is not None:
@@ -3857,8 +3878,8 @@ class NativePhotoDesktopSession:
             if previous is token:return # Duplicate echo cannot undo local Stop/manual mode.
             self._shared_schedule_token=token;self._shared_automatic=automatic
             self._mode='automatic' if automatic else 'manual'
-            if (video_auto is not None and not self._running
-                    and self._video_wifi_started is not self.connection._video_wifi_choice):
+            if (output is not None and not self._running
+                    and self._wifi_output_started is not self.connection._wifi_output_choice):
                 self._automatic_paused=False
         # Same token/echo never clears _automatic_paused after explicit Stop.
         self._schedule.set_mode('automatic' if automatic else 'manual')
@@ -3877,8 +3898,8 @@ class NativePhotoDesktopSession:
                 with self._lock:
                     if self._running or self._automatic_paused or not self._enabled and not self._shared_automatic:continue
                     if self._shared_automatic and self.connection._native_wifi_current() is not True:continue
-                    if (self._video_wifi_started is not None and self._video_wifi_started is self.connection._video_wifi_choice
-                            and self.connection._private_automatic_video() is self._shared_schedule_token):
+                    if (self._wifi_output_started is not None and self._wifi_output_started is self.connection._wifi_output_choice
+                            and self.connection._private_automatic_output() is self._shared_schedule_token):
                         continue
                     run=self._schedule.take_due()
                     if run is None:continue
@@ -4278,7 +4299,8 @@ class NativePhotoDesktopSession:
             private_media=getattr(self.connection,'_media_support',None) is not None
             if private_output is not None and self.connection._private_outgoing_intent(private_output[0]) is not private_output[1]:
                 raise TransferError('media_source_current_intent_required')
-            if operation=='automatic' and private_output is not None and self.connection._private_automatic_video() is not private_output[1]:
+            if (operation=='automatic' and private_output is not None
+                    and self.connection._private_automatic_output(private_output[0]) is not private_output[1]):
                 raise TransferError('media_source_wifi_automatic_composition_required')
             if automatic_setup and (first_receive is None or not private_media):
                 raise TransferError('media_automatic_receive_setup_not_available')
@@ -4320,9 +4342,9 @@ class NativePhotoDesktopSession:
                     started=time.monotonic()
                     book_fence=(policy.saved_book_version(),started,started+policy.MAX_ACTIVE_COPY_SECONDS)
                 if operation=='automatic' and private_output is not None:
-                    choice=self.connection._video_wifi_choice
-                    if (choice is None or choice[3]!=book_fence[0]
-                            or self.connection._private_automatic_video() is not private_output[1]):
+                    choice=self.connection._wifi_output_choice
+                    if (choice is None or choice.book_version!=book_fence[0]
+                            or self.connection._private_automatic_output(private_output[0]) is not private_output[1]):
                         raise TransferError('media_source_original_book_required')
             if shared_token is not None:
                 original_book=book_fence
